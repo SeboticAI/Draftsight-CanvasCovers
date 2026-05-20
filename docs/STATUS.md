@@ -87,13 +87,18 @@ The short version:
 ## Current commit baseline
 
 - Branch: `main`
-- Last verified commit message: "Refresh reference docs for pickup after a break"
+- Last verified commit: `0d9291c` "Fix installer migration + bitmap rewrite (1.0.2)"
 - Build: clean (`dotnet build -c Release` produces `CanvasCovers.dll`
   with zero warnings)
 - Installer: clean (`.\Installer\build.ps1` produces
-  `Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`, ~2.2 MB).
+  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.0.2.exe`, ~2.2 MB).
   Installs to `C:\Program Files\BesiaCAD\CanvasCovers\` (Inno's
   `{commonpf64}\BesiaCAD\CanvasCovers`).
+- Verified post-install on the dev machine 2026-05-21: single uninstall
+  entry at v1.0.2, CLSID `InprocServer32` points at the Program Files
+  DLL, both deployed XMLs have the rewritten bitmap path, no orphans
+  at `C:\BesiaCAD\`. Auto-migration from a prior install (via
+  `PrepareToInstall`) confirmed working.
 
 ## Quick verification
 

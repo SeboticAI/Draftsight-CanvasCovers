@@ -488,6 +488,29 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   `targetLayer.Activate()`, insert the entity (lands on active layer at
   creation time), then restore the original active layer with
   `originalActive.Activate()`. No `EntityHelper` call is ever needed.
+- **Inno `[Code]` AfterInstall: parameter is unreliable for [Files]
+  entries.** Registered the rewrite procedure via `AfterInstall:` on the
+  two XML `[Files]` lines and it silently no-op'd — files installed but
+  the procedure never modified them (and never errored). Suspected
+  forward-reference / parse-order issue. **Use `CurStepChanged(ssPostInstall)`
+  instead** — explicit, guaranteed-to-fire, and lets you pass the file
+  path as an argument rather than relying on the `CurrentFileName` global.
+  See `Installer\CanvasCovers.iss` for the working pattern.
+- **`SetupSetting("AppId")` is not safe inside a Pascal Script string
+  literal that builds a registry key.** AppId is written in `[Setup]` as
+  `{{Guid}` (the `{{` escapes to a literal `{`). ISPP expands
+  `{#SetupSetting("AppId")}` to that exact text, so a key path like
+  `'...\Uninstall\{{#SetupSetting("AppId")}_is1'` ends up with **three**
+  opening braces in the runtime string, not one. Hardcode the GUID with
+  a single brace pair: `'...\Uninstall\{A27F4037-...}_is1'`. The AppId is
+  pinned forever per §1, so hardcoding is safe.
+- **Inno `unins000.exe` vs `unins001.exe` after a `PrepareToInstall`
+  auto-uninstall.** Normal. When `PrepareToInstall` runs the prior
+  version's uninstaller with `/VERYSILENT`, the uninstaller process
+  returns to Inno before its self-delete finishes, so `unins000.exe`
+  is still on disk when the new install starts writing. Inno notices
+  and writes the next uninstaller as `unins001.exe`. Registry's
+  `UninstallString` points at the new one — no action needed.
 
 ---
 
