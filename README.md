@@ -1,53 +1,93 @@
-# DraftSight Canvas Cover Generator
+# DraftSight CanvasCovers
 
-A DraftSight add-in that turns manual canvas cover drafting into a guided,
-form-driven workflow. Operator enters dimensions and options → add-in
-generates a layered DXF ready for production.
+A multi-product DraftSight add-in that automates canvas-product CAD
+drafting. Operator enters job parameters into a branded WPF form, the
+add-in draws the parts on layered, colour-coded, machine-ready output.
 
-**Current status:** demo / proof-of-concept for an initial client.
-**Target host:** DraftSight 2026 Professional or higher.
-**Language:** C# (.NET Framework 4.8), WPF UI.
+**Built for:** Adelaide Annexes & Canvas. The owner currently spends
+5+ hours per week manually drafting canvas products in DraftSight; this
+tool gives that time back.
+
+**Status:** lift blanket flow working end-to-end. Caravan annexe slot
+exists in the product picker; awaiting measurement spec from the client.
+
+**Target host:** DraftSight 2026 Professional or higher (SDK access
+required).
+**Stack:** C# / .NET Framework 4.8, WPF, DraftSight COM interop.
 
 ---
 
-## Quick orientation
+## If you're picking this up after a break
 
-- **`CLAUDE.md`** — the playbook. Read this first. Covers project structure,
-  the COM/CLSID loading mechanics, dev loop, common gotchas. Single source of
-  truth for *how* we build DraftSight add-ins.
-- **`docs/PROJECT_BRIEF.md`** — what this client needs and why.
-- **`docs/DEMO_SCOPE.md`** — what the demo build will and won't do. Read
-  before adding features.
-- **`docs/HELLO_DRAFTSIGHT.md`** — first-time setup walkthrough. Get the SDK
-  sample loading before writing any new code.
-- **`docs/CURSOR_PROMPT.md`** — the canonical prompt for kicking off work in
-  Claude Code / Cursor.
-- **`CanvasCovers/`** — the actual add-in project (created during build).
-- **`Installer/`** — Inno Setup script (added later, post-demo).
+Read in this order:
 
-## Working with this repo
+1. **[docs/STATUS.md](docs/STATUS.md)** — what works right now and what
+   doesn't. Five minutes; orients you to the current state.
+2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — what's queued next and why.
+3. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — code structure,
+   key types, how to add a new product.
+4. **[docs/BUSINESS_CONTEXT.md](docs/BUSINESS_CONTEXT.md)** — client,
+   ROI math, pricing thinking, productisation strategy.
+5. **[CLAUDE.md](CLAUDE.md)** — the DraftSight add-in playbook
+   itself. Read § 9 specifically — the four gotchas that crash the
+   host. Don't re-learn them.
 
-1. Read `CLAUDE.md` end to end before touching code.
-2. Confirm DraftSight 2026 Professional (or higher) is installed and the
-   SDK exists at `C:\Program Files\Dassault Systemes\DraftSight\APISDK\`.
-3. Follow `docs/HELLO_DRAFTSIGHT.md` to get the SDK's hello-world sample
-   loading. Do not skip this — it isolates environment issues from code
-   issues.
-4. Only after hello-world succeeds, scaffold the `CanvasCovers/` project.
-5. Implement against `docs/DEMO_SCOPE.md`. Anything outside that scope is
-   explicitly deferred.
+For runtime testing, [docs/LOAD_TEST.md](docs/LOAD_TEST.md) walks
+through the deploy + click-through path.
 
-## What this is *not*
+For first-time setup of the SDK and dev environment,
+[docs/HELLO_DRAFTSIGHT.md](docs/HELLO_DRAFTSIGHT.md) (still useful
+on a fresh machine).
 
-- Not a production-ready, multi-tenant product. It's a demo to win the deal.
-- Not licensed or DRM-gated yet. License integration happens post-demo.
-- Not multi-version. Targets DraftSight 2026 only at this stage.
-- Not signed. Will show "Unknown Publisher" until first commercial release.
+For historical context on the original brief and demo scope (before
+the project pivoted to lift blanket + multi-product), see
+[docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) and
+[docs/DEMO_SCOPE.md](docs/DEMO_SCOPE.md). These are kept as historical
+artifacts — current intent is in STATUS.md / ROADMAP.md.
 
-## Out of scope (for the demo)
+---
 
-- More than one cover type
-- Persistence beyond the current DraftSight session
-- Multi-language UI
-- ERP / cutting-table integration
-- Auto-update mechanism
+## Quick start (for new dev machines)
+
+1. DraftSight 2026 Professional+ installed at the default path with
+   the APISDK folder present
+2. Visual Studio 2022 (or `dotnet` CLI) for .NET Framework 4.8
+3. Open `CanvasCovers/CanvasCovers.csproj` and build Release
+4. Run `.\scripts\deploy-canvascovers.ps1` in an Administrator
+   PowerShell
+5. Open DraftSight, tick **CanvasCovers** in the Add-Ins manager
+6. Ribbon → CanvasCovers tab → "Canvas Covers" button → Lift Blanket
+   tile → fill form → Generate
+
+For details on each step, deploy / rollback semantics, and recovery
+from crashes, see [docs/LOAD_TEST.md](docs/LOAD_TEST.md).
+
+---
+
+## Project layout
+
+```
+CanvasCovers/           the add-in DLL project
+docs/                   reference documentation (this directory)
+scripts/                deploy / rollback PowerShell
+Installer/              empty (Inno Setup script lives here when added)
+CLAUDE.md               DraftSight add-in playbook
+README.md               this file
+.gitignore
+```
+
+For a detailed code tour, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## What this is not (yet)
+
+- Not a generic canvas-product tool — branded specifically for
+  Adelaide Annexes & Canvas. Generalisation is a productisation step,
+  not a code task. See [docs/BUSINESS_CONTEXT.md](docs/BUSINESS_CONTEXT.md).
+- Not multi-version — targets DraftSight 2026 only at this stage.
+- Not signed — shows "Unknown Publisher" on add-in load.
+- Not licence-gated — runs unconditionally.
+- Not bundled into an installer — deploy via the PowerShell script.
+
+All of these are tracked in [docs/ROADMAP.md](docs/ROADMAP.md).
