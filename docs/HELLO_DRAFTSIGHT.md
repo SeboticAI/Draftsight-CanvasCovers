@@ -1,12 +1,17 @@
 # Hello DraftSight — First-Time Setup
 
-The goal of this document is to get the SDK's hello-world sample loading
-**before writing any new code.** This isolates environment problems from code
-problems. Skipping this step costs hours every time.
+The goal of this document is to prove the DraftSight add-in environment
+**without destabilizing DraftSight startup.** This isolates environment
+problems from code problems and keeps a rollback path ready before every load
+test.
 
-If any step fails, **stop and resolve before moving on.** Do not try to
-debug "is my code wrong, or is my setup wrong?" simultaneously — that's the
-slowest possible way to learn this platform.
+If any step fails, **stop and resolve before moving on.** Do not try to debug
+"is my code wrong, or is my setup wrong?" simultaneously — that's the slowest
+possible way to learn this platform.
+
+**Safety rule:** during development, add-in XML must use `startup="0"` until a
+manual Add-Ins manager load has succeeded. A broken startup add-in can crash
+DraftSight before you can disable it in the UI.
 
 ---
 
@@ -23,10 +28,11 @@ exists. Open PowerShell:
 ```powershell
 Test-Path "C:\Program Files\Dassault Systemes\DraftSight\APISDK\"
 Test-Path "C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\"
-Test-Path "C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\DraftSight.Interop.dsAutomation.dll"
+Test-Path "C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAddin.dll"
+Test-Path "C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAutomation.dll"
 ```
 
-All three must return `True`. If any return `False`, the SDK didn't install —
+All four must return `True`. If any return `False`, the SDK didn't install —
 stop. The trial may not include it, in which case contact a Dassault VAR
 before going further.
 
@@ -48,8 +54,13 @@ later.
 Open `C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\` in File
 Explorer.
 
-Look for a folder like `Sample_CSharp_AddIn` or `CSharpAddin` — the exact
-name varies by version.
+In the observed DS 2026 install, C# samples were grouped under:
+`C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\C#\`
+
+Useful samples:
+- `Simple\Ribbon` — command and ribbon registration pattern
+- `Simple\DrawingToImage` — simple automation pattern
+- `3D\*` — entity creation patterns, depending on the geometry needed
 
 **If no obvious C# sample folder exists:** list the contents of `samples\`
 and paste them into a chat — the SDK layout shifts between versions. The
@@ -64,23 +75,25 @@ and breaks tooling.
 
 ```powershell
 New-Item -ItemType Directory -Path "C:\Dev\DraftSightSamples" -Force
-Copy-Item -Recurse "C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\Sample_CSharp_AddIn" "C:\Dev\DraftSightSamples\"
+Copy-Item -Recurse "C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\C#\Simple\Ribbon" "C:\Dev\DraftSightSamples\"
 ```
 
-(Adjust the sample folder name if it's different.)
+This copy is for reading/build comparison only. Do not register or load the
+raw sample into DraftSight unless it has a complete XML config, `startup="0"`,
+and a rollback command ready.
 
 ---
 
 ## Step 5 — Open in Visual Studio
 
-- Open the `.sln` file from `C:\Dev\DraftSightSamples\Sample_CSharp_AddIn\`
-  in Visual Studio 2022.
+- Open the `.csproj` file from `C:\Dev\DraftSightSamples\Ribbon\` in Visual
+  Studio 2022, or open the SDK's `dsSamples.sln` read-only.
 - If VS prompts to "retarget" the project to a newer .NET version,
   **decline**. Keep it at whatever version the sample ships with (likely
   `net48`).
 - Let it restore packages. Solution Explorer should show the project with
-  `App.cs` (or similar), references including
-  `DraftSight.Interop.dsAutomation`, and possibly an XML config file.
+  `DSAddin.cs`, references including `DraftSight.Interop.dsAddin` and
+  `DraftSight.Interop.dsAutomation`.
 
 ---
 
@@ -92,48 +105,61 @@ Copy-Item -Recurse "C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples
   configuration.
 
 **Common build failure:** "could not resolve reference
-DraftSight.Interop.dsAutomation". The `HintPath` in the csproj points to a
-wrong location. Edit the csproj, fix the path to match the actual install
-location.
+DraftSight.Interop.dsAutomation" or `DraftSight.Interop.dsAddin`. The
+`HintPath` in the copied csproj points to a relative SDK location that may no
+longer be valid. Fix the paths to:
+
+```text
+C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAddin.dll
+C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAutomation.dll
+```
+
+If Visual Studio tries to register the add-in during build and fails with an
+admin/registry error, disable automatic COM registration for the sample. Build
+and registration must be separate steps during this project.
 
 ---
 
-## Step 7 — Register and configure
+## Step 7 — Register and configure safely
 
-The SDK usually includes a `register.bat` or `install.bat` that does the
-COM registration and copies the XML config. **Look for it before doing
-anything manually.**
+For DraftSight 2026 C#/.NET Framework add-ins, use `RegAsm`, not `regsvr32`
+and not `.comhost.dll`.
 
-If a register script exists, run it as Administrator. Verify it succeeded:
+Before registering any add-in, write down the rollback command:
 
 ```powershell
-dir "C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\"
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "<path-to-addin-dll>" /unregister
 ```
 
-The sample's XML should be in there.
+Manual development flow:
 
-If no register script exists, the manual process is:
-
-1. Register the COM host:
+1. Close DraftSight.
+2. Register the managed DLL in an Administrator PowerShell:
    ```powershell
-   regsvr32 "<path-to-sample>\bin\Debug\Sample_CSharp_AddIn.comhost.dll"
+   & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "<path-to-addin-dll>" /codebase
    ```
-2. Copy the sample's XML config to
-   `C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\`.
-3. Verify the XML's `<com clsid="..."/>` matches the `[Guid("...")]` attribute
-   on the sample's main class.
+3. Create or copy the project XML into DraftSight's `addinConfigs` folder.
+   Official docs use:
+   `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\`
+
+   Some installs/tools may use:
+   `C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\`
+
+   Check both and use the one DraftSight reads.
+4. Keep XML `startup="0"` until a manual load succeeds.
+5. Verify the XML's `<com clsid="..."></com>` matches the `[Guid("...")]`
+   attribute on the main COM-visible add-in class.
 
 ---
 
 ## Step 8 — Launch DraftSight and verify
 
 - Open DraftSight.
-- Look for the sample's button on the ribbon (usually a tab called "Sample"
-  or similar).
-- If the ribbon button doesn't appear, check `Tools → Add-Ins` (menu name
-  varies by version) — the sample should be listed.
-- Click the button. Confirm the expected behaviour (usually a message box
-  or some visible drawing action).
+- Open the Add-Ins manager (`Tools → Add-Ins`, `Tools → Options → Add-ins`,
+  or equivalent for the installed UI).
+- If the add-in is listed, activate it manually. Do not tick Start Up yet.
+- Look for the add-in's button/menu/command.
+- Click the button. Confirm the expected behaviour.
 
 ---
 
@@ -142,16 +168,19 @@ If no register script exists, the manual process is:
 Three possible results:
 
 1. **It works.** The button appears, clicks correctly, sample behaves as
-   documented. **Move on** to scaffolding the canvas cover project (see
-   `CURSOR_PROMPT.md`).
+   documented. Move on to scaffolding the guarded canvas cover project.
 2. **Loaded but no button appears.** Registration worked, but the ribbon
    registration code failed silently. Look in the sample's source for the
    ribbon registration method, wrap it in a try/catch with `MessageBox.Show`,
    rebuild, re-test.
 3. **Not loaded at all.** Work through the verification chain in `CLAUDE.md`
    §10 — every step in order. Stop at the first failure.
+4. **DraftSight crashes at startup.** Stop reopening DraftSight. Run the
+   rollback command from Step 7, remove/rename the XML from `addinConfigs`,
+   and confirm DraftSight opens cleanly before debugging further.
 
-Do not proceed to writing the canvas cover code until outcome #1 is achieved.
+Do not proceed to feature code until outcome #1 is achieved on the
+`CanvasCovers` project-level hello-world.
 
 ---
 
@@ -167,5 +196,17 @@ When asking for help (in chat or escalating), provide:
   dir "C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\"
   ```
 - The `[Guid]` attribute from the sample's source vs the `clsid` in the XML
+
+## Recovery command
+
+If DraftSight crashes after add-in registration, run this before reopening
+DraftSight:
+
+```powershell
+Stop-Process -Name DraftSight -Force -ErrorAction SilentlyContinue
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "<path-to-addin-dll>" /unregister
+```
+
+Then remove or rename the corresponding XML in `addinConfigs`.
 
 This information shortcuts 90% of the back-and-forth.

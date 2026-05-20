@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<addinmanager>
+  <draftsight version="">
+    <addin help="Generate a demo canvas cover" startup="0" name="CanvasCovers" premiumOnly="1">
+      <com clsid="aa497758-3d06-46b7-9f75-7a8f2fffed7c"></com>
+      <button bitmap=""></button>
+    </addin>
+  </draftsight>
+</addinmanager>

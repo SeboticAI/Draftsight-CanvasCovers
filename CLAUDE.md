@@ -20,10 +20,10 @@ changes. Cite section numbers when explaining decisions.
 | Language             | C# (latest), .NET SDK-style csproj                  |
 | TFM                  | `net48` (DraftSight 2024–2026 all run on .NET Framework 4.x via COM) |
 | DraftSight API refs  | Local DLLs from the SDK folder (no NuGet equivalent) |
-| Interop model        | COM — add-in class is `[ComVisible(true)]` with stable `[Guid]` |
+| Interop model        | COM — add-in class is `[ComVisible(true)]` with stable `[Guid]`, deriving from `DsAddin` per the DS 2026 SDK sample |
 | UI                   | WPF (preferred) or WinForms                         |
 | Ribbon panel         | Shared `BesiaCAD Tools → <PanelName>` across add-ins (TBD) |
-| Installer            | Inno Setup 6, per-machine (XML config lives in `ProgramData`) |
+| Installer            | Inno Setup 6, per-machine (COM registration + XML config) |
 | Distribution         | Single `*-Setup.exe`                                |
 | Source layout        | One folder per add-in at repo root, plus `Installer\` |
 
@@ -36,14 +36,13 @@ changes. Cite section numbers when explaining decisions.
 - **Local SDK references, not NuGet.** Unlike Revit (where Nice3point publishes
   excellent NuGet packages for every year), DraftSight has no community NuGet
   ecosystem. Reference DLLs directly from
-  `C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\`.
+  `C:\Program Files\Dassault Systemes\DraftSight\APISDK\`.
 - **`net48` only.** DraftSight 2026 still loads add-ins through the COM bridge
   to .NET Framework. No .NET 6/8 equivalent yet. This is the opposite of the
   Revit story.
 - **Per-machine install.** Unlike Revit's `%AppData%\Autodesk\Revit\Addins\`
-  (per-user), DraftSight's add-in config folder is
-  `C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\` — a per-machine
-  location. The installer needs admin / UAC.
+  (per-user), DraftSight add-ins require COM registration and a project XML
+  file under `ProgramData`. The installer needs admin / UAC.
 
 ---
 
@@ -58,7 +57,7 @@ changes. Cite section numbers when explaining decisions.
 - SDK lands at: `C:\Program Files\Dassault Systemes\DraftSight\APISDK\`
   - `samples\` — example projects in C#, VB.NET, and C++
   - `docs\` — API reference (HTML + `.chm`)
-  - `redist\` — the DLLs the csproj references
+  - `tlb\` / `redist\` — local interop DLLs; exact folder varies by version
 - If `APISDK\` is missing, the installed tier doesn't include it. Contact a
   Dassault VAR — sometimes the SDK ships separately even for paid tiers.
 
@@ -66,32 +65,50 @@ changes. Cite section numbers when explaining decisions.
 
 - **Visual Studio 2022 Community** (free) or higher.
 - Workloads required: `.NET desktop development`.
-- After SDK install, verify: `File → New → Project` shows a "DraftSight
-  Add-In" template. If not, the SDK template wasn't registered — re-run the
-  DraftSight installer with "Repair" or copy the template from
-  `APISDK\templates\` manually.
+- Official API help describes a `DSAddinCSharp` Visual Studio template, but
+  the installed DS 2026 `APISDK\` tree may not include it. If the template is
+  present, prefer it for a clean add-in baseline. If not, build a minimal
+  project from the installed C# samples and the patterns in this playbook.
 
 ### 2c. Reference DLLs
 
-From `C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\`:
+The installed DraftSight 2026 SDK `C#\Simple\Ribbon` sample references:
 
+- `DraftSight.Interop.dsAddin.dll` — the COM add-in base class (`DsAddin`)
 - `DraftSight.Interop.dsAutomation.dll` — the main API (drawings, entities,
   commands, settings)
-- `DraftSight.Interop.dsCommonAPIs.dll` — shared types, enums
 
-Reference both as:
+Other samples may also reference:
+
+- `DraftSight.Interop.dsCommonAPIs.dll` — shared types, enums, if required by
+  the specific APIs being used
+
+The sample points to SDK-local interop DLLs and uses `SpecificVersion=False`.
+Exact local folder names vary by install (`tlb\` vs `redist\`), so verify the
+paths on the development machine before scaffolding.
+
+Reference the add-in and automation DLLs in the project. Example shape:
 
 ```xml
+<Reference Include="DraftSight.Interop.dsAddin">
+  <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAddin.dll</HintPath>
+  <SpecificVersion>False</SpecificVersion>
+  <Private>True</Private>
+  <EmbedInteropTypes>False</EmbedInteropTypes>
+</Reference>
 <Reference Include="DraftSight.Interop.dsAutomation">
-  <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\DraftSight.Interop.dsAutomation.dll</HintPath>
-  <Private>False</Private>
+  <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAutomation.dll</HintPath>
+  <SpecificVersion>False</SpecificVersion>
+  <Private>True</Private>
   <EmbedInteropTypes>True</EmbedInteropTypes>
 </Reference>
 ```
 
-**`EmbedInteropTypes=True` matters.** It embeds the interop types into the
-assembly so the interop DLLs don't need to ship separately. Without it, the
-add-in breaks on machines where the SDK lives at a non-default path.
+**Interop embedding is per reference.** Keep `EmbedInteropTypes=False` for
+`dsAddin` because the add-in class derives from `DsAddin`. Use
+`EmbedInteropTypes=True` only for automation/common interop references after a
+test build proves the SDK accepts it. If embedding causes compile errors, set
+it to `False` and rely on the DraftSight install's interop assemblies.
 
 ### 2d. Inno Setup (installer time, not day-one)
 
@@ -147,6 +164,7 @@ stay short (e.g. `CanvasCovers`, not `BesiaCADCanvasCovers`).
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
@@ -155,22 +173,24 @@ stay short (e.g. `CanvasCovers`, not `BesiaCADCanvasCovers`).
     <UseWPF>true</UseWPF>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
-    <!-- COM hosting: required for DraftSight to activate the add-in -->
-    <EnableComHosting>true</EnableComHosting>
-    <RegisterForComInterop>true</RegisterForComInterop>
+    <!-- .NET Framework COM registration is done with RegAsm; do not expect a .comhost.dll. -->
+    <RegisterForComInterop>false</RegisterForComInterop>
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="DraftSight.Interop.dsAddin">
+      <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAddin.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
     <Reference Include="DraftSight.Interop.dsAutomation">
-      <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\DraftSight.Interop.dsAutomation.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\tlb\DraftSight.Interop.dsAutomation.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>True</Private>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
-    <Reference Include="DraftSight.Interop.dsCommonAPIs">
-      <HintPath>C:\Program Files\Dassault Systemes\DraftSight\APISDK\redist\DraftSight.Interop.dsCommonAPIs.dll</HintPath>
-      <Private>False</Private>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </Reference>
+    <!-- Add DraftSight.Interop.dsCommonAPIs only if a verified SDK sample/API requires it. -->
   </ItemGroup>
 
   <ItemGroup>
@@ -185,33 +205,52 @@ stay short (e.g. `CanvasCovers`, not `BesiaCADCanvasCovers`).
 **Differences from a Revit csproj:**
 - Single TFM (`net48`), no multi-target.
 - No NuGet packages — references the SDK DLLs directly.
-- `EnableComHosting` + `RegisterForComInterop` — Revit doesn't need these.
+- DraftSight is COM-registered with `RegAsm`; SDK sample does not use
+  `.comhost.dll` / `regsvr32`.
 - `<UseWPF>` works the same.
 
 ---
 
 ## 5. The XML config file (DraftSight's equivalent of `.addin`)
 
-Lives at:
-`C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\<AddinName>.xml`
+Official DraftSight 2026 API help says C#, VB.NET, and COM add-ins need a
+project-specific XML file in an `addinConfigs` folder. The documented Windows
+location is:
+`C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\<AddinName>.xml`
+
+Some installs/tools may use `C:\ProgramData\DassaultSystemes\DraftSight\...`
+without the space. Check both paths on the target machine and use the one
+DraftSight's Add-Ins manager reads.
+
+Use `startup="0"` during development. Only change to `startup="1"` after the
+add-in has loaded manually and the rollback command has been tested. A broken
+startup add-in can crash DraftSight on launch.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<addin version="2026" startup="1" name="CanvasCovers" premium-only="0">
-  <com clsid="{REPLACE-WITH-YOUR-GUID}" />
-</addin>
+<addinmanager>
+  <draftsight version="">
+    <addin help="Generate a demo canvas cover" startup="0" name="CanvasCovers" premiumOnly="2">
+      <com clsid="{REPLACE-WITH-YOUR-GUID}"></com>
+      <button bitmap="C:\BesiaCAD\CanvasCovers\Resources\canvascovers_16.png"></button>
+    </addin>
+  </draftsight>
+</addinmanager>
 ```
 
 **Field meanings:**
-- `version` — DraftSight major version. For DS 2026, use `2026`. For
-  multi-version support, ship one XML per target version.
-- `startup="1"` — load on every DraftSight launch. `"0"` = manual load only.
+- `draftsight version` — leave empty for the current DraftSight version unless
+  a local API sample proves a stricter value is needed.
+- `startup="0"` — show in Add-Ins manager without automatic startup loading.
+  Use `"1"` only after manual load is proven safe.
 - `name` — display name in DraftSight's add-in manager.
-- `premium-only="0"` — set to `1` only if the add-in is intended for Premium
-  licenses only.
+- `premiumOnly` — official help documents `1` for Pro/Premium and `2` for
+  Premium-only. We are targeting the installed Premium trial for the demo.
 - `clsid` — must match the `[Guid("...")]` attribute on the `App` class.
   **Generate a fresh GUID per add-in.** Two add-ins with the same GUID will
   collide.
+- `button bitmap` — 16x16 `.png` path for the Add-Ins manager icon. If unsure,
+  use a placeholder path and verify whether DraftSight requires the file.
 
 ---
 
@@ -220,6 +259,7 @@ Lives at:
 ```csharp
 using System;
 using System.Runtime.InteropServices;
+using DraftSight.Interop.dsAddin;
 using DraftSight.Interop.dsAutomation;
 
 namespace CanvasCovers
@@ -228,18 +268,32 @@ namespace CanvasCovers
     [Guid("REPLACE-WITH-YOUR-GUID")]
     [ProgId("CanvasCovers.App")]
     [ClassInterface(ClassInterfaceType.None)]
-    public class App : IDraftSightAddIn
+    public class App : DsAddin
     {
-        private DraftSightApplication _app;
+        private Application _app;
         private int _cookie;
+        private string _addinGuid;
 
-        public bool ConnectToDraftSight(DraftSightApplication application, int cookie)
+        public App()
         {
-            _app = application;
-            _cookie = cookie;
+            _addinGuid = GetType().GUID.ToString();
+        }
 
+        public bool ConnectToDraftSight(object application, int cookie)
+        {
             try
             {
+                _app = application as Application;
+                _cookie = cookie;
+
+                if (_app == null)
+                {
+                    System.Windows.MessageBox.Show(
+                        "CanvasCovers failed to load: DraftSight application object was not available.",
+                        "Add-in error");
+                    return false;
+                }
+
                 RegisterRibbonButton();
                 return true;
             }
@@ -254,16 +308,27 @@ namespace CanvasCovers
 
         public bool DisconnectFromDraftSight()
         {
-            _app = null;
-            return true;
+            try
+            {
+                _app = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"CanvasCovers failed to unload: {ex.Message}\n\n{ex.StackTrace}",
+                    "Add-in error");
+                return false;
+            }
         }
 
         private void RegisterRibbonButton()
         {
-            // Ribbon registration — exact API surface verified against the
-            // SDK sample `Sample_CSharp_AddIn`. Pattern:
-            //   GetCommandManager() → AddTab → AddPanel → AddCommandItem
-            // Routes clicks to a registered command name.
+            // TODO: copy the exact call pattern from the installed SDK sample
+            // `C#\Simple\Ribbon` before implementing. Verified sample pattern:
+            // CreateCommand2/CreateUserCommand -> AddWorkspace/GetWorkspace ->
+            // AddRibbonTab -> InsertRibbonPanel -> InsertRibbonRow ->
+            // InsertRibbonCommandButton.
         }
     }
 }
@@ -273,9 +338,12 @@ namespace CanvasCovers
 - COM attributes (`[ComVisible]`, `[Guid]`, `[ProgId]`, `[ClassInterface]`)
   are mandatory, not decorative. Forget any of these and the load silently
   fails.
+- The DS 2026 SDK sample derives from `DraftSight.Interop.dsAddin.DsAddin`.
+  Do not invent an `IDraftSightAddIn` interface unless a local SDK sample
+  proves that interface exists.
 - `ConnectToDraftSight` returns `bool` — not Revit's `Result` enum.
-- The `cookie` parameter is a session token DraftSight gives; pass it back
-  when invoking certain APIs.
+- The `cookie` parameter is a session token DraftSight gives; store it in
+  case a verified API call needs it.
 - The `MessageBox` fallback is critical during development — DraftSight will
   *silently* refuse to load a broken add-in unless errors are surfaced
   explicitly.
@@ -286,12 +354,19 @@ namespace CanvasCovers
 
 1. Edit C# in Visual Studio (or Cursor / Claude Code).
 2. Build (`Ctrl+Shift+B` or `dotnet build`) → produces
-   `bin\Release\<AddinName>.dll` + `<AddinName>.comhost.dll`.
+   `bin\Release\net48\<AddinName>.dll`.
 3. **Close DraftSight** if running. The DLL is locked while the host process
    is alive — same problem as Revit.
-4. Copy outputs to the install location (a post-build event automates this).
-5. Open DraftSight. Verify the ribbon button appears.
-6. Click → test.
+4. Copy the build output to a controlled add-in folder, e.g.
+   `C:\BesiaCAD\CanvasCovers\` for development or DraftSight's documented
+   `bin\addins\CanvasCovers\` location when testing the official flow.
+5. Register the managed DLL with the 64-bit .NET Framework `RegAsm`:
+   `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe /codebase C:\BesiaCAD\CanvasCovers\<AddinName>.dll`
+6. Copy/update the XML under DraftSight's `addinConfigs` folder with
+   `startup="0"` for development.
+7. Open DraftSight and activate the add-in from the Add-Ins manager manually.
+8. Verify the ribbon button appears.
+9. Click → test.
 
 **Post-build copy script (csproj snippet):**
 
@@ -301,14 +376,14 @@ namespace CanvasCovers
     <DeployDir>C:\BesiaCAD\$(AssemblyName)\</DeployDir>
   </PropertyGroup>
   <MakeDir Directories="$(DeployDir)" />
-  <Copy SourceFiles="$(TargetDir)$(AssemblyName).dll;$(TargetDir)$(AssemblyName).comhost.dll"
+<Copy SourceFiles="$(TargetDir)$(AssemblyName).dll"
         DestinationFolder="$(DeployDir)"
         SkipUnchangedFiles="true" />
 </Target>
 ```
 
-The XML config file pointing at `$(DeployDir)` is placed manually once, then
-left alone.
+The XML config file is placed manually once, then left alone except when the
+CLSID or deployment path changes.
 
 ---
 
@@ -316,11 +391,14 @@ left alone.
 
 Deferred. When productising:
 
-1. **`PrivilegesRequired=admin`** (not `lowest`). The XML config folder
-   `C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\` is per-machine.
-2. **Register COM during install.** Either `regsvr32` on the `.comhost.dll`
-   or `RegAsm.exe` in a `[Run]` block. Inno can do this via:
-   `Filename: "{sys}\regsvr32.exe"; Parameters: "/s ""{app}\<Addin>.comhost.dll"""`
+1. **`PrivilegesRequired=admin`** (not `lowest`). The XML config folder under
+   `C:\ProgramData\...\DraftSight\addinConfigs\` is per-machine.
+2. **Register COM during install.** For the .NET Framework add-in model shown
+   by the DS 2026 SDK sample, use 64-bit `RegAsm.exe` on the managed DLL in a
+   `[Run]` block:
+   `Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: "/codebase ""{app}\<Addin>.dll"""`
+3. **Write XML during install** with `startup="0"` by default. Do not ship
+   `startup="1"` until the add-in has been tested on the target machine.
 
 Skeleton to expand later:
 
@@ -345,11 +423,13 @@ OutputBaseFilename=BesiaCAD-CanvasCovers-Setup-1.0.0
 - **CLSID conflicts.** Reusing a GUID across two add-ins makes the second
   silently fail to load. Generate fresh per add-in, write it into both the
   `[Guid]` attribute and the XML.
-- **COM registration fails silently.** If `comhost.dll` isn't registered or
-  the path in the XML is wrong, DraftSight just doesn't load the add-in — no
-  error, no log. Use the SDK's add-in manager UI to verify load state.
-- **`EmbedInteropTypes=True` matters.** Without it, deployed add-ins break on
-  machines where the DraftSight SDK lives at a non-default path.
+- **COM registration fails silently.** If the managed DLL is not registered
+  with `RegAsm`, or the optional XML config points to the wrong CLSID/path,
+  DraftSight just doesn't load the add-in — no error, no log. Use the SDK's
+  add-in manager UI to verify load state.
+- **Interop embedding is reference-specific.** `dsAddin` should not be
+  embedded when deriving from `DsAddin`; automation/common references can use
+  embedding if the project compiles with it.
 - **`net48` only.** Don't attempt .NET 6/8 — the COM bridge doesn't support
   it for DraftSight 2026.
 - **AppId is forever.** Same warning as Revit — pick the Inno `AppId` GUID
@@ -359,6 +439,32 @@ OutputBaseFilename=BesiaCAD-CanvasCovers-Setup-1.0.0
   single most useful debugging aid. Remove only when shipping.
 - **Don't develop in `Program Files`.** Requires admin to save and breaks
   Visual Studio's hot reload. Always copy samples to `C:\Dev\...` first.
+- **Keep a rollback command ready before every load test.** If DraftSight
+  crashes at startup after registering an add-in, unregister it before trying
+  to launch DraftSight again.
+- **Do not call `Application.RemoveUserInterface(guid)` preemptively on first
+  connect.** The SDK `Simple\Ribbon` sample only calls it from
+  `DisconnectFromDraftSight`, after UI has actually been added. Calling it
+  against a GUID with nothing registered can leave DraftSight's internal UI
+  registry in an inconsistent state and crash the host on the next document
+  state transition.
+- **Toolbar items must have non-empty icon paths.** `CreateUserCommand` with
+  `SmallIcon=""` / `LargeIcon=""`, then `InsertToolbarItem` referencing that
+  user command, crashes DraftSight the moment the toolbar tries to render
+  (typically when `dsUIState_Document` activates — i.e. when the first
+  drawing is created or opened). Menu items are text-only and tolerate empty
+  icons; toolbar items do not. If you don't have icons yet, register the
+  command via `CreateCommand2` only and invoke it from the command prompt.
+- **`AddMenu` / `AddToolbar` is the SDK's *non-preferred* path.** The
+  `Simple\Ribbon` sample ships those calls commented out and uses the Ribbon
+  API instead. Mirror the ribbon path once UI is needed; treat the menu/
+  toolbar code as a stop-gap.
+- **`MessageBox.Show` from a `Command.ExecuteNotify` handler is risky.** It's
+  a WPF/WinForms modal called from a COM event callback into the host's
+  message loop. Use `application.GetCommandMessage().PrintLine(...)` for
+  command feedback, as the SDK sample does. Reserve `MessageBox.Show` for
+  the `ConnectToDraftSight` / `DisconnectFromDraftSight` catch blocks where
+  surfacing the error is the whole point.
 
 ---
 
@@ -369,15 +475,15 @@ Run in order. Stop at the first failure — that's the bug.
 1. **Does the SDK folder exist?**
    `dir "C:\Program Files\Dassault Systemes\DraftSight\APISDK"`
    If no, tier mismatch.
-2. **Does the build produce both DLLs?**
+2. **Does the build produce the managed DLL?**
    After `dotnet build`, check `bin\Release\net48\` for
-   `<AddinName>.dll` AND `<AddinName>.comhost.dll`.
+   `<AddinName>.dll`.
 3. **Is COM registered?**
-   Run `regsvr32 <path>\<AddinName>.comhost.dll` manually — should succeed
-   silently. Failure = COM hosting misconfigured in csproj.
-4. **Does the XML exist in the right folder?**
-   `dir "C:\ProgramData\DassaultSystemes\DraftSight\addinConfigs\"` — the
-   XML should be listed.
+   Run 64-bit `RegAsm.exe /codebase <path>\<AddinName>.dll` manually — should
+   succeed. Failure = COM visibility, platform target, or reference issue.
+4. **Does the XML config exist in the right folder?**
+   Check both documented ProgramData variants if needed. The XML should be
+   listed and should use `startup="0"` during development.
 5. **Does the XML's CLSID match the assembly's `[Guid]`?**
    Diff them by eye. One character wrong = silent failure.
 6. **Does DraftSight see it?**
@@ -387,16 +493,28 @@ Run in order. Stop at the first failure — that's the bug.
    If add-in is loaded but no button, the error is inside
    `ConnectToDraftSight` — that's where the MessageBox catches it.
 
+### Startup crash recovery
+
+If DraftSight crashes after registering an add-in:
+
+1. Do **not** repeatedly reopen DraftSight.
+2. Run:
+   `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe <path>\<AddinName>.dll /unregister`
+3. Remove or rename the add-in XML from `addinConfigs`.
+4. Confirm DraftSight opens cleanly.
+5. Only then debug the add-in, starting with a minimal no-ribbon load test.
+
 ---
 
 ## 11. Reference samples to study
 
 From `C:\Program Files\Dassault Systemes\DraftSight\APISDK\samples\`:
 
-- **`Sample_CSharp_AddIn`** — the canonical hello-world. Start here.
-- **`Sample_CSharp_RibbonCustomization`** — ribbon button + panel registration.
-- **`Sample_CSharp_DrawingEntities`** — creating lines, circles, polylines.
-- **`Sample_CSharp_LayerManagement`** — layer creation and assignment.
+- **`C#\Simple\Ribbon`** — ribbon button + command registration. Start here.
+- **`C#\Simple\DrawingToImage`** — simple automation pattern.
+- **`C#\3D\*` and other simple samples** — entity creation patterns as needed.
+- **Layer / linetype samples** — names vary by SDK version; list `samples\C#`
+  and pick the closest match before writing layer code.
 
 Names may differ slightly across DraftSight versions. List the folder contents
 and find the closest match.
