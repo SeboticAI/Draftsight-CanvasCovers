@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using CanvasCovers.Models;
 
 namespace CanvasCovers.UI
@@ -12,6 +13,8 @@ namespace CanvasCovers.UI
         {
             InitializeComponent();
             DateInput.SelectedDate = DateTime.Today;
+
+            WireLayerSwatches();
         }
 
         public LiftBlanketJob Job { get; private set; }
@@ -49,6 +52,12 @@ namespace CanvasCovers.UI
                 return;
             }
             job.RearWall = rear;
+
+            if (!TryReadLayers(out LayerSettings layers))
+            {
+                return;
+            }
+            job.Layers = layers;
 
             Job = job;
             DialogResult = true;
@@ -172,6 +181,43 @@ namespace CanvasCovers.UI
             return true;
         }
 
+        private bool TryReadLayers(out LayerSettings layers)
+        {
+            layers = null;
+
+            if (!TryReadLayer(LayerOutlineName, LayerOutlineAci, "Outline", out LayerSetting outline)) return false;
+            if (!TryReadLayer(LayerCopName, LayerCopAci, "COP", out LayerSetting cop)) return false;
+            if (!TryReadLayer(LayerAnnotationName, LayerAnnotationAci, "Annotation", out LayerSetting annotation)) return false;
+            if (!TryReadLayer(LayerTitleblockName, LayerTitleblockAci, "Title block", out LayerSetting titleblock)) return false;
+
+            layers = new LayerSettings
+            {
+                Outline = outline,
+                Cop = cop,
+                Annotation = annotation,
+                Titleblock = titleblock,
+            };
+            return true;
+        }
+
+        private bool TryReadLayer(TextBox nameBox, TextBox aciBox, string label, out LayerSetting setting)
+        {
+            setting = null;
+            string name = nameBox.Text?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                ShowError(label + " layer name is required.");
+                return false;
+            }
+            if (!int.TryParse(aciBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int aci) || aci < 0 || aci > 255)
+            {
+                ShowError(label + " layer ACI must be an integer between 0 and 255.");
+                return false;
+            }
+            setting = new LayerSetting(name, aci);
+            return true;
+        }
+
         private bool TryPositive(string text, string label, out double value)
         {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) || value <= 0)
@@ -209,6 +255,44 @@ namespace CanvasCovers.UI
         {
             ErrorText.Text = string.Empty;
             ErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        private void WireLayerSwatches()
+        {
+            LayerOutlineAci.TextChanged += (s, e) => UpdateSwatch(LayerOutlineAci, LayerOutlineSwatch);
+            LayerCopAci.TextChanged += (s, e) => UpdateSwatch(LayerCopAci, LayerCopSwatch);
+            LayerAnnotationAci.TextChanged += (s, e) => UpdateSwatch(LayerAnnotationAci, LayerAnnotationSwatch);
+            LayerTitleblockAci.TextChanged += (s, e) => UpdateSwatch(LayerTitleblockAci, LayerTitleblockSwatch);
+
+            UpdateSwatch(LayerOutlineAci, LayerOutlineSwatch);
+            UpdateSwatch(LayerCopAci, LayerCopSwatch);
+            UpdateSwatch(LayerAnnotationAci, LayerAnnotationSwatch);
+            UpdateSwatch(LayerTitleblockAci, LayerTitleblockSwatch);
+        }
+
+        private static void UpdateSwatch(TextBox aciBox, Border swatch)
+        {
+            if (!int.TryParse(aciBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int aci))
+            {
+                swatch.Background = Brushes.LightGray;
+                return;
+            }
+            swatch.Background = AciToBrush(aci);
+        }
+
+        private static Brush AciToBrush(int aci)
+        {
+            switch (aci)
+            {
+                case 1: return Brushes.Red;
+                case 2: return Brushes.Yellow;
+                case 3: return new SolidColorBrush(Color.FromRgb(0, 176, 80));   // darker green for visibility on white
+                case 4: return Brushes.Cyan;
+                case 5: return Brushes.Blue;
+                case 6: return Brushes.Magenta;
+                case 7: return Brushes.Black;
+                default: return Brushes.LightGray;
+            }
         }
     }
 }

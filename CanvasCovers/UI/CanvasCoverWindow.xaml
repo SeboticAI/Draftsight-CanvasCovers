@@ -313,7 +313,7 @@
                 </Border>
 
                 <!-- Options -->
-                <Border Style="{StaticResource SectionPanel}" BorderThickness="0">
+                <Border Style="{StaticResource SectionPanel}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitle}" Text="OPTIONS" />
                         <WrapPanel>
@@ -333,6 +333,62 @@
                                 <ComboBoxItem Content="Hooks Facing Out" />
                                 <ComboBoxItem Content="Press Studs" />
                             </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Layers -->
+                <Border Style="{StaticResource SectionPanel}" BorderThickness="0">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="LAYERS" />
+                        <TextBlock Style="{StaticResource MutedLabel}"
+                                   Text="Defaults are tuned for the standard cutting setup. Override only if your CAM software expects different layer names or colors. ACI (AutoCAD Color Index): 1=Red, 2=Yellow, 3=Green, 4=Cyan, 5=Blue, 6=Magenta, 7=Black." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header row -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Purpose" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource FieldLabel}" Text="Layer Name" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="ACI" FontWeight="SemiBold" />
+
+                            <!-- Outline -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Wall outlines (cuts)" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="LayerOutlineName" Text="CC-Outline" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Name="LayerOutlineAci" Text="1" />
+                            <Border Grid.Row="1" Grid.Column="5" Name="LayerOutlineSwatch" BorderBrush="#555" BorderThickness="1" Height="20" Width="20" />
+
+                            <!-- COP -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP cutouts" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="LayerCopName" Text="CC-COP" />
+                            <TextBox Grid.Row="2" Grid.Column="3" Name="LayerCopAci" Text="5" />
+                            <Border Grid.Row="2" Grid.Column="5" Name="LayerCopSwatch" BorderBrush="#555" BorderThickness="1" Height="20" Width="20" />
+
+                            <!-- Annotation -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Annotations (no cut)" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Name="LayerAnnotationName" Text="CC-Annotation" />
+                            <TextBox Grid.Row="3" Grid.Column="3" Name="LayerAnnotationAci" Text="3" />
+                            <Border Grid.Row="3" Grid.Column="5" Name="LayerAnnotationSwatch" BorderBrush="#555" BorderThickness="1" Height="20" Width="20" />
+
+                            <!-- Titleblock -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Title block (no cut)" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Name="LayerTitleblockName" Text="CC-Titleblock" />
+                            <TextBox Grid.Row="4" Grid.Column="3" Name="LayerTitleblockAci" Text="2" />
+                            <Border Grid.Row="4" Grid.Column="5" Name="LayerTitleblockSwatch" BorderBrush="#555" BorderThickness="1" Height="20" Width="20" />
                         </Grid>
                     </StackPanel>
                 </Border>

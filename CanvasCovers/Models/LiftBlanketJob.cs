@@ -11,5 +11,7 @@ namespace CanvasCovers.Models
         public WallDimensions RearWall { get; set; } = new WallDimensions();
 
         public JobOptions Options { get; set; } = new JobOptions();
+
+        public LayerSettings Layers { get; set; } = new LayerSettings();
     }
 }

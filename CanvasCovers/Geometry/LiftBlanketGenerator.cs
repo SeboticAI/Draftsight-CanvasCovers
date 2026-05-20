@@ -5,24 +5,25 @@ using CanvasCovers.Models;
 using DraftSight.Interop.dsAutomation;
 using DsApplication = DraftSight.Interop.dsAutomation.Application;
 
-// Layer assignment is intentionally NOT performed here yet. The earlier
-// attempt to use LayerManager.CreateLayer + EntityHelper.SetLayer crashed
-// DraftSight (likely a COM out-param marshalling mismatch). Once the
-// geometry pipeline is verified stable, layers will be reintroduced with
-// each call tested individually. For now, everything is drawn on the
-// active layer and the user can move entities post-hoc if needed.
-
 namespace CanvasCovers.Geometry
 {
+    // Lays out three lift-blanket walls horizontally with a title block
+    // underneath. Each entity is placed on a named layer via the activate
+    // pattern (LayerHelper) so the CAM software downstream can pick which
+    // lines to cut, score, or ignore by layer. Layer names and colours come
+    // from job.Layers (LayerSettings) so the operator can override them
+    // from the dialog if their machine expects a different convention.
     public class LiftBlanketGenerator
     {
         private const double WallGap = 300;
         private const double TitleBlockGap = 500;
-        private const double TitleBlockWidth = 1400;
+        private const double TitleBlockMinWidth = 1400;
+        private const double TitleBlockMaxWidth = 2400;
         private const double TitleBlockRowHeight = 80;
         private const double LabelOffset = 120;
 
         private readonly DsApplication _application;
+        private LayerSettings _layerSettings;
 
         public LiftBlanketGenerator(DsApplication application)
         {
@@ -32,6 +33,7 @@ namespace CanvasCovers.Geometry
         public void Generate(LiftBlanketJob job)
         {
             if (job == null) throw new ArgumentNullException(nameof(job));
+            _layerSettings = job.Layers ?? new LayerSettings();
 
             Document document = _application.GetActiveDocument();
             if (document == null)
@@ -52,35 +54,56 @@ namespace CanvasCovers.Geometry
                 throw new InvalidOperationException("DraftSight did not return a sketch manager.");
             }
 
-            double cursorX = 0;
-            double maxRight = 0;
-
-            if (job.LeftWall != null && job.LeftWall.Enabled)
+            // Layer creation is outside the undo record on purpose: layers are
+            // a document-level resource we want to persist across Ctrl+Z. The
+            // entity inserts go inside the undo record so one Ctrl+Z reverts
+            // them as a single group.
+            using (LayerHelper layers = new LayerHelper(document))
             {
-                double width = DrawWall(sketch, job.LeftWall, cursorX, 0, "LEFT WALL", doorReturnsOnLeft: true);
-                cursorX += width + WallGap;
-                maxRight = cursorX - WallGap;
-            }
+                layers.EnsureLayer(_layerSettings.Outline.Name, _layerSettings.Outline.ColorIndex);
+                layers.EnsureLayer(_layerSettings.Cop.Name, _layerSettings.Cop.ColorIndex);
+                layers.EnsureLayer(_layerSettings.Annotation.Name, _layerSettings.Annotation.ColorIndex);
+                layers.EnsureLayer(_layerSettings.Titleblock.Name, _layerSettings.Titleblock.ColorIndex);
 
-            if (job.RightWall != null && job.RightWall.Enabled)
-            {
-                double width = DrawWall(sketch, job.RightWall, cursorX, 0, "RIGHT WALL", doorReturnsOnLeft: false);
-                cursorX += width + WallGap;
-                maxRight = cursorX - WallGap;
-            }
+                sketch.StartUndoRecord();
+                try
+                {
+                    double cursorX = 0;
+                    double maxRight = 0;
 
-            if (job.RearWall != null && job.RearWall.Enabled && !job.Options.ThroughCar)
-            {
-                double width = DrawWall(sketch, job.RearWall, cursorX, 0, "REAR WALL", doorReturnsOnLeft: true);
-                cursorX += width + WallGap;
-                maxRight = cursorX - WallGap;
-            }
+                    if (job.LeftWall != null && job.LeftWall.Enabled)
+                    {
+                        double width = DrawWall(sketch, layers, job.LeftWall, cursorX, 0, "LEFT WALL", doorReturnsOnLeft: true);
+                        cursorX += width + WallGap;
+                        maxRight = cursorX - WallGap;
+                    }
 
-            DrawTitleBlock(sketch, job, 0, -TitleBlockGap, maxRight);
+                    if (job.RightWall != null && job.RightWall.Enabled)
+                    {
+                        double width = DrawWall(sketch, layers, job.RightWall, cursorX, 0, "RIGHT WALL", doorReturnsOnLeft: false);
+                        cursorX += width + WallGap;
+                        maxRight = cursorX - WallGap;
+                    }
+
+                    if (job.RearWall != null && job.RearWall.Enabled && !job.Options.ThroughCar)
+                    {
+                        double width = DrawWall(sketch, layers, job.RearWall, cursorX, 0, "REAR WALL", doorReturnsOnLeft: true);
+                        cursorX += width + WallGap;
+                        maxRight = cursorX - WallGap;
+                    }
+
+                    DrawTitleBlock(sketch, layers, job, 0, -TitleBlockGap, maxRight);
+                }
+                finally
+                {
+                    sketch.StopUndoRecord();
+                }
+            }
         }
 
         private double DrawWall(
             SketchManager sketch,
+            LayerHelper layers,
             WallDimensions wall,
             double originX,
             double originY,
@@ -95,6 +118,8 @@ namespace CanvasCovers.Geometry
 
             double mainX0 = doorReturnsOnLeft ? originX + totalReturns : originX;
 
+            layers.Activate(_layerSettings.Outline.Name);
+
             sketch.InsertPolyline2D(
                 new[]
                 {
@@ -105,20 +130,21 @@ namespace CanvasCovers.Geometry
                 },
                 true);
 
-            DrawFoldLines(sketch, originX, originY, height, returns, mainWidth, doorReturnsOnLeft);
+            DrawFoldLines(sketch, layers, originX, originY, height, returns, mainWidth, doorReturnsOnLeft);
 
             if (wall.CopEnabled)
             {
-                DrawCop(sketch, wall, mainX0, originY, height);
+                DrawCop(sketch, layers, wall, mainX0, originY, height);
             }
 
-            DrawWallLabel(sketch, wallLabel, originX, originY, totalWidth);
+            DrawWallLabel(sketch, layers, wallLabel, originX, originY, totalWidth);
 
             return totalWidth;
         }
 
         private void DrawFoldLines(
             SketchManager sketch,
+            LayerHelper layers,
             double originX,
             double originY,
             double height,
@@ -126,6 +152,8 @@ namespace CanvasCovers.Geometry
             double mainWidth,
             bool doorReturnsOnLeft)
         {
+            layers.Activate(_layerSettings.Outline.Name);
+
             double topY = originY + height;
             double x = originX;
 
@@ -162,6 +190,7 @@ namespace CanvasCovers.Geometry
 
         private void DrawCop(
             SketchManager sketch,
+            LayerHelper layers,
             WallDimensions wall,
             double mainX0,
             double originY,
@@ -172,6 +201,7 @@ namespace CanvasCovers.Geometry
             double copCx = mainX0 + wall.MainWidth / 2.0;
             double copCy = originY + height - wall.CopTopOffset - copHeight / 2.0;
 
+            layers.Activate(_layerSettings.Cop.Name);
             sketch.InsertPolyline2D(
                 new[]
                 {
@@ -182,6 +212,7 @@ namespace CanvasCovers.Geometry
                 },
                 true);
 
+            layers.Activate(_layerSettings.Annotation.Name);
             sketch.InsertNote(
                 copCx - copWidth / 4.0, copCy - 30, 0,
                 copCx + copWidth / 4.0, copCy + 30, 0,
@@ -190,6 +221,7 @@ namespace CanvasCovers.Geometry
 
         private void DrawWallLabel(
             SketchManager sketch,
+            LayerHelper layers,
             string label,
             double originX,
             double originY,
@@ -198,6 +230,7 @@ namespace CanvasCovers.Geometry
             double labelHalfWidth = Math.Max(totalWidth * 0.3, 200);
             double centerX = originX + totalWidth / 2.0;
 
+            layers.Activate(_layerSettings.Annotation.Name);
             sketch.InsertNote(
                 centerX - labelHalfWidth, originY - LabelOffset - 60, 0,
                 centerX + labelHalfWidth, originY - LabelOffset, 0,
@@ -206,12 +239,13 @@ namespace CanvasCovers.Geometry
 
         private void DrawTitleBlock(
             SketchManager sketch,
+            LayerHelper layers,
             LiftBlanketJob job,
             double originX,
             double topY,
             double availableWidth)
         {
-            double width = Math.Max(availableWidth, TitleBlockWidth);
+            double width = Math.Min(Math.Max(availableWidth, TitleBlockMinWidth), TitleBlockMaxWidth);
             double rowH = TitleBlockRowHeight;
 
             List<string> rows = new List<string>
@@ -225,7 +259,7 @@ namespace CanvasCovers.Geometry
                     + "        Mobile:         " + Display(job.Project.Mobile),
                 "Measured By:     " + Display(job.Project.MeasuredBy)
                     + "        Date:           " + (job.Project.Date.HasValue
-                        ? job.Project.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        ? job.Project.Date.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
                         : "—"),
                 "Fixings:         " + FixingLabel(job.Options.Fixings)
                     + "        Through Car:    " + YesNo(job.Options.ThroughCar)
@@ -234,6 +268,8 @@ namespace CanvasCovers.Geometry
 
             double totalHeight = rowH * rows.Count;
             double bottomY = topY - totalHeight;
+
+            layers.Activate(_layerSettings.Titleblock.Name);
 
             sketch.InsertPolyline2D(
                 new[]

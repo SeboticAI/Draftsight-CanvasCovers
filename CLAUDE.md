@@ -465,6 +465,21 @@ OutputBaseFilename=BesiaCAD-CanvasCovers-Setup-1.0.0
   command feedback, as the SDK sample does. Reserve `MessageBox.Show` for
   the `ConnectToDraftSight` / `DisconnectFromDraftSight` catch blocks where
   surfacing the error is the whole point.
+- **Do not call `EntityHelper.SetLayer` or `EntityHelper.GetLayer` on a
+  freshly-inserted entity.** Both crash DraftSight natively (no managed
+  exception — the host process dies). Verified by isolated step-by-step
+  test: `Application.GetEntityHelper()` returns a non-null EntityHelper,
+  then calling either `SetLayer(polyline, name)` or `GetLayer(polyline)`
+  on a polyline returned by `SketchManager.InsertPolyline2D(...)` faults
+  the process. The SDK `DockControl2/EntitiesProperties.cs` sample calls
+  SetLayer successfully but on entities that have been sitting in the
+  document (obtained via `GetFilteredEntities`), not on fresh RCWs from
+  an `Insert*` call. **Use the activate pattern instead** (mirrored from
+  the C++ `BlockCustomData` sample): save current active layer via
+  `LayerManager.GetActiveLayer()`, activate the target layer with
+  `targetLayer.Activate()`, insert the entity (lands on active layer at
+  creation time), then restore the original active layer with
+  `originalActive.Activate()`. No `EntityHelper` call is ever needed.
 
 ---
 
