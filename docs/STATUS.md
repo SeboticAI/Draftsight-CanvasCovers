@@ -46,6 +46,11 @@ exists in the picker as a disabled tile pending the spec from the client.
   `SketchManager.StartUndoRecord` / `StopUndoRecord`
 - Diagnostic `_CANVASCOVERSLAYERTEST` command (logs to
   `%LocalAppData%\CanvasCovers\layertest.log`)
+- **Inno Setup installer.** `Installer\CanvasCovers.iss` + `build.ps1`
+  produce a per-machine, admin-elevated EXE that lays down the payload,
+  drops the addin XML in ProgramData, and runs RegAsm /codebase.
+  Uninstall via Settings → Apps reverses all of it. Verified
+  install + load + uninstall on the dev machine 2026-05-21.
 
 ## What's deliberately not yet built
 
@@ -55,7 +60,6 @@ exists in the picker as a disabled tile pending the spec from the client.
 - **DXF auto-export.** Operator currently saves the drawing manually.
 - **Project save/load.** No JSON serialisation of `LiftBlanketJob` yet.
 - **Branded icons.** Currently using the SDK sample's placeholder PNGs.
-- **Inno Setup installer.** Deploy/rollback PowerShell scripts only.
 - **Code signing.** Add-in shows "Unknown Publisher" on first load.
 - **Field-level tooltips / help.** Power-user friendly only right now.
 - **Machine-constraint validation** (max sheet width etc). Gated on
@@ -83,16 +87,23 @@ The short version:
 ## Current commit baseline
 
 - Branch: `main`
-- Last verified commit message: "Multi-product refactor + polish pass"
+- Last verified commit message: "Refresh reference docs for pickup after a break"
 - Build: clean (`dotnet build -c Release` produces `CanvasCovers.dll`
   with zero warnings)
+- Installer: clean (`.\Installer\build.ps1` produces
+  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.0.0.exe`, ~2.2 MB)
 
 ## Quick verification
 
 ```powershell
-.\scripts\deploy-canvascovers.ps1
+# Close DraftSight first.
+.\Installer\build.ps1
+# Then double-click Installer\Output\BesiaCAD-CanvasCovers-Setup-1.0.0.exe
+# (UAC prompts for admin).
 ```
 
-Then in DraftSight: new drawing → tick CanvasCovers in Add-Ins → ribbon
-"CanvasCovers" tab → "Canvas Covers" button → "Lift Blanket" tile in
-picker → Generate.
+In DraftSight after install: new drawing → tick CanvasCovers in Add-Ins
+→ ribbon "CanvasCovers" tab → "Canvas Covers" button → "Lift Blanket"
+tile in picker → Generate.
+
+To remove: Settings → Apps → *BesiaCAD Canvas Covers* → Uninstall.

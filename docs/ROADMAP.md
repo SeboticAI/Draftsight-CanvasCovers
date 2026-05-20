@@ -76,20 +76,7 @@ logo / icon set elevates it.
 
 Needs design asset from outside — not a coding task.
 
-### 5. Inno Setup installer
-
-**Why now:** for commercial release, "one EXE, click to install" is the
-expected baseline. The PowerShell deploy script is fine for dev but not
-acceptable to ship to a paying client.
-
-- Inno Setup 6 script under `Installer/` (folder already exists in repo)
-- `PrivilegesRequired=admin`, runs RegAsm in `[Run]`, drops XML in
-  ProgramData
-- Pin `AppId` GUID once and never change (per CLAUDE.md §1)
-- Output: `BesiaCAD-CanvasCovers-Setup-{version}.exe`
-- Verify rollback / uninstall removes everything cleanly
-
-### 6. Code signing
+### 5. Code signing
 
 **Why now:** "Unknown Publisher" warning on add-in load looks
 unprofessional and degrades trust in a commercial release.

@@ -352,66 +352,68 @@ namespace CanvasCovers
 
 ## 7. The dev loop (single most important thing to internalize)
 
+The Inno Setup installer is the primary install method for both dev iteration
+and shipping. The PowerShell deploy script has been removed; only the
+startup-crash rollback script remains in `scripts\`.
+
 1. Edit C# in Visual Studio (or Cursor / Claude Code).
-2. Build (`Ctrl+Shift+B` or `dotnet build`) → produces
-   `bin\Release\net48\<AddinName>.dll`.
-3. **Close DraftSight** if running. The DLL is locked while the host process
-   is alive — same problem as Revit.
-4. Copy the build output to a controlled add-in folder, e.g.
-   `C:\BesiaCAD\CanvasCovers\` for development or DraftSight's documented
-   `bin\addins\CanvasCovers\` location when testing the official flow.
-5. Register the managed DLL with the 64-bit .NET Framework `RegAsm`:
-   `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe /codebase C:\BesiaCAD\CanvasCovers\<AddinName>.dll`
-6. Copy/update the XML under DraftSight's `addinConfigs` folder with
-   `startup="0"` for development.
-7. Open DraftSight and activate the add-in from the Add-Ins manager manually.
-8. Verify the ribbon button appears.
-9. Click → test.
+2. **Close DraftSight** if running. The DLL is locked while the host process
+   is alive — same problem as Revit. `Installer\build.ps1` refuses to run if
+   `DraftSight.exe` is alive, as a safety net.
+3. From the repo root: `.\Installer\build.ps1`. This rebuilds the project in
+   Release configuration and compiles the installer EXE into
+   `Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`.
+4. Run the installer EXE as administrator (UAC prompts automatically). It:
+   - Lays down the payload at `C:\BesiaCAD\CanvasCovers\` (fixed — the XML
+     hardcodes the ribbon button bitmap path there).
+   - Copies `CanvasCovers.xml` to
+     `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\`.
+   - Runs 64-bit `RegAsm.exe /codebase` on the DLL.
+   - Re-running over an existing install upgrades cleanly (same `AppId`).
+5. Open DraftSight → Tools → Add-Ins → tick CanvasCovers. The XML ships with
+   `startup="0"` so first activation is manual on purpose — verify the load
+   is clean before flipping startup mode.
+6. Verify the ribbon button appears.
+7. Click → test.
 
-**Post-build copy script (csproj snippet):**
+**Uninstall:** Settings → Apps → *BesiaCAD Canvas Covers* → Uninstall. The
+uninstaller runs `RegAsm /unregister`, removes the XML from `addinConfigs`,
+and deletes the payload folder.
 
-```xml
-<Target Name="DeployToDraftSight" AfterTargets="Build">
-  <PropertyGroup>
-    <DeployDir>C:\BesiaCAD\$(AssemblyName)\</DeployDir>
-  </PropertyGroup>
-  <MakeDir Directories="$(DeployDir)" />
-<Copy SourceFiles="$(TargetDir)$(AssemblyName).dll"
-        DestinationFolder="$(DeployDir)"
-        SkipUnchangedFiles="true" />
-</Target>
-```
-
-The XML config file is placed manually once, then left alone except when the
-CLSID or deployment path changes.
+**Startup-crash recovery:** if DraftSight refuses to launch after install
+(meaning the normal uninstaller can't run because DS can't start), use
+`.\scripts\rollback-canvascovers.ps1`. See §10 below for details.
 
 ---
 
-## 8. Inno Setup script (when ready to ship)
+## 8. Inno Setup script — live, not deferred
 
-Deferred. When productising:
+Lives at [Installer\CanvasCovers.iss](Installer/CanvasCovers.iss) with a build
+pipeline at [Installer\build.ps1](Installer/build.ps1). See
+[Installer\README.md](Installer/README.md) for end-to-end usage. Pinned
+identifiers:
 
-1. **`PrivilegesRequired=admin`** (not `lowest`). The XML config folder under
-   `C:\ProgramData\...\DraftSight\addinConfigs\` is per-machine.
-2. **Register COM during install.** For the .NET Framework add-in model shown
-   by the DS 2026 SDK sample, use 64-bit `RegAsm.exe` on the managed DLL in a
-   `[Run]` block:
-   `Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: "/codebase ""{app}\<Addin>.dll"""`
-3. **Write XML during install** with `startup="0"` by default. Do not ship
-   `startup="1"` until the add-in has been tested on the target machine.
+| Field        | Value                                  |
+| ------------ | -------------------------------------- |
+| `AppId`      | `A27F4037-4A3F-4706-B839-B88836F132FD` |
+| Install dir  | `C:\BesiaCAD\CanvasCovers` (locked via `DisableDirPage=yes`) |
+| Architecture | `x64compatible` (not `x64` — deprecated since Inno 6.3) |
 
-Skeleton to expand later:
+Critical settings:
 
-```inno
-[Setup]
-AppId={{NEW-GUID-HERE}
-AppName=BesiaCAD Canvas Covers
-AppVersion=1.0.0
-AppPublisher=BesiaBIM
-DefaultDirName={pf}\BesiaCAD\CanvasCovers
-PrivilegesRequired=admin
-OutputBaseFilename=BesiaCAD-CanvasCovers-Setup-1.0.0
-```
+1. **`PrivilegesRequired=admin`** — the XML config folder under
+   `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\` is per-machine.
+2. **`[Run]` invokes 64-bit RegAsm:**
+   `Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: "/codebase ""{app}\CanvasCovers.dll"""`
+3. **XML ships with `startup="0"`.** First activation is manual via the
+   Add-Ins manager — only flip to `startup="1"` after a clean test load.
+4. **`CloseApplications=force` / `CloseApplicationsFilter=DraftSight.exe`** —
+   the installer closes DraftSight before writing the locked DLL.
+5. **`[UninstallRun]` reverses `RegAsm`** with `/unregister`, and
+   `[UninstallDelete]` removes the ProgramData XML and the install folder.
+
+To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
+`AppId` — upgrade detection depends on it.
 
 ---
 
@@ -510,14 +512,24 @@ Run in order. Stop at the first failure — that's the bug.
 
 ### Startup crash recovery
 
-If DraftSight crashes after registering an add-in:
+If DraftSight crashes on launch after install, the normal Settings → Apps
+uninstaller can't run (DS won't start). Use the rollback script:
 
 1. Do **not** repeatedly reopen DraftSight.
-2. Run:
-   `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe <path>\<AddinName>.dll /unregister`
-3. Remove or rename the add-in XML from `addinConfigs`.
-4. Confirm DraftSight opens cleanly.
+2. Run `.\scripts\rollback-canvascovers.ps1` (admin shell). It runs
+   `RegAsm /unregister` against the installed DLL and renames the XML in
+   `addinConfigs` to `.disabled`.
+3. Confirm DraftSight opens cleanly.
+4. Once DS is healthy, run the proper uninstaller from Settings → Apps to
+   clean up the rest of the install (the rollback script intentionally does
+   not touch `C:\BesiaCAD\CanvasCovers\` so the uninstaller can still find
+   the install).
 5. Only then debug the add-in, starting with a minimal no-ribbon load test.
+
+If the rollback script itself fails (path mismatch, etc.), fall back to the
+manual sequence:
+- `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe C:\BesiaCAD\CanvasCovers\CanvasCovers.dll /unregister`
+- Delete or rename `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\CanvasCovers.xml`.
 
 ---
 
