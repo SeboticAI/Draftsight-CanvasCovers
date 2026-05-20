@@ -15,6 +15,7 @@ namespace CanvasCovers
         private DsApplication _application;
         private readonly string _addinGuid;
         private HelloCanvasCommand _helloCommand;
+        private GenerateCoverCommand _generateCommand;
         private bool _uiRegistered;
 
         public App()
@@ -38,6 +39,10 @@ namespace CanvasCovers
                 _helloCommand = new HelloCanvasCommand(_application, _addinGuid);
                 _helloCommand.RegisterCommand();
                 _helloCommand.CreateUserCommand();
+
+                _generateCommand = new GenerateCoverCommand(_application, _addinGuid);
+                _generateCommand.RegisterCommand();
+                _generateCommand.CreateUserCommand();
 
                 RegisterRibbon();
                 return true;
@@ -63,6 +68,7 @@ namespace CanvasCovers
 
                 _application = null;
                 _helloCommand = null;
+                _generateCommand = null;
                 return true;
             }
             catch (Exception ex)
@@ -80,7 +86,7 @@ namespace CanvasCovers
             if (workspace == null)
             {
                 MessageBox.Show(
-                    "CanvasCovers could not find or create a workspace for its ribbon tab. The command CANVASCOVERSHELLO is still available from the command line.",
+                    "CanvasCovers could not find or create a workspace for its ribbon tab. Commands are still available from the command line (CANVASCOVERSHELLO, CANVASCOVERSGENERATE).",
                     "CanvasCovers Add-in Warning");
                 return;
             }
@@ -113,8 +119,8 @@ namespace CanvasCovers
             row.InsertRibbonCommandButton(
                 _addinGuid,
                 dsRibbonButtonStyle_e.dsRibbonButtonStyle_LargeWithText,
-                "Hello",
-                _helloCommand.UserCommandId);
+                "Generate",
+                _generateCommand.UserCommandId);
 
             _uiRegistered = true;
         }

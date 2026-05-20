@@ -1,0 +1,344 @@
+<Window x:Class="CanvasCovers.UI.CanvasCoverWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Adelaide Annexes &amp; Canvas — Lift Blanket Generator"
+        Width="780"
+        Height="820"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        MinWidth="640"
+        MinHeight="560"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <SolidColorBrush x:Key="BrandPrimary" Color="#1A3A52" />
+        <SolidColorBrush x:Key="BrandAccent" Color="#C77B30" />
+        <SolidColorBrush x:Key="SectionHeader" Color="#1A3A52" />
+        <SolidColorBrush x:Key="SectionDivider" Color="#DDDDDD" />
+        <SolidColorBrush x:Key="MutedText" Color="#666666" />
+
+        <Style x:Key="HeaderTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+        </Style>
+        <Style x:Key="HeaderSub" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#CCCCCC" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource SectionHeader}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Foreground" Value="#333333" />
+        </Style>
+        <Style x:Key="MutedLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedText}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontStyle" Value="Italic" />
+            <Setter Property="Margin" Value="0,2,0,8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,4,16,4" />
+        </Style>
+        <Style x:Key="SectionPanel" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource SectionDivider}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="0,4,0,16" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Branded header -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource BrandPrimary}" Padding="20,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource HeaderTitle}" Text="ADELAIDE ANNEXES &amp; CANVAS" />
+                    <TextBlock Style="{StaticResource HeaderSub}" Margin="0,2,0,0" Text="Lift Blanket Generator" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource HeaderSub}" TextAlignment="Right" Text="Ph: 08 8357 4444 · Fax: 08 8357 4447" />
+                    <TextBlock Style="{StaticResource HeaderSub}" TextAlignment="Right" Text="sales@adelaideannexe.com.au" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Footer buttons -->
+        <Border DockPanel.Dock="Bottom" Background="#F4F4F4" BorderBrush="{StaticResource SectionDivider}" BorderThickness="0,1,0,0" Padding="16,10">
+            <Grid>
+                <TextBlock Style="{StaticResource MutedLabel}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           Name="ErrorText"
+                           Foreground="#B33"
+                           FontStyle="Normal"
+                           FontWeight="SemiBold"
+                           Visibility="Collapsed" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Name="CancelButton"
+                            Width="100" Height="30"
+                            Margin="0,0,8,0"
+                            IsCancel="True"
+                            Content="Cancel"
+                            Click="CancelButton_Click" />
+                    <Button Name="GenerateButton"
+                            Width="160" Height="30"
+                            IsDefault="True"
+                            Background="{StaticResource BrandAccent}"
+                            Foreground="White"
+                            FontWeight="SemiBold"
+                            BorderThickness="0"
+                            Content="Generate Drawing"
+                            Click="GenerateButton_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Scrollable form body -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,16">
+            <StackPanel>
+
+                <!-- Project Information -->
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="PROJECT INFORMATION" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Company Name" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="CompanyNameInput" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Network Number" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="NetworkNumberInput" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Project Name" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="ProjectNameInput" />
+                            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="O / Number" />
+                            <TextBox Grid.Row="1" Grid.Column="4" Name="OrderNumberInput" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Sales Contact" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="SalesContactInput" />
+                            <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Mobile" />
+                            <TextBox Grid.Row="2" Grid.Column="4" Name="MobileInput" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured By" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Name="MeasuredByInput" />
+                            <TextBlock Grid.Row="3" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Date" />
+                            <DatePicker Grid.Row="3" Grid.Column="4" Name="DateInput" Height="26" Margin="0,2,0,2" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Left Wall -->
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Name="LeftWallEnabled" Content="Include this wall" IsChecked="True" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="LEFT WALL (when facing rear wall)" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="LeftMainWidth" Text="1400" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="LeftMainHeight" Text="2150" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="LeftDoorReturn1" Text="0" />
+                            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
+                            <TextBox Grid.Row="1" Grid.Column="4" Name="LeftDoorReturn2" Text="0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="LeftDoorReturn3" Text="0" />
+                            <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="4" Name="LeftCopEnabled" Content="Include COP cutout" />
+
+                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
+                                <TextBox Grid.Column="1" Name="LeftCopTopOffset" Text="150" />
+                                <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
+                                <TextBox Grid.Column="4" Name="LeftCopHeight" Text="1300" />
+                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
+                                <TextBox Grid.Column="7" Name="LeftCopWidth" Text="600" />
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Right Wall -->
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Name="RightWallEnabled" Content="Include this wall" IsChecked="True" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="RIGHT WALL (when facing rear wall)" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="RightMainWidth" Text="1400" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="RightMainHeight" Text="2150" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="RightDoorReturn1" Text="0" />
+                            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
+                            <TextBox Grid.Row="1" Grid.Column="4" Name="RightDoorReturn2" Text="0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="RightDoorReturn3" Text="0" />
+                            <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="2" Name="RightCopEnabled" Content="Include COP cutout" />
+
+                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="100" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
+                                <TextBox Grid.Column="1" Name="RightCopTopOffset" Text="150" />
+                                <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
+                                <TextBox Grid.Column="4" Name="RightCopHeight" Text="1300" />
+                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
+                                <TextBox Grid.Column="7" Name="RightCopWidth" Text="600" />
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Rear Wall -->
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Name="RearWallEnabled" Content="Include this wall" IsChecked="True" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="REAR WALL" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Tick &quot;Through Car&quot; in Options to omit the rear wall automatically." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Width" />
+                            <TextBox Grid.Column="1" Name="RearWidth" Text="1400" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Height" />
+                            <TextBox Grid.Column="4" Name="RearHeight" Text="2150" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Options -->
+                <Border Style="{StaticResource SectionPanel}" BorderThickness="0">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="OPTIONS" />
+                        <WrapPanel>
+                            <CheckBox Name="ThroughCarOption" Content="Through Car (omits rear wall)" />
+                            <CheckBox Name="PlasticCoverOption" Content="Plastic Cover on COP" />
+                        </WrapPanel>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixings Required" />
+                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="2">
+                                <ComboBoxItem Content="Velcro" />
+                                <ComboBoxItem Content="Hooks Facing In" />
+                                <ComboBoxItem Content="Hooks Facing Out" />
+                                <ComboBoxItem Content="Press Studs" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+</Window>
