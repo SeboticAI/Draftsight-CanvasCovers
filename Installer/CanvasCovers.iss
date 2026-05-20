@@ -10,7 +10,7 @@
 ; ---------------------------------------------------------------------------
 
 #define MyAppName          "BesiaCAD Canvas Covers"
-#define MyAppVersion       "1.0.1"
+#define MyAppVersion       "1.0.2"
 #define MyAppPublisher     "BesiaCAD"
 #define MyAppURL           "https://seboticai.com"
 #define MyAddinName        "CanvasCovers"
@@ -64,9 +64,10 @@ Source: "{#PayloadDir}\Resources\*";                         DestDir: "{app}\Res
 
 ; XML drops into both {app} (transparency / reference) and the per-machine
 ; addinConfigs folder DraftSight actually reads. Both copies get their bitmap
-; path rewritten after install by RewriteBitmapPath.
-Source: "{#PayloadDir}\{#MyAddinXml}";                       DestDir: "{app}";                DestName: "{#MyAddinXml}"; Flags: ignoreversion; AfterInstall: RewriteBitmapPath
-Source: "{#PayloadDir}\{#MyAddinXml}";                       DestDir: "{#MyAddinConfigsDir}"; DestName: "{#MyAddinXml}"; Flags: ignoreversion; AfterInstall: RewriteBitmapPath
+; path rewritten in CurStepChanged(ssPostInstall) -- calling the rewrite from
+; AfterInstall: was unreliable (procedure not found at parse time of [Files]).
+Source: "{#PayloadDir}\{#MyAddinXml}";                       DestDir: "{app}";                Flags: ignoreversion
+Source: "{#PayloadDir}\{#MyAddinXml}";                       DestDir: "{#MyAddinConfigsDir}"; Flags: ignoreversion
 
 [Run]
 Filename: "{#MyRegAsm}"; \
@@ -86,42 +87,45 @@ Type: filesandordirs; Name: "{app}\Resources"
 Type: dirifempty;     Name: "{app}"
 
 [Code]
-// Replaces the dev-time bitmap path inside the just-installed CanvasCovers.xml
-// with the real install dir, so the Add-Ins manager icon resolves regardless
-// of where the user installed (or future moves of the install dir).
-procedure RewriteBitmapPath();
+
+// Replaces the @@INSTALLDIR@@ placeholder in a deployed CanvasCovers.xml with
+// the real install dir, so the Add-Ins manager icon resolves regardless of
+// where the user installed.
+procedure RewriteBitmapPath(const FilePath: String);
 var
   ContentBytes: AnsiString;
   ContentText: String;
 begin
+  if not FileExists(FilePath) then
+    Exit;
   // LoadStringFromFile returns AnsiString (raw bytes); StringChangeEx needs
   // Unicode String. The XML is pure ASCII so the round-trip is lossless.
-  if not LoadStringFromFile(CurrentFileName, ContentBytes) then
+  if not LoadStringFromFile(FilePath, ContentBytes) then
     Exit;
   ContentText := String(ContentBytes);
-  if StringChangeEx(ContentText, '{#MyXmlPathToken}', ExpandConstant('{app}'), True) > 0 then
+  if StringChangeEx(ContentText, '@@INSTALLDIR@@', ExpandConstant('{app}'), True) > 0 then
   begin
     ContentBytes := AnsiString(ContentText);
-    SaveStringToFile(CurrentFileName, ContentBytes, False);
+    SaveStringToFile(FilePath, ContentBytes, False);
   end;
 end;
 
 // Reads UninstallString from the Inno-registered uninstall key for this AppId.
+// Key name is the AppId verbatim (single-brace GUID form) + "_is1".
 // HKLM64 first (we're a 64-bit installer); falls back to HKLM for safety.
 function GetPreviousUninstallString(): String;
 var
   Key: String;
 begin
   Result := '';
-  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#SetupSetting("AppId")}_is1';
+  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{A27F4037-4A3F-4706-B839-B88836F132FD}_is1';
   if RegQueryStringValue(HKLM64, Key, 'UninstallString', Result) then Exit;
   RegQueryStringValue(HKLM, Key, 'UninstallString', Result);
 end;
 
 // Runs the previous version's uninstaller silently before this one installs.
-// Necessary so the 1.0.0 -> 1.0.1 install-dir move does not orphan files at
-// C:\BesiaCAD\CanvasCovers. Same-path upgrades (1.0.1 -> 1.0.2) also benefit
-// by leaving no stale files behind.
+// Necessary so install-dir moves between versions do not orphan files at the
+// old path. Same-path upgrades also benefit by leaving no stale files behind.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   Cmd: String;
@@ -136,4 +140,16 @@ begin
               ewWaitUntilTerminated, ResultCode) then
     Result := 'Failed to uninstall the previous version of {#MyAppName} (exit code '
               + IntToStr(ResultCode) + '). Uninstall it manually via Settings -> Apps and re-run this installer.';
+end;
+
+// Rewrite both deployed XMLs after install completes. Doing this here rather
+// than via AfterInstall: parameters because the latter was silently no-op'ing
+// in practice (likely a parse-order / forward-reference issue).
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    RewriteBitmapPath(ExpandConstant('{app}\{#MyAddinXml}'));
+    RewriteBitmapPath(ExpandConstant('{#MyAddinConfigsDir}\{#MyAddinXml}'));
+  end;
 end;

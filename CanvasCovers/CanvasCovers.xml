@@ -6,7 +6,7 @@
            name="CanvasCovers"
            premiumOnly="1">
       <com clsid="aa497758-3d06-46b7-9f75-7a8f2fffed7c"></com>
-      <!-- @@INSTALLDIR@@ is rewritten to the real install dir by the Inno installer. -->
+      <!-- bitmap path is rewritten by the Inno installer's CurStepChanged handler. -->
       <button bitmap="@@INSTALLDIR@@\Resources\canvascovers_16.png"></button>
     </addin>
   </draftsight>
