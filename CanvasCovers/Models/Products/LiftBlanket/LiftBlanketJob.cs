@@ -1,8 +1,10 @@
-namespace CanvasCovers.Models
+namespace CanvasCovers.Models.Products.LiftBlanket
 {
     public class LiftBlanketJob
     {
         public ProjectMetadata Project { get; set; } = new ProjectMetadata();
+
+        public LayerSettings Layers { get; set; } = new LayerSettings();
 
         public WallDimensions LeftWall { get; set; } = new WallDimensions();
 
@@ -10,8 +12,6 @@ namespace CanvasCovers.Models
 
         public WallDimensions RearWall { get; set; } = new WallDimensions();
 
-        public JobOptions Options { get; set; } = new JobOptions();
-
-        public LayerSettings Layers { get; set; } = new LayerSettings();
+        public LiftBlanketOptions Options { get; set; } = new LiftBlanketOptions();
     }
 }

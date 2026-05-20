@@ -1,4 +1,4 @@
-namespace CanvasCovers.Models
+namespace CanvasCovers.Models.Products.LiftBlanket
 {
     public enum FixingType
     {
@@ -8,7 +8,7 @@ namespace CanvasCovers.Models
         PressStuds,
     }
 
-    public class JobOptions
+    public class LiftBlanketOptions
     {
         public bool ThroughCar { get; set; }
 

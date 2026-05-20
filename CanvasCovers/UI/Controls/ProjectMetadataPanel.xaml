@@ -1,0 +1,52 @@
+<UserControl x:Class="CanvasCovers.UI.Controls.ProjectMetadataPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Foreground" Value="#333333" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="110" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="110" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Company Name" />
+        <TextBox Grid.Row="0" Grid.Column="1" Name="CompanyNameInput" />
+        <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Network Number" />
+        <TextBox Grid.Row="0" Grid.Column="4" Name="NetworkNumberInput" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Project Name" />
+        <TextBox Grid.Row="1" Grid.Column="1" Name="ProjectNameInput" />
+        <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="O / Number" />
+        <TextBox Grid.Row="1" Grid.Column="4" Name="OrderNumberInput" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Sales Contact" />
+        <TextBox Grid.Row="2" Grid.Column="1" Name="SalesContactInput" />
+        <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Mobile" />
+        <TextBox Grid.Row="2" Grid.Column="4" Name="MobileInput" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured By" />
+        <TextBox Grid.Row="3" Grid.Column="1" Name="MeasuredByInput" />
+        <TextBlock Grid.Row="3" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Date" />
+        <DatePicker Grid.Row="3" Grid.Column="4" Name="DateInput" Height="26" Margin="0,2,0,2" />
+    </Grid>
+</UserControl>

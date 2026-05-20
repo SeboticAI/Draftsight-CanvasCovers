@@ -72,27 +72,6 @@ namespace CanvasCovers.Commands
             _userCommandId = _userCommand.GetID();
         }
 
-        public void InsertInto(MenuItem menu, int position)
-        {
-            if (menu == null)
-            {
-                throw new InvalidOperationException("DraftSight did not return a menu for CanvasCovers.");
-            }
-
-            if (string.IsNullOrEmpty(_userCommandId))
-            {
-                throw new InvalidOperationException(
-                    "CanvasCovers user command must be created before inserting into a menu.");
-            }
-
-            menu.InsertMenuItem(
-                _groupName,
-                dsMenuItemType_e.dsMenuItemType_UserCommand,
-                position,
-                ItemName,
-                _userCommandId);
-        }
-
         public abstract void Execute();
     }
 }

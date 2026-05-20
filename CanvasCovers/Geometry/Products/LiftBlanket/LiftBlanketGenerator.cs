@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using CanvasCovers.Models;
+using CanvasCovers.Models.Products.LiftBlanket;
 using DraftSight.Interop.dsAutomation;
 using DsApplication = DraftSight.Interop.dsAutomation.Application;
 
-namespace CanvasCovers.Geometry
+namespace CanvasCovers.Geometry.Products.LiftBlanket
 {
     // Lays out three lift-blanket walls horizontally with a title block
     // underneath. Each entity is placed on a named layer via the activate
@@ -54,10 +55,6 @@ namespace CanvasCovers.Geometry
                 throw new InvalidOperationException("DraftSight did not return a sketch manager.");
             }
 
-            // Layer creation is outside the undo record on purpose: layers are
-            // a document-level resource we want to persist across Ctrl+Z. The
-            // entity inserts go inside the undo record so one Ctrl+Z reverts
-            // them as a single group.
             using (LayerHelper layers = new LayerHelper(document))
             {
                 layers.EnsureLayer(_layerSettings.Outline.Name, _layerSettings.Outline.ColorIndex);

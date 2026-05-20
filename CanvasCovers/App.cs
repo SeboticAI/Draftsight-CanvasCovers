@@ -14,7 +14,7 @@ namespace CanvasCovers
     {
         private DsApplication _application;
         private readonly string _addinGuid;
-        private GenerateCoverCommand _generateCommand;
+        private OpenCanvasCoversCommand _openCommand;
         private LayerTestCommand _layerTestCommand;
         private bool _uiRegistered;
 
@@ -36,9 +36,9 @@ namespace CanvasCovers
                     return false;
                 }
 
-                _generateCommand = new GenerateCoverCommand(_application, _addinGuid);
-                _generateCommand.RegisterCommand();
-                _generateCommand.CreateUserCommand();
+                _openCommand = new OpenCanvasCoversCommand(_application, _addinGuid);
+                _openCommand.RegisterCommand();
+                _openCommand.CreateUserCommand();
 
                 _layerTestCommand = new LayerTestCommand(_application, _addinGuid);
                 _layerTestCommand.RegisterCommand();
@@ -66,7 +66,7 @@ namespace CanvasCovers
                 }
 
                 _application = null;
-                _generateCommand = null;
+                _openCommand = null;
                 _layerTestCommand = null;
                 return true;
             }
@@ -85,7 +85,7 @@ namespace CanvasCovers
             if (workspace == null)
             {
                 MessageBox.Show(
-                    "CanvasCovers could not find an active workspace for its ribbon tab. The CANVASCOVERSGENERATE command is still available from the command line.",
+                    "CanvasCovers could not find an active workspace for its ribbon tab. The CANVASCOVERSOPEN command is still available from the command line.",
                     "CanvasCovers Add-in Warning");
                 return;
             }
@@ -123,8 +123,8 @@ namespace CanvasCovers
             row.InsertRibbonCommandButton(
                 _addinGuid,
                 dsRibbonButtonStyle_e.dsRibbonButtonStyle_LargeWithText,
-                "Generate",
-                _generateCommand.UserCommandId);
+                "Canvas Covers",
+                _openCommand.UserCommandId);
 
             _uiRegistered = true;
         }

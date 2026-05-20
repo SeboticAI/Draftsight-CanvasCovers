@@ -1,0 +1,28 @@
+<UserControl x:Class="CanvasCovers.UI.Controls.BrandedHeader"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#1A3A52" Padding="20,14">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Foreground="White" FontSize="22" FontWeight="Bold" FontFamily="Segoe UI"
+                           Text="ADELAIDE ANNEXES &amp; CANVAS" />
+                <TextBlock Name="SubtitleText"
+                           Foreground="#CCCCCC" FontSize="12" FontFamily="Segoe UI"
+                           Margin="0,2,0,0"
+                           Text="" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Foreground="#CCCCCC" FontSize="12" FontFamily="Segoe UI"
+                           TextAlignment="Right"
+                           Text="Ph: 08 8357 4444 · Fax: 08 8357 4447" />
+                <TextBlock Foreground="#CCCCCC" FontSize="12" FontFamily="Segoe UI"
+                           TextAlignment="Right"
+                           Text="sales@adelaideannexe.com.au" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

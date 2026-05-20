@@ -1,4 +1,4 @@
-namespace CanvasCovers.Models
+namespace CanvasCovers.Models.Products.LiftBlanket
 {
     public class WallDimensions
     {

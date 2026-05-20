@@ -1,0 +1,129 @@
+<Window x:Class="CanvasCovers.UI.ProductPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:CanvasCovers.UI.Controls"
+        Title="Adelaide Annexes &amp; Canvas — Choose a Product"
+        Width="720"
+        Height="480"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <SolidColorBrush x:Key="BrandPrimary" Color="#1A3A52" />
+        <SolidColorBrush x:Key="BrandAccent" Color="#C77B30" />
+        <SolidColorBrush x:Key="Muted" Color="#666666" />
+        <SolidColorBrush x:Key="Disabled" Color="#AAAAAA" />
+        <SolidColorBrush x:Key="TileBorder" Color="#DDDDDD" />
+        <SolidColorBrush x:Key="TileHover" Color="#F4F8FB" />
+
+        <Style x:Key="ProductTile" TargetType="Button">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource TileBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource TileHover}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BrandPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.55" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <controls:BrandedHeader x:Name="Header" DockPanel.Dock="Top" />
+
+        <Border DockPanel.Dock="Bottom" Background="#F4F4F4" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Padding="16,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Name="CancelButton"
+                        Width="100" Height="30"
+                        IsCancel="True"
+                        Content="Cancel"
+                        Click="CancelButton_Click" />
+            </StackPanel>
+        </Border>
+
+        <Grid Margin="24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       FontSize="13"
+                       Margin="0,0,0,12"
+                       Foreground="{StaticResource Muted}"
+                       Text="Pick the product you want to generate. More products will be added as the line expands." />
+
+            <UniformGrid Grid.Row="1" Columns="2" Rows="1">
+                <!-- Lift Blanket tile -->
+                <Button Style="{StaticResource ProductTile}"
+                        Margin="0,0,8,0"
+                        Name="LiftBlanketTile"
+                        Click="LiftBlanketTile_Click">
+                    <StackPanel>
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrandPrimary}"
+                                   Text="Lift Blanket" />
+                        <TextBlock Margin="0,4,0,0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource BrandAccent}"
+                                   FontWeight="SemiBold"
+                                   Text="AVAILABLE" />
+                        <TextBlock Margin="0,12,0,0"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource Muted}"
+                                   Text="Lift / elevator interior canvas. Three unfolded walls (left, right, rear) with optional COP cutouts, door return panels, and a printed title block." />
+                    </StackPanel>
+                </Button>
+
+                <!-- Caravan Annexe tile -->
+                <Button Style="{StaticResource ProductTile}"
+                        Margin="8,0,0,0"
+                        Name="CaravanAnnexeTile"
+                        IsEnabled="False"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="Coming soon — awaiting production spec from Adelaide Annexe &amp; Canvas. The framework is ready; only the caravan-specific dialog and geometry need adding once we have the measurement sheet.">
+                    <StackPanel>
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrandPrimary}"
+                                   Text="Caravan Annexe" />
+                        <TextBlock Margin="0,4,0,0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource Disabled}"
+                                   FontWeight="SemiBold"
+                                   Text="COMING SOON" />
+                        <TextBlock Margin="0,12,0,0"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource Muted}"
+                                   Text="Caravan annexe / awning panels with mesh walls, end walls, door return options, and storm flap detailing. Currently awaiting the production spec from Adelaide Annexe." />
+                    </StackPanel>
+                </Button>
+            </UniformGrid>
+        </Grid>
+    </DockPanel>
+</Window>

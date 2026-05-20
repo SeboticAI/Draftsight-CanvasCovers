@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("CanvasCovers")]
-[assembly: AssemblyDescription("DraftSight canvas cover generator demo")]
+[assembly: AssemblyDescription("Adelaide Annexes & Canvas — machine-ready drawing generator for DraftSight. Generates lift blanket, caravan annexe, and related canvas product drawings on configurable layers.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("BesiaBIM")]
 [assembly: AssemblyProduct("CanvasCovers")]
@@ -11,5 +11,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(true)]
 [assembly: Guid("08f3efd9-242b-4ee0-8baa-f6b73db000c2")]
-[assembly: AssemblyVersion("0.1.0.0")]
-[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyFileVersion("0.2.0.0")]
