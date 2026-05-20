@@ -91,19 +91,21 @@ The short version:
 - Build: clean (`dotnet build -c Release` produces `CanvasCovers.dll`
   with zero warnings)
 - Installer: clean (`.\Installer\build.ps1` produces
-  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.0.0.exe`, ~2.2 MB)
+  `Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`, ~2.2 MB).
+  Installs to `C:\Program Files\BesiaCAD\CanvasCovers\` (Inno's
+  `{commonpf64}\BesiaCAD\CanvasCovers`).
 
 ## Quick verification
 
 ```powershell
 # Close DraftSight first.
 .\Installer\build.ps1
-# Then double-click Installer\Output\BesiaCAD-CanvasCovers-Setup-1.0.0.exe
-# (UAC prompts for admin).
+# Then double-click the EXE in Installer\Output\ (UAC prompts for admin).
 ```
 
 In DraftSight after install: new drawing → tick CanvasCovers in Add-Ins
 → ribbon "CanvasCovers" tab → "Canvas Covers" button → "Lift Blanket"
 tile in picker → Generate.
 
-To remove: Settings → Apps → *BesiaCAD Canvas Covers* → Uninstall.
+To remove: Settings → Apps → *BesiaCAD Canvas Covers* → Uninstall. Upgrades
+auto-uninstall the previous version via the installer's `PrepareToInstall`.

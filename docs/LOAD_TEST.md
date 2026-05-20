@@ -31,18 +31,25 @@ the COM DLL and disables the XML.
 
 ## Deploy
 
-Close DraftSight, then in an **Administrator PowerShell** from the repo
-root:
+Close DraftSight, then in a normal PowerShell from the repo root:
 
 ```powershell
-.\scripts\deploy-canvascovers.ps1
+.\Installer\build.ps1
 ```
 
-Approx 5 seconds. Builds Release, copies DLL + icons + XML to
-`C:\BesiaCAD\CanvasCovers\`, drops the XML into
-`C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\`, runs
-RegAsm. If DraftSight doesn't see the add-in afterwards, retry with
-`-UseNoSpaceProgramDataPath` (some installs use the no-space variant).
+Approx 10 seconds. Builds Release and compiles an Inno Setup installer
+into `Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`.
+
+Double-click that EXE (UAC prompts for admin). It:
+
+- Installs payload to `C:\Program Files\BesiaCAD\CanvasCovers\`.
+- Rewrites the `@@INSTALLDIR@@` placeholder in the deployed XML to the
+  real install path.
+- Drops the XML into
+  `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\`.
+- Runs 64-bit RegAsm `/codebase`.
+- If a previous version is installed, silently uninstalls it first
+  (`PrepareToInstall`).
 
 ---
 
@@ -167,11 +174,15 @@ if the activate-based layer pattern is working.
 
 ## Recover
 
-If anything crashes or behaves weirdly:
+If anything crashes or behaves weirdly **but DraftSight still launches**:
+uninstall via Settings → Apps → *BesiaCAD Canvas Covers*. Reopen
+DraftSight to confirm clean state, then rebuild and reinstall.
+
+If **DraftSight refuses to launch** (the normal uninstaller can't run):
 
 ```powershell
 .\scripts\rollback-canvascovers.ps1 -StopDraftSight
 ```
 
-Unregisters, disables the XML, kills DraftSight. Reopen DraftSight to
-verify it starts cleanly without the add-in. Then debug, redeploy, retest.
+Unregisters the COM DLL and disables the XML so DraftSight can open.
+Then use Settings → Apps to clean up the rest, debug, rebuild, retest.

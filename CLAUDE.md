@@ -232,7 +232,8 @@ startup add-in can crash DraftSight on launch.
   <draftsight version="">
     <addin help="Generate a demo canvas cover" startup="0" name="CanvasCovers" premiumOnly="2">
       <com clsid="{REPLACE-WITH-YOUR-GUID}"></com>
-      <button bitmap="C:\BesiaCAD\CanvasCovers\Resources\canvascovers_16.png"></button>
+      <!-- @@INSTALLDIR@@ is rewritten to the real {app} path by the Inno installer's [Code] section. -->
+      <button bitmap="@@INSTALLDIR@@\Resources\canvascovers_16.png"></button>
     </addin>
   </draftsight>
 </addinmanager>
@@ -364,12 +365,16 @@ startup-crash rollback script remains in `scripts\`.
    Release configuration and compiles the installer EXE into
    `Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`.
 4. Run the installer EXE as administrator (UAC prompts automatically). It:
-   - Lays down the payload at `C:\BesiaCAD\CanvasCovers\` (fixed — the XML
-     hardcodes the ribbon button bitmap path there).
-   - Copies `CanvasCovers.xml` to
+   - Lays down the payload at `C:\Program Files\BesiaCAD\CanvasCovers\`
+     (Inno's `{commonpf64}\BesiaCAD\<AddinName>`, locked via `DisableDirPage=yes`).
+   - Rewrites the `@@INSTALLDIR@@` placeholder in `CanvasCovers.xml` to the
+     real `{app}` path (see `[Code]` section in `Installer\CanvasCovers.iss`).
+   - Copies the rewritten `CanvasCovers.xml` to
      `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\`.
    - Runs 64-bit `RegAsm.exe /codebase` on the DLL.
-   - Re-running over an existing install upgrades cleanly (same `AppId`).
+   - On upgrade, silently runs the previous version's uninstaller first via
+     `PrepareToInstall` so the install dir can move between versions without
+     orphaning files at the old location.
 5. Open DraftSight → Tools → Add-Ins → tick CanvasCovers. The XML ships with
    `startup="0"` so first activation is manual on purpose — verify the load
    is clean before flipping startup mode.
@@ -393,11 +398,12 @@ pipeline at [Installer\build.ps1](Installer/build.ps1). See
 [Installer\README.md](Installer/README.md) for end-to-end usage. Pinned
 identifiers:
 
-| Field        | Value                                  |
-| ------------ | -------------------------------------- |
-| `AppId`      | `A27F4037-4A3F-4706-B839-B88836F132FD` |
-| Install dir  | `C:\BesiaCAD\CanvasCovers` (locked via `DisableDirPage=yes`) |
-| Architecture | `x64compatible` (not `x64` — deprecated since Inno 6.3) |
+| Field        | Value                                                                  |
+| ------------ | ---------------------------------------------------------------------- |
+| `AppId`      | `A27F4037-4A3F-4706-B839-B88836F132FD`                                 |
+| Install dir  | `{commonpf64}\BesiaCAD\CanvasCovers` (= `C:\Program Files\BesiaCAD\CanvasCovers`, locked via `DisableDirPage=yes`) |
+| Architecture | `x64compatible` (not `x64` — deprecated since Inno 6.3)                |
+| XML token    | `@@INSTALLDIR@@` (placeholder in source XML, replaced with `{app}` post-install) |
 
 Critical settings:
 
@@ -522,13 +528,13 @@ uninstaller can't run (DS won't start). Use the rollback script:
 3. Confirm DraftSight opens cleanly.
 4. Once DS is healthy, run the proper uninstaller from Settings → Apps to
    clean up the rest of the install (the rollback script intentionally does
-   not touch `C:\BesiaCAD\CanvasCovers\` so the uninstaller can still find
-   the install).
+   not delete the install folder, so the Inno uninstaller can still find
+   the install location to clean it up).
 5. Only then debug the add-in, starting with a minimal no-ribbon load test.
 
 If the rollback script itself fails (path mismatch, etc.), fall back to the
 manual sequence:
-- `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe C:\BesiaCAD\CanvasCovers\CanvasCovers.dll /unregister`
+- `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe "C:\Program Files\BesiaCAD\CanvasCovers\CanvasCovers.dll" /unregister`
 - Delete or rename `C:\ProgramData\Dassault Systemes\DraftSight\addinConfigs\CanvasCovers.xml`.
 
 ---

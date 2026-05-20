@@ -1,7 +1,8 @@
 #Requires -RunAsAdministrator
 
 param(
-    [string]$DeployDir = "C:\BesiaCAD\CanvasCovers",
+    [string]$DeployDir = "C:\Program Files\BesiaCAD\CanvasCovers",
+    [string]$LegacyDeployDir = "C:\BesiaCAD\CanvasCovers",
     [switch]$StopDraftSight
 )
 
@@ -19,8 +20,14 @@ if ($StopDraftSight) {
     Stop-Process -Name DraftSight -Force -ErrorAction SilentlyContinue
 }
 
+$legacyDeployedDll = Join-Path $LegacyDeployDir "CanvasCovers.dll"
+
 if (Test-Path $deployedDll) {
     & $regAsm $deployedDll /unregister
+}
+
+if (Test-Path $legacyDeployedDll) {
+    & $regAsm $legacyDeployedDll /unregister
 }
 
 if (Test-Path $sourceDll) {
