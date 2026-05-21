@@ -27,6 +27,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Company Name" />
@@ -48,5 +49,16 @@
         <TextBox Grid.Row="3" Grid.Column="1" Name="MeasuredByInput" />
         <TextBlock Grid.Row="3" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Date" />
         <DatePicker Grid.Row="3" Grid.Column="4" Name="DateInput" Height="26" Margin="0,2,0,2" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Notes" VerticalAlignment="Top" Margin="0,6,8,0" />
+        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4"
+                 Name="NotesInput"
+                 Height="56"
+                 Margin="0,6,0,2"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalContentAlignment="Top"
+                 VerticalScrollBarVisibility="Auto"
+                 ToolTip="Delivery instructions, special requests, anything the production floor needs to know." />
     </Grid>
 </UserControl>

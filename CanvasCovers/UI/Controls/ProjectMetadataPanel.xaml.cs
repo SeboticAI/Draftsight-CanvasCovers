@@ -24,6 +24,7 @@ namespace CanvasCovers.UI.Controls
                 OrderNumber = Trim(OrderNumberInput.Text),
                 Mobile = Trim(MobileInput.Text),
                 Date = DateInput.SelectedDate,
+                Notes = Trim(NotesInput.Text),
             };
         }
 
@@ -38,6 +39,7 @@ namespace CanvasCovers.UI.Controls
             OrderNumberInput.Text = data.OrderNumber ?? string.Empty;
             MobileInput.Text = data.Mobile ?? string.Empty;
             DateInput.SelectedDate = data.Date;
+            NotesInput.Text = data.Notes ?? string.Empty;
         }
 
         private static string Trim(string text)

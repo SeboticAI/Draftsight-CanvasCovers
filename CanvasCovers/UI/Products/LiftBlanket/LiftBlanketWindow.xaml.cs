@@ -5,15 +5,64 @@ using System.Windows;
 using System.Windows.Controls;
 using CanvasCovers.Models;
 using CanvasCovers.Models.Products.LiftBlanket;
+using CanvasCovers.UI.Controls;
 
 namespace CanvasCovers.UI.Products.LiftBlanket
 {
     public partial class LiftBlanketWindow : Window
     {
+        // Fired once the operator has clicked Generate and validation passed.
+        // The window is shown non-modally so the operator can pan and zoom
+        // inside DraftSight while the form is open — the caller subscribes
+        // and runs the generator from this event handler. If generation
+        // fails the handler should set e.Cancel = true so the dialog stays
+        // open and the operator can fix inputs and try again.
+        public event EventHandler<GenerateRequestedEventArgs> GenerateRequested;
+
         public LiftBlanketWindow()
         {
             InitializeComponent();
             Header.Subtitle = "Lift Blanket Generator";
+            Loaded += LiftBlanketWindow_Loaded;
+        }
+
+        private void LiftBlanketWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Put the cursor straight into the first measurement so the
+            // operator can start typing without clicking. Also pre-target the
+            // wall diagram to the left wall (it defaults there anyway but
+            // belt-and-braces in case ShowWall got skipped on initial paint).
+            LeftMainWidth.Focus();
+            LeftMainWidth.SelectAll();
+            Diagram.ShowWall(WallContext.Left);
+        }
+
+        // The Border around each wall section sets Tag="Left|Right|Rear".
+        // Fires on either MouseEnter or GotKeyboardFocus so the diagram
+        // retargets the moment the user shows interest in the section, not
+        // only when a field is clicked.
+        private void WallSection_Activated(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement section = sender as FrameworkElement;
+            string tag = section?.Tag as string;
+            if (string.IsNullOrEmpty(tag)) return;
+
+            switch (tag)
+            {
+                case "Left":  Diagram.ShowWall(WallContext.Left); break;
+                case "Right": Diagram.ShowWall(WallContext.Right); break;
+                case "Rear":  Diagram.ShowWall(WallContext.Rear); break;
+            }
+        }
+
+        // Each dimension input carries Tag="<DimensionKey>" matching a constant
+        // on WallDiagram. Focus the field → that part of the diagram lights up.
+        private void DimField_GotFocus(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement field = sender as FrameworkElement;
+            string key = field?.Tag as string;
+            if (string.IsNullOrEmpty(key)) return;
+            Diagram.Highlight(key);
         }
 
         public LiftBlanketJob Job { get; private set; }
@@ -57,13 +106,27 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 RearWall = rear,
                 Layers = layers,
             };
-            DialogResult = true;
-            Close();
+
+            // Hand the validated job to the subscriber (typically the
+            // OpenCanvasCoversCommand). The subscriber runs the generator
+            // synchronously; if anything goes wrong (no active drawing,
+            // SDK exception, etc.) the subscriber should set e.Cancel = true
+            // so the dialog stays open for the operator to retry.
+            GenerateRequestedEventArgs args = new GenerateRequestedEventArgs(Job);
+            GenerateRequested?.Invoke(this, args);
+            if (!args.Cancel)
+            {
+                Close();
+            }
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
+            Close();
+        }
+
+        private void CloseCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
             Close();
         }
 

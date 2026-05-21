@@ -19,5 +19,10 @@ namespace CanvasCovers.Models
         public string Mobile { get; set; }
 
         public DateTime? Date { get; set; }
+
+        // Free-form notes / delivery instructions — mirrors the NOTES block
+        // on the Adelaide Annexe measurement sheet. Rendered as a full-width
+        // row at the bottom of the title block when non-empty.
+        public string Notes { get; set; }
     }
 }

@@ -3,13 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:CanvasCovers.UI.Controls"
         Title="Adelaide Annexes &amp; Canvas — Lift Blanket Generator"
-        Width="780"
+        Width="1080"
         Height="820"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="640"
+        MinWidth="920"
         MinHeight="560"
-        ShowInTaskbar="False">
+        ShowInTaskbar="True">
+    <Window.InputBindings>
+        <!-- Esc closes the dialog. Can't use IsCancel="True" on the button
+             because that sets DialogResult, which throws on non-modal
+             windows (the dialog is opened via Show(), not ShowDialog()). -->
+        <KeyBinding Key="Escape" Command="ApplicationCommands.Close" />
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="CloseCommand_Executed" />
+    </Window.CommandBindings>
     <Window.Resources>
         <SolidColorBrush x:Key="BrandAccent" Color="#C77B30" />
         <SolidColorBrush x:Key="SectionHeader" Color="#1A3A52" />
@@ -72,7 +81,6 @@
                     <Button Name="CancelButton"
                             Width="100" Height="30"
                             Margin="0,0,8,0"
-                            IsCancel="True"
                             Content="Cancel"
                             Click="CancelButton_Click" />
                     <Button Name="GenerateButton"
@@ -88,6 +96,14 @@
             </Grid>
         </Border>
 
+        <Border DockPanel.Dock="Right"
+                BorderBrush="{StaticResource SectionDivider}"
+                BorderThickness="1,0,0,0"
+                Background="#F8F9FA"
+                Padding="12,16">
+            <controls:WallDiagram x:Name="Diagram" VerticalAlignment="Top" />
+        </Border>
+
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,16">
             <StackPanel>
 
@@ -98,13 +114,16 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionPanel}">
+                <Border Style="{StaticResource SectionPanel}"
+                        Tag="Left"
+                        GotKeyboardFocus="WallSection_Activated"
+                        MouseEnter="WallSection_Activated">
                     <StackPanel>
                         <DockPanel>
                             <CheckBox DockPanel.Dock="Right" Name="LeftWallEnabled" Content="Include this wall" IsChecked="True" />
                             <TextBlock Style="{StaticResource SectionTitle}" Text="LEFT WALL (when facing rear wall)" />
                         </DockPanel>
-                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero." />
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero. Click any field to highlight what it controls on the diagram." />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="110" />
@@ -123,17 +142,17 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
-                            <TextBox Grid.Row="0" Grid.Column="1" Name="LeftMainWidth" Text="1400" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="LeftMainWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
                             <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
-                            <TextBox Grid.Row="0" Grid.Column="4" Name="LeftMainHeight" Text="2150" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="LeftMainHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Name="LeftDoorReturn1" Text="0" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="LeftDoorReturn1" Text="0" Tag="DoorReturn1" GotFocus="DimField_GotFocus" />
                             <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
-                            <TextBox Grid.Row="1" Grid.Column="4" Name="LeftDoorReturn2" Text="0" />
+                            <TextBox Grid.Row="1" Grid.Column="4" Name="LeftDoorReturn2" Text="0" Tag="DoorReturn2" GotFocus="DimField_GotFocus" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Name="LeftDoorReturn3" Text="0" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="LeftDoorReturn3" Text="0" Tag="DoorReturn3" GotFocus="DimField_GotFocus" />
                             <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="4" Name="LeftCopEnabled" Content="Include COP cutout" />
 
                             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
@@ -148,17 +167,20 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
-                                <TextBox Grid.Column="1" Name="LeftCopTopOffset" Text="150" />
+                                <TextBox Grid.Column="1" Name="LeftCopTopOffset" Text="150" Tag="CopTopOffset" GotFocus="DimField_GotFocus" />
                                 <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
-                                <TextBox Grid.Column="4" Name="LeftCopHeight" Text="1300" />
+                                <TextBox Grid.Column="4" Name="LeftCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
                                 <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
-                                <TextBox Grid.Column="7" Name="LeftCopWidth" Text="600" />
+                                <TextBox Grid.Column="7" Name="LeftCopWidth" Text="600" Tag="CopWidth" GotFocus="DimField_GotFocus" />
                             </Grid>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionPanel}">
+                <Border Style="{StaticResource SectionPanel}"
+                        Tag="Right"
+                        GotKeyboardFocus="WallSection_Activated"
+                        MouseEnter="WallSection_Activated">
                     <StackPanel>
                         <DockPanel>
                             <CheckBox DockPanel.Dock="Right" Name="RightWallEnabled" Content="Include this wall" IsChecked="True" />
@@ -183,17 +205,17 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
-                            <TextBox Grid.Row="0" Grid.Column="1" Name="RightMainWidth" Text="1400" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="RightMainWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
                             <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
-                            <TextBox Grid.Row="0" Grid.Column="4" Name="RightMainHeight" Text="2150" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="RightMainHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Name="RightDoorReturn1" Text="0" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="RightDoorReturn1" Text="0" Tag="DoorReturn1" GotFocus="DimField_GotFocus" />
                             <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
-                            <TextBox Grid.Row="1" Grid.Column="4" Name="RightDoorReturn2" Text="0" />
+                            <TextBox Grid.Row="1" Grid.Column="4" Name="RightDoorReturn2" Text="0" Tag="DoorReturn2" GotFocus="DimField_GotFocus" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Name="RightDoorReturn3" Text="0" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="RightDoorReturn3" Text="0" Tag="DoorReturn3" GotFocus="DimField_GotFocus" />
                             <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="2" Name="RightCopEnabled" Content="Include COP cutout" />
 
                             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
@@ -208,17 +230,20 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
-                                <TextBox Grid.Column="1" Name="RightCopTopOffset" Text="150" />
+                                <TextBox Grid.Column="1" Name="RightCopTopOffset" Text="150" Tag="CopTopOffset" GotFocus="DimField_GotFocus" />
                                 <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
-                                <TextBox Grid.Column="4" Name="RightCopHeight" Text="1300" />
+                                <TextBox Grid.Column="4" Name="RightCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
                                 <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
-                                <TextBox Grid.Column="7" Name="RightCopWidth" Text="600" />
+                                <TextBox Grid.Column="7" Name="RightCopWidth" Text="600" Tag="CopWidth" GotFocus="DimField_GotFocus" />
                             </Grid>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionPanel}">
+                <Border Style="{StaticResource SectionPanel}"
+                        Tag="Rear"
+                        GotKeyboardFocus="WallSection_Activated"
+                        MouseEnter="WallSection_Activated">
                     <StackPanel>
                         <DockPanel>
                             <CheckBox DockPanel.Dock="Right" Name="RearWallEnabled" Content="Include this wall" IsChecked="True" />
@@ -235,9 +260,9 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Width" />
-                            <TextBox Grid.Column="1" Name="RearWidth" Text="1400" />
+                            <TextBox Grid.Column="1" Name="RearWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
                             <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Height" />
-                            <TextBox Grid.Column="4" Name="RearHeight" Text="2150" />
+                            <TextBox Grid.Column="4" Name="RearHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
                         </Grid>
                     </StackPanel>
                 </Border>
