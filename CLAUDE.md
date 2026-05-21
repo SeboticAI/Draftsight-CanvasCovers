@@ -511,6 +511,55 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   is still on disk when the new install starts writing. Inno notices
   and writes the next uninstaller as `unins001.exe`. Registry's
   `UninstallString` points at the new one — no action needed.
+- **`SketchManager.InsertLinearDimension` is horizontal-only.** It
+  returns a `RotatedDimension` with a default rotation of 0, so the
+  measured length is always the *horizontal projection* of the two
+  extension points. For two ext points that share an X coordinate
+  (i.e. a vertical span) the projection is 0 — the dim renders with
+  "0" as its label. Use `InsertAlignedDimension` instead: it orients
+  the dim along the line between ext1 and ext2, so it works for both
+  horizontal and vertical spans without conditional logic. If you
+  genuinely want a non-axis-aligned dim, `InsertRotatedDimension`
+  takes an explicit rotation angle.
+- **`SketchManager.InsertNoteWithParameters` silently produces no
+  visible entity** in our testing (no exception, no error code; just
+  no text appears on the drawing). The simpler
+  `InsertSimpleNote(StartX, StartY, StartZ, Height, Angle, Value)` is
+  the reliable single-line text API and matches the DXF `TEXT` entity.
+  Set `Justify` on the returned `SimpleNote` after creation to
+  centre / middle-anchor the text. Use the multi-line `InsertNote`
+  bounding-box variant only if you need genuine wrap behaviour — for
+  per-line text in a layout, stack individual `InsertSimpleNote`
+  calls instead.
+- **Default DIMSTYLE text is millimetre-scale.** With drawing units
+  in mm and walls measured in thousands, the out-of-the-box dim text
+  + arrowheads are invisibly small. There is no `IDimensionStyle.
+  TextHeight` getter exposed on the interop — set `DIMSCALE` via
+  `Application.RunCommand("DIMSCALE\n<value>\n", true)` before placing
+  dims. Wrap in try/catch — if the host build doesn't accept the
+  command, the dims still render, just at the original scale. The
+  setting persists in the document, so calling it once per Generate
+  is sufficient.
+- **Non-modal WPF dialogs from a COM add-in need parenting via
+  `WindowInteropHelper.Owner = hostHwnd`** so they alt-tab with
+  DraftSight and stay above the host when foregrounded. The host
+  HWND for an in-process addin is
+  `Process.GetCurrentProcess().MainWindowHandle`. Also: `Window
+  .DialogResult` throws on a non-modal window, so do **not** set
+  `IsCancel="True"` on the Cancel button — WPF's built-in IsCancel
+  behaviour tries to assign `DialogResult = false` and faults. Wire
+  Esc via `Window.InputBindings` + a `KeyBinding` to
+  `ApplicationCommands.Close` instead, with a `CommandBinding` that
+  calls `Close()`.
+- **A non-modal dialog that calls back into the SDK can leave the
+  user stranded if the SDK call throws.** If the dialog calls
+  `Close()` after the consumer's "Generate" handler returns, the
+  handler's swallowed-exception path closes the dialog anyway and
+  the operator loses their inputs. Use a `Cancel`-able EventArgs
+  pattern: handler sets `e.Cancel = true` after showing the error,
+  dialog only calls `Close()` when `!e.Cancel`. See
+  `LiftBlanketWindow.GenerateButton_Click` / `GenerateRequested`
+  event + `GenerateRequestedEventArgs` for the working pattern.
 
 ---
 

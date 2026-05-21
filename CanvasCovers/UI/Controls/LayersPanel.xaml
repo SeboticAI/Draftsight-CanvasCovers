@@ -56,23 +56,23 @@
             <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="ACI" FontWeight="SemiBold" />
 
             <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Wall outlines (cuts)" />
-            <TextBox Grid.Row="1" Grid.Column="1" Name="OutlineName" Text="CC-Outline" />
-            <TextBox Grid.Row="1" Grid.Column="3" Name="OutlineAci" Text="1" />
+            <TextBox Grid.Row="1" Grid.Column="1" Name="OutlineName" Text="1 Rotary Blade" />
+            <TextBox Grid.Row="1" Grid.Column="3" Name="OutlineAci" Text="5" />
             <Border Grid.Row="1" Grid.Column="5" Name="OutlineSwatch" Style="{StaticResource SwatchBorder}" />
 
             <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP cutouts" />
-            <TextBox Grid.Row="2" Grid.Column="1" Name="CopName" Text="CC-COP" />
+            <TextBox Grid.Row="2" Grid.Column="1" Name="CopName" Text="1 Rotary Blade" />
             <TextBox Grid.Row="2" Grid.Column="3" Name="CopAci" Text="5" />
             <Border Grid.Row="2" Grid.Column="5" Name="CopSwatch" Style="{StaticResource SwatchBorder}" />
 
             <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Annotations (no cut)" />
-            <TextBox Grid.Row="3" Grid.Column="1" Name="AnnotationName" Text="CC-Annotation" />
-            <TextBox Grid.Row="3" Grid.Column="3" Name="AnnotationAci" Text="3" />
+            <TextBox Grid.Row="3" Grid.Column="1" Name="AnnotationName" Text="5 Draw and Text" />
+            <TextBox Grid.Row="3" Grid.Column="3" Name="AnnotationAci" Text="6" />
             <Border Grid.Row="3" Grid.Column="5" Name="AnnotationSwatch" Style="{StaticResource SwatchBorder}" />
 
-            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Title block (no cut)" />
-            <TextBox Grid.Row="4" Grid.Column="1" Name="TitleblockName" Text="CC-Titleblock" />
-            <TextBox Grid.Row="4" Grid.Column="3" Name="TitleblockAci" Text="2" />
+            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Project info + dims" />
+            <TextBox Grid.Row="4" Grid.Column="1" Name="TitleblockName" Text="0" />
+            <TextBox Grid.Row="4" Grid.Column="3" Name="TitleblockAci" Text="7" />
             <Border Grid.Row="4" Grid.Column="5" Name="TitleblockSwatch" Style="{StaticResource SwatchBorder}" />
         </Grid>
     </StackPanel>

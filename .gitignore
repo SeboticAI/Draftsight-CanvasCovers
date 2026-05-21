@@ -8,3 +8,7 @@ obj/
 *.cache
 
 Installer/Output/
+
+# Client-supplied reference DXFs (kept local; may contain customer details).
+reference/dxf/
+
