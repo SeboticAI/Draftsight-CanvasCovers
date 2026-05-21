@@ -93,19 +93,31 @@ sections top-to-bottom:
 
 - **Project Information** — Company, Network Number, Project,
   O/Number, Sales Contact, Mobile, Measured By, Date (today by
-  default).
+  default), plus a multi-line **Notes** field for delivery
+  instructions / special requests.
 - **Left Wall** — Main Width / Height, three Door Returns (zero if
   not needed), optional COP cutout.
 - **Right Wall** — same shape, mirrored door return orientation.
 - **Rear Wall** — Width / Height. Disabled if Through Car is ticked.
 - **Options** — Through Car (omits rear wall), Plastic Cover on COP,
   Fixings dropdown.
-- **Layers** — four editable rows (Outline / COP / Annotation /
-  Titleblock) with layer name, ACI colour index, live colour swatch.
-  Reset to Defaults button on the right.
+- **Layers** — four editable rows with layer name, ACI colour index,
+  live colour swatch. Defaults match Adelaide Annexe's cutter
+  convention: `1 Rotary Blade` (ACI 5 blue) for Outline + COP,
+  `5 Draw and Text` (ACI 6 magenta) for Annotation, `0` (ACI 7 white)
+  for Title block / project info / dimensions. Reset to Defaults
+  button on the right.
+
+On the right side of the dialog: a **wall diagram** side panel that
+retargets (Left / Right / Rear) when the mouse enters a wall section,
+and highlights the matching dim when a field gains focus.
 
 Default values are sensible (1400 mm × 2150 mm typical), so generating
 with defaults produces a meaningful drawing without touching anything.
+
+The dialog is **non-modal** — you can pan / zoom / select inside
+DraftSight while the form is open; the form stays above DraftSight
+without blocking input.
 
 ### 3. Try the validation
 
@@ -124,9 +136,10 @@ with defaults produces a meaningful drawing without touching anything.
 
 ### 5. Try the layers panel
 
-- Change Outline's ACI from `1` (Red) to `4` (Cyan). The swatch on
+- Change Outline's ACI from `5` (Blue) to `1` (Red). The swatch on
   the right updates live.
-- Click **Reset to Defaults**. All four rows return to baseline.
+- Click **Reset to Defaults**. All four rows return to the
+  Adelaide-Annexe cutter convention.
 
 ### 6. Generate
 
@@ -135,25 +148,46 @@ the DraftSight command prompt or use the View → Zoom Extents button.
 
 Expected:
 
-- Three walls laid out left-to-right at world origin: LEFT WALL,
-  RIGHT WALL, REAR WALL (or just two if Through Car was ticked).
-- Each wall is a closed red polyline outline with vertical fold lines
-  between any non-zero door return panels.
-- If a wall had COP enabled: a blue rectangle inside the main wall
-  area with "COP" green text in the centre.
-- Below the walls, a yellow rectangle title block with six rows of
-  project info, dividers between rows.
+- Three walls laid out left-to-right at world origin (or just two if
+  Through Car was ticked).
+- Each wall is a closed **blue** polyline outline (on `1 Rotary
+  Blade`) with vertical fold lines between any non-zero door return
+  panels.
+- If a wall had COP enabled: a blue COP cutout polyline inside the
+  main wall area, with a small magenta "COP" label centred in it.
+- **No boxed title block.** Instead:
+  - A **white legend** across the top: `HEIGHT / WIDTH / RETURNS /
+    V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER`
+  - A **white project info column** to the right of the walls:
+    project metadata, then static reference text (FIXINGS allowance
+    table, WIDTH/HEIGHT formula reminder, vertical quilting spacing
+    lookup), then NOTES if populated.
+- **White DIMENSION entities** (selectable, editable):
+  - Main width below each wall
+  - Main height on the outer-left side of the leftmost wall only
+    (other walls share the height; duplicates would stack)
+  - Each non-zero door return labelled across the top of its wall
+  - COP top-offset / height / width around the COP when enabled
 
 ### 7. Try undo
 
 Press **Ctrl+Z** once. Expect the entire generation (walls + COP +
-labels + title block) to vanish in one undo step.
+text + dims) to vanish in one undo step.
 
 ### 8. Try re-generation
 
 Bring up the picker again, lift blanket, change some values, generate.
-Open Layer Manager (`LAYER` command) — should still see the four CC-*
-layers; no duplicates. Layer colours match what you configured.
+Open Layer Manager (`LAYER` command) — should see `0`, `1 Rotary
+Blade`, `5 Draw and Text` (plus DraftSight's built-ins); no
+duplicates. Layer colours match what you configured.
+
+### 9. Try the failure path
+
+Close all open DraftSight drawings, then click the ribbon button,
+pick Lift Blanket, click Generate. Expected: a "No active drawing is
+open" MessageBox, **dialog stays open** with your values intact.
+Open a drawing, click Generate again — should succeed without
+retyping anything.
 
 ---
 

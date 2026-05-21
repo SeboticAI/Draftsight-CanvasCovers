@@ -11,6 +11,28 @@ break: "what was next?"
 
 ## Up next (in order)
 
+### 0. Client Q&A pass (CLIENT_QUESTIONS.md)
+
+**Gated on:** an hour with Adelaide Annexe (call / shop-floor visit).
+
+Before any more code, get answers to the 10 sections in
+[`CLIENT_QUESTIONS.md`](CLIENT_QUESTIONS.md). The big ones:
+
+- **§9 Wall segment labels** (LLR, LR1/2/3, L1/2/3, LRR) — blocking
+  the wall-geometry redesign. Our current 3-DR-on-one-side model is
+  wrong-shaped; we need to know what each label represents before
+  rebuilding the data model + dialog + diagram + generator.
+- **§1 / §3 Fixing-allowance + ×2 height math** — currently the
+  operator does this by hand. If the tool should auto-apply, we need
+  the exact rule (and what `×2` is about).
+- **§4 Vertical / horizontal quilting** — formula or lookup table?
+  Both V QUILT and H QUILT?
+- **§5 Drag Blade / Crease Tool / Drill Tool** — which products use
+  them?
+
+Lots of v1.1.x code decisions become cheap to revisit once these are
+answered.
+
 ### 1. Caravan annexe product flow
 
 **Gated on:** measurement sheet / sample DXF from Adelaide Annexe & Canvas.

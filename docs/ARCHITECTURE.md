@@ -44,19 +44,18 @@ CanvasCovers/
 ├── CanvasCovers.xml                    DraftSight add-in config (CLSID, help text, button bitmap path)
 ├── Commands/
 │   ├── CommandBase.cs                  Wraps CreateCommand2 + ExecuteNotify + CreateUserCommand.
-│   ├── OpenCanvasCoversCommand.cs      Ribbon entry. Opens picker, routes to product.
-│   ├── LayerTestCommand.cs             Diagnostic. Verifies activate-based layer pattern in isolation. Logs to %LocalAppData%\CanvasCovers\layertest.log.
-│   └── Products/                       Future per-product CLI-only commands. Empty now.
+│   ├── OpenCanvasCoversCommand.cs      Ribbon entry. Opens picker, shows lift-blanket dialog non-modally, runs generator on GenerateRequested.
+│   └── LayerTestCommand.cs             Diagnostic. Verifies activate-based layer pattern in isolation. Logs to %LocalAppData%\CanvasCovers\layertest.log.
 ├── Common/                             Empty placeholder for cross-cutting helpers.
 ├── Geometry/
 │   ├── LayerHelper.cs                  Shared. EnsureLayer / Activate / RestoreOriginalActive. IDisposable.
 │   └── Products/
 │       └── LiftBlanket/
-│           └── LiftBlanketGenerator.cs Lift-blanket-specific geometry. Three walls + COP cutouts + title block.
+│           └── LiftBlanketGenerator.cs Lift-blanket geometry: walls + COP cutouts + DIMENSION entities + free-floating layer-0 text. DIMSCALE bumped via RunCommand.
 ├── Models/
-│   ├── ProjectMetadata.cs              Shared. Company, project, network number, date, etc.
+│   ├── ProjectMetadata.cs              Shared. Company, project, network number, date, notes, etc.
 │   ├── LayerSetting.cs                 Shared. Layer name + ACI colour index.
-│   ├── LayerSettings.cs                Shared. Four LayerSettings (Outline, COP, Annotation, Titleblock).
+│   ├── LayerSettings.cs                Shared. Four LayerSettings (Outline, COP, Annotation, Titleblock). Defaults match Adelaide Annexe's cutter convention.
 │   ├── ProductKind.cs                  Enum (LiftBlanket, CaravanAnnexe). Used by picker → command dispatch.
 │   └── Products/
 │       └── LiftBlanket/
@@ -69,18 +68,21 @@ CanvasCovers/
 │   ├── canvascovers_16.png             Placeholder ribbon button icon (small).
 │   └── canvascovers_32.png             Placeholder ribbon button icon (large).
 └── UI/
-    ├── ProductPickerWindow.xaml/.cs    Top-level picker. Tile per available product. Returns ProductKind.
+    ├── ProductPickerWindow.xaml/.cs    Top-level picker (modal). Tile per available product. Returns ProductKind.
     ├── Controls/                       Shared WPF UserControls reusable across product dialogs.
     │   ├── BrandedHeader.xaml/.cs      Navy banner with company name + contact info. Subtitle is settable.
-    │   ├── ProjectMetadataPanel.xaml/.cs   8-field grid; Read() returns ProjectMetadata; Apply(model) populates.
-    │   └── LayersPanel.xaml/.cs        4-row table of layer name/ACI/swatch; Read(errors) returns LayerSettings; Reset to Defaults.
+    │   ├── ProjectMetadataPanel.xaml/.cs   8-field grid + multi-line NOTES. Read() returns ProjectMetadata; Apply(model) populates.
+    │   ├── LayersPanel.xaml/.cs        4-row table of layer name/ACI/swatch. Read(errors) returns LayerSettings; Reset to Defaults.
+    │   └── WallDiagram.xaml/.cs        Reference diagram in the side panel of the dialog. ShowWall(L/R/Rear) repaints the canvas; Highlight(key) tints a dimension on focus.
     └── Products/
         └── LiftBlanket/
-            └── LiftBlanketWindow.xaml/.cs  Lift blanket dialog. Hosts the three UserControls plus wall sections and options.
+            ├── LiftBlanketWindow.xaml/.cs       Non-modal dialog. Hosts UserControls + WallDiagram + wall sections + options. Fires GenerateRequested.
+            └── GenerateRequestedEventArgs.cs   Cancel-able EventArgs. Generator sets Cancel=true on failure so the dialog stays open for retry.
 
-docs/                                   This folder. See README.md for index.
-scripts/                                deploy-canvascovers.ps1 / rollback-canvascovers.ps1
-Installer/                              Empty for now. Inno Setup will live here.
+docs/                                   Documentation (this folder). See README.md for index.
+scripts/                                rollback-canvascovers.ps1 — startup-crash recovery only. Install path is the Inno installer.
+Installer/                              CanvasCovers.iss + build.ps1 + Output/. See Installer/README.md.
+reference/                              (gitignored) Client-supplied DXFs + measurement sheets.
 ```
 
 ---
@@ -137,28 +139,55 @@ verified works.
 ### `LiftBlanketGenerator`
 
 Takes a `LiftBlanketJob`. Reads layer config from `job.Layers`,
-ensures the four layers exist, then draws walls left-to-right at the
-world origin with the title block below. Wrapped in
+ensures the four layers exist, bumps `DIMSCALE` via
+`Application.RunCommand` so dim text reads at lift-blanket scale,
+then draws walls left-to-right at the world origin. Wrapped in
 `SketchManager.StartUndoRecord` / `StopUndoRecord` so one Ctrl+Z
 reverts the whole generation.
+
+The text layout is **free-floating, not a boxed title block** —
+mirrors Adelaide Annexe's reference DXFs:
+
+- Horizontal worksheet legend on layer `0` above the walls
+- Right of the walls: project metadata column + static worksheet
+  reference blocks (FIXINGS table, WIDTH/HEIGHT formula reminder,
+  vertical-quilting-spacing lookup)
+- Width dim below each wall, height dim only on the **leftmost**
+  wall's outer side (other walls share the same height, so duplicate
+  dims would stack in the gap between walls)
+- Door return widths above each wall (when non-zero)
+- COP dims around the COP cutout when enabled
+
+Dimensions use `InsertAlignedDimension` (not `InsertLinearDimension`
+— that's horizontal-only; see CLAUDE.md §9). Text uses
+`InsertSimpleNote` (not `InsertNoteWithParameters` — that silently
+produces no visible output).
 
 Each entity insert is preceded by `layers.Activate(<layer>.Name)` so
 the entity lands on the correct layer.
 
 ### WPF UserControls
 
-Three of them, all in `UI/Controls/`. Designed to be reused by every
-product dialog:
+Four of them, all in `UI/Controls/`. Reusable across product dialogs:
 
 - `BrandedHeader` — navy banner. Hardcoded Adelaide Annexes branding.
   Single public string property `Subtitle` set by the host window.
-- `ProjectMetadataPanel` — 8-field grid + DatePicker. Exposes
-  `Read()` returning `ProjectMetadata` and `Apply(metadata)` for
-  populating from saved state (used by future Save/Load).
+- `ProjectMetadataPanel` — 8-field grid + DatePicker + multi-line
+  NOTES textbox. Exposes `Read()` returning `ProjectMetadata` and
+  `Apply(metadata)` for populating from saved state.
 - `LayersPanel` — 4-row editable table with live colour swatches and
   a "Reset to Defaults" button. Exposes `Read(List<string> errors)`
   returning `LayerSettings` (appends errors instead of throwing) and
   `Apply(settings)`.
+- `WallDiagram` — reference diagram drawn on a `Canvas` in code-
+  behind. `ShowWall(WallContext)` repaints for Left / Right (mirrored
+  layout) / Rear (simplified — no door returns, no COP). `Highlight
+  (key)` swaps stroke + label foreground for one dimension to the
+  brand accent. The host dialog wires:
+    - `Border.MouseEnter` / `GotKeyboardFocus` on each wall section
+      → `Diagram.ShowWall(...)`
+    - `TextBox.GotFocus` on each dim field → `Diagram.Highlight
+      (field.Tag)`
 
 ### `ProductPickerWindow`
 
@@ -171,15 +200,43 @@ Returns the chosen `ProductKind` to the caller (`OpenCanvasCoversCommand`).
 
 ### `LiftBlanketWindow`
 
-The actual product dialog. Hosts the three UserControls plus
-lift-blanket-specific sections (three walls + options). On Generate,
-runs multi-error validation: every field is read, errors accumulated
-in a `List<string>`, all displayed at once if any are present.
+The actual product dialog. **Non-modal** — opened via `Show()` with
+the DraftSight main HWND as `WindowInteropHelper.Owner`, so the
+operator can pan/zoom DraftSight while the form is open. On open,
+focus lands on `LeftMainWidth` with `SelectAll()` so the operator
+can immediately type over the default.
 
-The Through Car checkbox is wired to `ThroughCarOption_Changed`: ticking
-it disables the Rear Wall enable checkbox (since Through Car means no
-rear wall). Unticking only re-enables; doesn't force-check, preserving
-user intent.
+Hosts the four UserControls (header, metadata panel, layers panel,
+wall diagram) plus lift-blanket-specific sections (three walls +
+options). On Generate, runs multi-error validation: every field is
+read, errors accumulated in a `List<string>`, all displayed at once
+if any are present.
+
+Hand-off to the generator uses a `Cancel`-able event pattern (see
+[`GenerateRequestedEventArgs.cs`](../CanvasCovers/UI/Products/LiftBlanket/GenerateRequestedEventArgs.cs)):
+
+```csharp
+public event EventHandler<GenerateRequestedEventArgs> GenerateRequested;
+
+// In GenerateButton_Click:
+var args = new GenerateRequestedEventArgs(Job);
+GenerateRequested?.Invoke(this, args);
+if (!args.Cancel) Close();
+```
+
+The consumer (`OpenCanvasCoversCommand`) runs the generator inside
+its handler; if it throws, the handler shows a `MessageBox` and sets
+`args.Cancel = true` so the dialog stays open and the operator can
+fix inputs and retry.
+
+Esc closes the dialog via a `KeyBinding` to
+`ApplicationCommands.Close` — **not** via `IsCancel="True"` on the
+Cancel button, because setting `DialogResult` on a non-modal window
+throws.
+
+The Through Car checkbox is wired to `ThroughCarOption_Changed`:
+ticking it disables the Rear Wall enable checkbox. Unticking only
+re-enables; doesn't force-check, preserving user intent.
 
 ---
 
