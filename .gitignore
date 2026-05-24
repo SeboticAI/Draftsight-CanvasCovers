@@ -12,3 +12,8 @@ Installer/Output/
 # Client-supplied reference DXFs (kept local; may contain customer details).
 reference/dxf/
 
+# Commercial agreements / quotes / signed contracts. Kept local — git
+# history is permanent and these may evolve, contain dollar figures,
+# or be subject to confidentiality.
+agreements/
+
