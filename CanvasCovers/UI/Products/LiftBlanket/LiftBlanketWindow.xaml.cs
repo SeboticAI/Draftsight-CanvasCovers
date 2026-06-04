@@ -220,6 +220,22 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
                 if (wall.Width > 0 && wall.Cop.Width > 0 && wall.Cop.OffsetFromLeft + wall.Cop.Width > wall.Width)
                     errors.Add(wallLabel + " COP offset + width exceeds the wall width.");
+
+                // The blanket folds at the midline (= measured height - fixing
+                // allowance) and the top half mirrors the bottom. A COP whose
+                // top edge crosses that line would bleed into the mirror, so
+                // reject it. Allowance comes from the Options panel, not this
+                // wall, so read it here rather than threading it in.
+                double allowanceForCop = 50;
+                double.TryParse(FixingAllowanceInput.Text, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out allowanceForCop);
+                if (wall.MeasuredHeight > 0 && wall.Cop.Height > 0 &&
+                    !Geometry.Products.LiftBlanket.LiftBlanketCalculator.CopFitsInBottomHalf(
+                        wall.Cop.GapFromBottom, wall.Cop.Height, wall.MeasuredHeight, allowanceForCop))
+                {
+                    errors.Add(wallLabel +
+                        " COP gap-from-bottom + height crosses the fold line (must fit within the measured half = measured height − fixing allowance).");
+                }
             }
             return wall;
         }

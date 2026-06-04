@@ -127,5 +127,23 @@ namespace CanvasCovers.Tests
             Assert.AreEqual(0.0, d.Ext1X, 0.001);
             Assert.AreEqual(2250.0, d.Ext2X, 0.001);
         }
+
+        [TestMethod]
+        public void Cop_Fits_When_Top_Edge_Below_Midline()
+        {
+            // Job 12346: gap 600 + height 1300 = 1900 <= half 2150 → fits.
+            Assert.IsTrue(LiftBlanketCalculator.CopFitsInBottomHalf(
+                copGapFromBottom: 600, copHeight: 1300,
+                measuredHeight: 2200, fixingAllowanceMm: 50));
+        }
+
+        [TestMethod]
+        public void Cop_Does_Not_Fit_When_It_Crosses_The_Fold()
+        {
+            // gap 600 + height 1700 = 2300 > half 2150 → crosses the fold.
+            Assert.IsFalse(LiftBlanketCalculator.CopFitsInBottomHalf(
+                copGapFromBottom: 600, copHeight: 1700,
+                measuredHeight: 2200, fixingAllowanceMm: 50));
+        }
     }
 }

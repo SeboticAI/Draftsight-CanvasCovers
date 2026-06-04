@@ -41,6 +41,19 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             return summedSegments + WidthAllowanceMm;
         }
 
+        // True if the COP fits entirely within the bottom (measured) half of
+        // the doubled cut piece. The blanket folds at the midline (= half =
+        // measuredHeight - fixingAllowance); a COP whose top edge
+        // (GapFromBottom + Height) exceeds that would bleed into the mirrored
+        // top panel, which is geometrically wrong.
+        public static bool CopFitsInBottomHalf(
+            double copGapFromBottom, double copHeight,
+            double measuredHeight, double fixingAllowanceMm)
+        {
+            double half = HalfHeight(measuredHeight, fixingAllowanceMm);
+            return copGapFromBottom + copHeight <= half + 0.001;
+        }
+
         public WallLayout LayoutWall(
             WallDimensions wall,
             double originX,
