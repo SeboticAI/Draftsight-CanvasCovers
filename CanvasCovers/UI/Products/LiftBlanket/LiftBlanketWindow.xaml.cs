@@ -32,8 +32,8 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             // operator can start typing without clicking. Also pre-target the
             // wall diagram to the left wall (it defaults there anyway but
             // belt-and-braces in case ShowWall got skipped on initial paint).
-            LeftMainWidth.Focus();
-            LeftMainWidth.SelectAll();
+            LeftSeg3.Focus();
+            LeftSeg3.SelectAll();
             Diagram.ShowWall(WallContext.Left);
         }
 
@@ -76,18 +76,20 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             LiftBlanketOptions options = ReadOptions();
 
             WallDimensions left = ReadWall(
-                LeftWallEnabled, LeftMainWidth, LeftMainHeight,
-                LeftDoorReturn1, LeftDoorReturn2, LeftDoorReturn3,
-                LeftCopEnabled, LeftCopTopOffset, LeftCopHeight, LeftCopWidth,
+                LeftWallEnabled, LeftDrLeft, LeftSeg1, LeftSeg2, LeftSeg3, LeftDrRight,
+                LeftMeasuredHeight,
+                LeftCopEnabled, LeftCopWidth, LeftCopHeight, LeftCopGapBottom, LeftCopOffsetLeft,
                 "Left wall", errors);
 
             WallDimensions right = ReadWall(
-                RightWallEnabled, RightMainWidth, RightMainHeight,
-                RightDoorReturn1, RightDoorReturn2, RightDoorReturn3,
-                RightCopEnabled, RightCopTopOffset, RightCopHeight, RightCopWidth,
+                RightWallEnabled, RightDrLeft, RightSeg1, RightSeg2, RightSeg3, RightDrRight,
+                RightMeasuredHeight,
+                RightCopEnabled, RightCopWidth, RightCopHeight, RightCopGapBottom, RightCopOffsetLeft,
                 "Right wall", errors);
 
-            WallDimensions rear = ReadRearWall(RearWallEnabled, RearWidth, RearHeight, errors);
+            WallDimensions rear = ReadRearWall(
+                RearWallEnabled, RearDrLeft, RearSeg1, RearSeg2, RearSeg3, RearDrRight,
+                RearMeasuredHeight, errors);
 
             LayerSettings layers = LayersControl.Read(errors);
 
@@ -156,71 +158,89 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             FixingType fixing = FixingType.HooksFacingOut;
             ComboBoxItem selected = FixingsInput.SelectedItem as ComboBoxItem;
             string tag = selected?.Tag as string;
-            if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed))
-            {
-                fixing = parsed;
-            }
+            if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed)) fixing = parsed;
+
+            double allowance = 50;
+            double.TryParse(FixingAllowanceInput.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out allowance);
 
             return new LiftBlanketOptions
             {
                 ThroughCar = ThroughCarOption.IsChecked == true,
                 PlasticCoverOnCop = PlasticCoverOption.IsChecked == true,
                 Fixings = fixing,
+                FixingAllowanceMm = allowance,
             };
+        }
+
+        // True when the operator wants the DXF export dialog after a successful
+        // generate. Read by OpenCanvasCoversCommand.
+        public bool ExportDxfRequested => ExportDxfOption.IsChecked == true;
+
+        private void FixingsInput_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (FixingAllowanceInput == null) return; // fires during XAML init
+            ComboBoxItem selected = FixingsInput.SelectedItem as ComboBoxItem;
+            string tag = selected?.Tag as string;
+            if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed))
+            {
+                FixingAllowanceInput.Text =
+                    Geometry.Products.LiftBlanket.FixingAllowance
+                        .DefaultFor(parsed).ToString(CultureInfo.InvariantCulture);
+            }
         }
 
         private WallDimensions ReadWall(
             CheckBox enabledBox,
-            TextBox widthBox, TextBox heightBox,
-            TextBox dr1, TextBox dr2, TextBox dr3,
-            CheckBox copBox, TextBox copTop, TextBox copHeight, TextBox copWidth,
+            TextBox drLeft, TextBox seg1, TextBox seg2, TextBox seg3, TextBox drRight,
+            TextBox measuredHeight,
+            CheckBox copBox, TextBox copWidth, TextBox copHeight, TextBox copGapBottom, TextBox copOffsetLeft,
             string wallLabel,
             List<string> errors)
         {
             WallDimensions wall = new WallDimensions { Enabled = enabledBox.IsChecked == true };
+            if (!wall.Enabled) return wall;
 
-            if (!wall.Enabled)
+            wall.Segments.DoorReturnLeft  = ReadNonNegative(drLeft.Text,  wallLabel + " door return (left)",  errors);
+            wall.Segments.Seg1            = ReadNonNegative(seg1.Text,    wallLabel + " segment 1",            errors);
+            wall.Segments.Seg2            = ReadNonNegative(seg2.Text,    wallLabel + " segment 2",            errors);
+            wall.Segments.Seg3            = ReadNonNegative(seg3.Text,    wallLabel + " segment 3",            errors);
+            wall.Segments.DoorReturnRight = ReadNonNegative(drRight.Text, wallLabel + " door return (right)", errors);
+            wall.MeasuredHeight           = ReadPositive(measuredHeight.Text, wallLabel + " measured height", errors);
+
+            if (wall.Segments.TotalWidth <= 0)
+                errors.Add(wallLabel + " needs at least one non-zero segment.");
+
+            wall.Cop.Enabled = copBox.IsChecked == true;
+            if (wall.Cop.Enabled)
             {
-                return wall;
+                wall.Cop.Width         = ReadPositive(copWidth.Text,    wallLabel + " COP width",  errors);
+                wall.Cop.Height        = ReadPositive(copHeight.Text,   wallLabel + " COP height", errors);
+                wall.Cop.GapFromBottom = ReadNonNegative(copGapBottom.Text,  wallLabel + " COP gap from bottom", errors);
+                wall.Cop.OffsetFromLeft= ReadNonNegative(copOffsetLeft.Text, wallLabel + " COP offset from left", errors);
+
+                if (wall.Width > 0 && wall.Cop.Width > 0 && wall.Cop.OffsetFromLeft + wall.Cop.Width > wall.Width)
+                    errors.Add(wallLabel + " COP offset + width exceeds the wall width.");
             }
-
-            wall.MainWidth = ReadPositive(widthBox.Text, wallLabel + " main width", errors);
-            wall.MainHeight = ReadPositive(heightBox.Text, wallLabel + " main height", errors);
-            wall.DoorReturn1 = ReadNonNegative(dr1.Text, wallLabel + " door return 1", errors);
-            wall.DoorReturn2 = ReadNonNegative(dr2.Text, wallLabel + " door return 2", errors);
-            wall.DoorReturn3 = ReadNonNegative(dr3.Text, wallLabel + " door return 3", errors);
-            wall.CopEnabled = copBox.IsChecked == true;
-
-            if (wall.CopEnabled)
-            {
-                wall.CopTopOffset = ReadNonNegative(copTop.Text, wallLabel + " COP top offset", errors);
-                wall.CopHeight = ReadPositive(copHeight.Text, wallLabel + " COP height", errors);
-                wall.CopWidth = ReadPositive(copWidth.Text, wallLabel + " COP width", errors);
-
-                if (wall.MainHeight > 0 && wall.CopHeight > 0 && wall.CopTopOffset + wall.CopHeight > wall.MainHeight)
-                {
-                    errors.Add(wallLabel + " COP top offset + COP height exceeds main height.");
-                }
-                if (wall.MainWidth > 0 && wall.CopWidth > 0 && wall.CopWidth > wall.MainWidth)
-                {
-                    errors.Add(wallLabel + " COP width exceeds main width.");
-                }
-            }
-
             return wall;
         }
 
-        private WallDimensions ReadRearWall(CheckBox enabledBox, TextBox widthBox, TextBox heightBox, List<string> errors)
+        private WallDimensions ReadRearWall(
+            CheckBox enabledBox,
+            TextBox drLeft, TextBox seg1, TextBox seg2, TextBox seg3, TextBox drRight,
+            TextBox measuredHeight,
+            List<string> errors)
         {
             WallDimensions wall = new WallDimensions { Enabled = enabledBox.IsChecked == true };
-            if (!wall.Enabled)
-            {
-                return wall;
-            }
-
-            wall.MainWidth = ReadPositive(widthBox.Text, "Rear wall width", errors);
-            wall.MainHeight = ReadPositive(heightBox.Text, "Rear wall height", errors);
-            wall.CopEnabled = false;
+            if (!wall.Enabled) return wall;
+            wall.Segments.DoorReturnLeft  = ReadNonNegative(drLeft.Text,  "Rear door return (left)",  errors);
+            wall.Segments.Seg1            = ReadNonNegative(seg1.Text,    "Rear segment 1",            errors);
+            wall.Segments.Seg2            = ReadNonNegative(seg2.Text,    "Rear segment 2",            errors);
+            wall.Segments.Seg3            = ReadNonNegative(seg3.Text,    "Rear segment 3",            errors);
+            wall.Segments.DoorReturnRight = ReadNonNegative(drRight.Text, "Rear door return (right)", errors);
+            wall.MeasuredHeight           = ReadPositive(measuredHeight.Text, "Rear measured height", errors);
+            wall.Cop.Enabled = false;
+            if (wall.Segments.TotalWidth <= 0)
+                errors.Add("Rear wall needs at least one non-zero segment.");
             return wall;
         }
 

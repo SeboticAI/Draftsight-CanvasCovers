@@ -123,55 +123,55 @@
                             <CheckBox DockPanel.Dock="Right" Name="LeftWallEnabled" Content="Include this wall" IsChecked="True" />
                             <TextBlock Style="{StaticResource SectionTitle}" Text="LEFT WALL (when facing rear wall)" />
                         </DockPanel>
-                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero. Click any field to highlight what it controls on the diagram." />
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Segment boxes sum to the wall width (place 0 if not needed). Measured Height is the raw height — the tool subtracts the fixing allowance and doubles it." />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
-                            <TextBox Grid.Row="0" Grid.Column="1" Name="LeftMainWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
-                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
-                            <TextBox Grid.Row="0" Grid.Column="4" Name="LeftMainHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
+                            <!-- Bottom-row segments: DR-left | Seg1 | Seg2 | Seg3 | DR-right -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Segments (mm)" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="LeftDrLeft"  Text="0"    Tag="DrLeft"  GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="2" Name="LeftSeg1"    Text="0"    Tag="Seg1"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="3" Name="LeftSeg2"    Text="0"    Tag="Seg2"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="LeftSeg3"    Text="1400" Tag="Seg3"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="5" Name="LeftDrRight" Text="0"    Tag="DrRight" GotFocus="DimField_GotFocus" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Name="LeftDoorReturn1" Text="0" Tag="DoorReturn1" GotFocus="DimField_GotFocus" />
-                            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
-                            <TextBox Grid.Row="1" Grid.Column="4" Name="LeftDoorReturn2" Text="0" Tag="DoorReturn2" GotFocus="DimField_GotFocus" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured Height" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="LeftMeasuredHeight" Text="2200" Tag="MeasuredHeight" GotFocus="DimField_GotFocus" />
+                            <CheckBox Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="4" Name="LeftCopEnabled" Content="Include COP cutout" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Name="LeftDoorReturn3" Text="0" Tag="DoorReturn3" GotFocus="DimField_GotFocus" />
-                            <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="4" Name="LeftCopEnabled" Content="Include COP cutout" />
-
-                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
+                            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
-                                <TextBox Grid.Column="1" Name="LeftCopTopOffset" Text="150" Tag="CopTopOffset" GotFocus="DimField_GotFocus" />
-                                <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
-                                <TextBox Grid.Column="4" Name="LeftCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
-                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
-                                <TextBox Grid.Column="7" Name="LeftCopWidth" Text="600" Tag="CopWidth" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP W" />
+                                <TextBox Grid.Column="1" Name="LeftCopWidth"  Text="240"  Tag="CopWidth"  GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="COP H" />
+                                <TextBox Grid.Column="3" Name="LeftCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="4" Style="{StaticResource FieldLabel}" Text="From Bottom" />
+                                <TextBox Grid.Column="5" Name="LeftCopGapBottom" Text="600" Tag="CopGapBottom" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="From Left" />
+                                <TextBox Grid.Column="7" Name="LeftCopOffsetLeft" Text="600" Tag="CopOffsetLeft" GotFocus="DimField_GotFocus" />
                             </Grid>
                         </Grid>
                     </StackPanel>
@@ -186,55 +186,55 @@
                             <CheckBox DockPanel.Dock="Right" Name="RightWallEnabled" Content="Include this wall" IsChecked="True" />
                             <TextBlock Style="{StaticResource SectionTitle}" Text="RIGHT WALL (when facing rear wall)" />
                         </DockPanel>
-                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Set unused door return panels to zero." />
+                        <TextBlock Style="{StaticResource MutedLabel}" Text="Dimensions in millimetres. Segment boxes sum to the wall width (place 0 if not needed). Measured Height is the raw height — the tool subtracts the fixing allowance and doubles it." />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Main Width" />
-                            <TextBox Grid.Row="0" Grid.Column="1" Name="RightMainWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
-                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Main Height" />
-                            <TextBox Grid.Row="0" Grid.Column="4" Name="RightMainHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
+                            <!-- Bottom-row segments: DR-left | Seg1 | Seg2 | Seg3 | DR-right -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Segments (mm)" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="RightDrLeft"  Text="0"    Tag="DrLeft"  GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="2" Name="RightSeg1"    Text="0"    Tag="Seg1"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="3" Name="RightSeg2"    Text="0"    Tag="Seg2"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="RightSeg3"    Text="1400" Tag="Seg3"    GotFocus="DimField_GotFocus" />
+                            <TextBox Grid.Row="0" Grid.Column="5" Name="RightDrRight" Text="0"    Tag="DrRight" GotFocus="DimField_GotFocus" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 1" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Name="RightDoorReturn1" Text="0" Tag="DoorReturn1" GotFocus="DimField_GotFocus" />
-                            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Door Return 2" />
-                            <TextBox Grid.Row="1" Grid.Column="4" Name="RightDoorReturn2" Text="0" Tag="DoorReturn2" GotFocus="DimField_GotFocus" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured Height" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="RightMeasuredHeight" Text="2200" Tag="MeasuredHeight" GotFocus="DimField_GotFocus" />
+                            <CheckBox Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="4" Name="RightCopEnabled" Content="Include COP cutout" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Door Return 3" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Name="RightDoorReturn3" Text="0" Tag="DoorReturn3" GotFocus="DimField_GotFocus" />
-                            <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="2" Name="RightCopEnabled" Content="Include COP cutout" />
-
-                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
+                            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="7" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="110" />
-                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP Top Offset" />
-                                <TextBox Grid.Column="1" Name="RightCopTopOffset" Text="150" Tag="CopTopOffset" GotFocus="DimField_GotFocus" />
-                                <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="COP Height" />
-                                <TextBox Grid.Column="4" Name="RightCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
-                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="COP Width" />
-                                <TextBox Grid.Column="7" Name="RightCopWidth" Text="600" Tag="CopWidth" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="COP W" />
+                                <TextBox Grid.Column="1" Name="RightCopWidth"  Text="240"  Tag="CopWidth"  GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="COP H" />
+                                <TextBox Grid.Column="3" Name="RightCopHeight" Text="1300" Tag="CopHeight" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="4" Style="{StaticResource FieldLabel}" Text="From Bottom" />
+                                <TextBox Grid.Column="5" Name="RightCopGapBottom" Text="600" Tag="CopGapBottom" GotFocus="DimField_GotFocus" />
+                                <TextBlock Grid.Column="6" Style="{StaticResource FieldLabel}" Text="From Left" />
+                                <TextBox Grid.Column="7" Name="RightCopOffsetLeft" Text="600" Tag="CopOffsetLeft" GotFocus="DimField_GotFocus" />
                             </Grid>
                         </Grid>
                     </StackPanel>
@@ -252,17 +252,26 @@
                         <TextBlock Style="{StaticResource MutedLabel}" Text="Tick &quot;Through Car&quot; in Options to omit the rear wall automatically." />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Width" />
-                            <TextBox Grid.Column="1" Name="RearWidth" Text="1400" Tag="MainWidth" GotFocus="DimField_GotFocus" />
-                            <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Height" />
-                            <TextBox Grid.Column="4" Name="RearHeight" Text="2150" Tag="MainHeight" GotFocus="DimField_GotFocus" />
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Segments (mm)" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="RearDrLeft"  Text="0"    Tag="DrLeft" />
+                            <TextBox Grid.Row="0" Grid.Column="2" Name="RearSeg1"    Text="0"    Tag="Seg1" />
+                            <TextBox Grid.Row="0" Grid.Column="3" Name="RearSeg2"    Text="0"    Tag="Seg2" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Name="RearSeg3"    Text="1400" Tag="Seg3" />
+                            <TextBox Grid.Row="0" Grid.Column="5" Name="RearDrRight" Text="0"    Tag="DrRight" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured Height" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Name="RearMeasuredHeight" Text="2200" Tag="MeasuredHeight" />
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -284,13 +293,26 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixings Required" />
-                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="2">
+                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="2" SelectionChanged="FixingsInput_SelectionChanged">
                                 <ComboBoxItem Content="Velcro" Tag="Velcro" />
                                 <ComboBoxItem Content="Hooks Facing In" Tag="HooksFacingIn" />
                                 <ComboBoxItem Content="Hooks Facing Out" Tag="HooksFacingOut" />
                                 <ComboBoxItem Content="Press Studs" Tag="PressStuds" />
                             </ComboBox>
                         </Grid>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixing Allowance (mm)" />
+                            <TextBox Grid.Column="1" Name="FixingAllowanceInput" Text="50" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource MutedLabel}"
+                                       Text="Subtracted from each wall's measured height before the height is doubled." />
+                        </Grid>
+                        <CheckBox Name="ExportDxfOption" Margin="0,8,0,0" IsChecked="True"
+                                  Content="Open DXF export dialog after generating" />
                     </StackPanel>
                 </Border>
 
