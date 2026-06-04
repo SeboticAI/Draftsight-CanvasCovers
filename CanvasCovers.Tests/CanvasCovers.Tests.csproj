@@ -21,10 +21,10 @@
     <Compile Include="..\CanvasCovers\Geometry\Products\LiftBlanket\LiftBlanketCalculator.cs" Link="Linked\LiftBlanketCalculator.cs" />
     <!--
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\LiftBlanketJob.cs" Link="Linked\LiftBlanketJob.cs" />
-    <Compile Include="..\CanvasCovers\Models\ProjectMetadata.cs" Link="Linked\ProjectMetadata.cs" />
     <Compile Include="..\CanvasCovers\Models\LayerSetting.cs" Link="Linked\LayerSetting.cs" />
     <Compile Include="..\CanvasCovers\Models\LayerSettings.cs" Link="Linked\LayerSettings.cs" />
-    <Compile Include="..\CanvasCovers\IO\DxfExporter.Filename.cs" Link="Linked\DxfExporter.Filename.cs" />
     -->
+    <Compile Include="..\CanvasCovers\Models\ProjectMetadata.cs" Link="Linked\ProjectMetadata.cs" />
+    <Compile Include="..\CanvasCovers\IO\DxfExporter.Filename.cs" Link="Linked\DxfExporter.Filename.cs" />
   </ItemGroup>
 </Project>

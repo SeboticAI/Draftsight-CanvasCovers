@@ -115,6 +115,12 @@ namespace CanvasCovers.Commands
             {
                 LiftBlanketGenerator generator = new LiftBlanketGenerator(Application);
                 generator.Generate(e.Job);
+
+                LiftBlanketWindow window = sender as LiftBlanketWindow;
+                if (window != null && window.ExportDxfRequested)
+                {
+                    new CanvasCovers.IO.DxfExporter(Application).Export(e.Job.Project);
+                }
             }
             catch (Exception ex)
             {
