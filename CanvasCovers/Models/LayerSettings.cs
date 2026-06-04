@@ -14,7 +14,9 @@ namespace CanvasCovers.Models
     {
         public LayerSetting Outline { get; set; } = new LayerSetting("1 Rotary Blade", 5);
 
-        public LayerSetting Cop { get; set; } = new LayerSetting("1 Rotary Blade", 5);
+        // COP rectangle is a draw/score feature in the client's reference
+        // DXFs — it lives on "5 Draw and Text", NOT the cut layer.
+        public LayerSetting Cop { get; set; } = new LayerSetting("5 Draw and Text", 6);
 
         // Wall identifier label per wall ("<network> <project> L/R/REAR").
         // The client's reference DXFs put this on the magenta "5 Draw and
