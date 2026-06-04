@@ -51,7 +51,13 @@ CanvasCovers/
 │   ├── LayerHelper.cs                  Shared. EnsureLayer / Activate / RestoreOriginalActive. IDisposable.
 │   └── Products/
 │       └── LiftBlanket/
-│           └── LiftBlanketGenerator.cs Lift-blanket geometry: walls + COP cutouts + DIMENSION entities + free-floating layer-0 text. DIMSCALE bumped via RunCommand.
+│           ├── LiftBlanketCalculator.cs Headless, SDK-free geometry math: cut width (+10mm), cut height ((measured−allowance)×2), fold midline, COP placement in the bottom half, identifier label. Unit-tested. Emits WallLayout DTOs.
+│           ├── WallLayout.cs           DTOs the calculator emits / the generator consumes: RectSpec, DimSpec, LabelSpec, WallLayout.
+│           ├── FixingAllowance.cs       Static lookup: FixingType → default mm allowance (Hooks 50, Press Studs 40, Velcro 0). Headless, unit-tested.
+│           └── LiftBlanketGenerator.cs Thin SDK translator: walks WallLayout, emits cut rects (Outline) + COP (draw) + labels (Annotation) + DIMENSION entities + free-floating layer-0 text. DIMSCALE bumped via RunCommand. NO geometry math (all in the calculator).
+├── IO/
+│   ├── DxfExporter.Filename.cs         Headless half: DefaultFileName(ProjectMetadata) → "<networkNumber>.dxf" (timestamp fallback). Unit-tested.
+│   └── DxfExporter.cs                  SDK half: native Save-As dialog → Document.SaveAs(path, R2018_ASCII_DXF, out errors).
 ├── Models/
 │   ├── ProjectMetadata.cs              Shared. Company, project, network number, date, notes, etc.
 │   ├── LayerSetting.cs                 Shared. Layer name + ACI colour index.
@@ -60,8 +66,10 @@ CanvasCovers/
 │   └── Products/
 │       └── LiftBlanket/
 │           ├── LiftBlanketJob.cs       Composite: Project + Layers + 3 walls + Options.
-│           ├── LiftBlanketOptions.cs   Through Car / Plastic Cover / Fixings (lift-blanket-specific).
-│           └── WallDimensions.cs       Main width/height, door returns, COP fields.
+│           ├── LiftBlanketOptions.cs   Through Car / Plastic Cover / Fixings + FixingAllowanceMm (editable) + QuiltingEnabled (deferred).
+│           ├── WallSegments.cs         Five bottom-row measurement boxes (DrLeft/Seg1/Seg2/Seg3/DrRight); TotalWidth = their sum.
+│           ├── CopPlacement.cs         Per-wall COP: Enabled + Width/Height/GapFromBottom/OffsetFromLeft.
+│           └── WallDimensions.cs       Enabled + Segments + MeasuredHeight + Cop; Width = Segments.TotalWidth.
 ├── Properties/
 │   └── AssemblyInfo.cs                 Version, description, company. ComVisible, GUID for the assembly.
 ├── Resources/
@@ -79,10 +87,12 @@ CanvasCovers/
             ├── LiftBlanketWindow.xaml/.cs       Non-modal dialog. Hosts UserControls + WallDiagram + wall sections + options. Fires GenerateRequested.
             └── GenerateRequestedEventArgs.cs   Cancel-able EventArgs. Generator sets Cancel=true on failure so the dialog stays open for retry.
 
+CanvasCovers.Tests/                     Headless MSTest project (net48). Links the SDK-free source (calculator, fixing allowance, models, DXF filename half) via <Compile ... Link=...> and references NO interop, so it runs on any machine without DraftSight. 21 tests.
+CanvasCovers.sln                        Ties the add-in + test project together.
 docs/                                   Documentation (this folder). See README.md for index.
 scripts/                                rollback-canvascovers.ps1 — startup-crash recovery only. Install path is the Inno installer.
 Installer/                              CanvasCovers.iss + build.ps1 + Output/. See Installer/README.md.
-reference/                              (gitignored) Client-supplied DXFs + measurement sheets.
+reference/                              (gitignored) Client-supplied DXFs + measurement sheets + DXF_FINDINGS.md (the reverse-engineering analysis) + parse-dxf.ps1 (the inspector).
 ```
 
 ---
@@ -136,32 +146,73 @@ host when called on freshly-inserted entities. The activate-based path
 is the SDK's `BlockCustomData` (C++) sample pattern and is the one we
 verified works.
 
-### `LiftBlanketGenerator`
+### `LiftBlanketCalculator` (the math core)
+
+Headless and SDK-free, so it is **unit-tested** (see
+`CanvasCovers.Tests`). Takes the per-job fixing allowance in its ctor;
+`LayoutWall(wall, originX, projectTag, suffix)` returns a `WallLayout`
+DTO carrying the cut `RectSpec`, the fold midline Y, an optional COP
+`RectSpec`, the identifier `LabelSpec`, and the width `DimSpec`. It
+encodes the three rules recovered from the client's reference DXFs
+(`reference/DXF_FINDINGS.md`):
+
+1. `cutHeight = (measuredHeight − fixingAllowance) × 2` (the blanket
+   folds in half; the measured panel is doubled).
+2. `cutWidth = Σ segments + 10` ("WIDTH − ADD 10mm").
+3. COP sits in the **bottom (measured) half**, placed from the
+   operator's gap-from-bottom / offset-from-left / size; the top half
+   is a mirror, so no COP geometry is needed above the fold midline.
+   `CopFitsInBottomHalf(...)` validates the COP doesn't cross the fold;
+   the dialog calls it before generating.
+
+Keeping the math here (not in the generator) means the rules are
+testable without DraftSight, and the generator stays a thin translator.
+
+### `LiftBlanketGenerator` (the SDK translator)
 
 Takes a `LiftBlanketJob`. Reads layer config from `job.Layers`,
 ensures the four layers exist, bumps `DIMSCALE` via
-`Application.RunCommand` so dim text reads at lift-blanket scale,
-then draws walls left-to-right at the world origin. Wrapped in
-`SketchManager.StartUndoRecord` / `StopUndoRecord` so one Ctrl+Z
-reverts the whole generation.
+`Application.RunCommand` so dim text reads at lift-blanket scale, then
+walks each wall via the calculator (L → R → B, B omitted when Through
+Car) and emits the resulting `WallLayout` as DraftSight entities.
+Wrapped in `SketchManager.StartUndoRecord` / `StopUndoRecord` so one
+Ctrl+Z reverts the whole generation. **No geometry math lives here** —
+it only translates DTOs into SDK calls.
+
+Layer assignment (matches the reference DXFs):
+
+- Cut rectangle → **Outline** layer (`1 Rotary Blade`, cut).
+- COP rectangle → **Cop** layer (`5 Draw and Text`, draw/score — NOT
+  cut).
+- Wall identifier label (`<net> <name> L/R/B`, height 20) →
+  **Annotation** layer (`5 Draw and Text`).
+- Dimensions + free-floating worksheet text → **Titleblock** layer
+  (`0`, white).
 
 The text layout is **free-floating, not a boxed title block** —
-mirrors Adelaide Annexe's reference DXFs:
-
-- Horizontal worksheet legend on layer `0` above the walls
-- Right of the walls: project metadata column + static worksheet
-  reference blocks (FIXINGS table, WIDTH/HEIGHT formula reminder,
-  vertical-quilting-spacing lookup)
-- Width dim below each wall, height dim only on the **leftmost**
-  wall's outer side (other walls share the same height, so duplicate
-  dims would stack in the gap between walls)
-- Door return widths above each wall (when non-zero)
-- COP dims around the COP cutout when enabled
+mirrors the reference DXFs: a horizontal worksheet legend above the
+walls; right of the walls a project-metadata column + a FIXINGS table +
+the WIDTH/HEIGHT formula reminder + a FIXING ALLOWANCE line. Width dim
+below each wall; height dim only on the **leftmost** wall's outer side
+(other walls share the same height, so duplicate dims would stack in
+the gap). The calculator emits the width dim's extension points on the
+wall bottom edge (`LineY = 0`); the generator applies its own `DimGap`
+offset — keeping layout decisions out of the math core.
 
 Dimensions use `InsertAlignedDimension` (not `InsertLinearDimension`
 — that's horizontal-only; see CLAUDE.md §9). Text uses
 `InsertSimpleNote` (not `InsertNoteWithParameters` — that silently
 produces no visible output).
+
+### `DxfExporter`
+
+Split into a headless filename half (`DxfExporter.Filename.cs`,
+unit-tested — `DefaultFileName` derives `<networkNumber>.dxf`) and an
+SDK half (`DxfExporter.cs` — pops a WPF `SaveFileDialog`, then
+`Document.SaveAs(path, dsDocumentSaveAs_R2018_ASCII_DXF, out errors)`).
+Invoked from `OpenCanvasCoversCommand` after a successful Generate when
+the dialog's "export" checkbox is ticked. Best-effort: cancel is a
+no-op, a save error surfaces a message but does not throw.
 
 Each entity insert is preceded by `layers.Activate(<layer>.Name)` so
 the entity lands on the correct layer.

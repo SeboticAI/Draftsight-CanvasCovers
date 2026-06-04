@@ -18,6 +18,21 @@ client's reference DXF visual convention: blue cut path, white free-
 floating project + worksheet text, proper DIMENSION entities. Ctrl+Z
 reverts the whole generation in one step.
 
+As of **v1.2.0** the wall model was rebuilt from the client's real
+reference DXFs (see [`reference/DXF_FINDINGS.md`](../reference/DXF_FINDINGS.md)):
+each wall is now a plain rectangle whose **cut height is auto-derived**
+(`(measuredHeight − fixingAllowance) × 2`) and width is the sum of the
+five measurement-sheet segment boxes + 10 mm. COP is per-wall, placed
+from the bottom/left and validated to stay below the fold midline. A
+headless `LiftBlanketCalculator` holds all this geometry math and is
+covered by 21 MSTest unit tests asserting against the real DXF
+coordinates; the generator is a thin SDK translator over its output.
+After Generate, an optional **native DXF export** (Save-As dialog,
+filename defaulting to the network number) writes the drawing as
+R2018 ASCII DXF. Quilting remains deliberately deferred (no input on
+the measurement sheet; spacing rule unconfirmed) behind an off-by-
+default `QuiltingEnabled` flag.
+
 The architecture is ready for additional products — caravan annexe slot
 exists in the picker as a disabled tile pending the spec from the
 client.
@@ -86,23 +101,36 @@ client.
   drops the addin XML in ProgramData, and runs RegAsm /codebase.
   Uninstall via Settings → Apps reverses all of it.
 
+## Recently completed (v1.2.0)
+
+These were "deliberately not built" before v1.2.0 and now work — built
+by reverse-engineering the client's reference DXFs rather than waiting
+on a client walkthrough:
+
+- **Wall geometry redesign.** Replaced the wrong-shaped
+  3-door-return-on-one-side model with the real one: each wall is a
+  plain rectangle, width = sum of the five segment boxes
+  (DrLeft / Seg1 / Seg2 / Seg3 / DrRight) + 10 mm, walls enumerated
+  L / R / B(ack).
+- **Fixing-allowance + ×2 height math.** The operator now types the
+  **measured** height; the tool applies `(measured − allowance) × 2`.
+  The allowance defaults per fixing type (Hooks 50, Press Studs 40,
+  Velcro 0) and is operator-editable per job.
+- **DXF export.** A native Save-As dialog (filename defaulting to the
+  network number) writes R2018 ASCII DXF after Generate, gated on a
+  dialog checkbox.
+
 ## What's deliberately not yet built
 
 - **Caravan annexe flow.** Picker tile exists, dialog and generator do
   not. Gated on receiving a measurement form / sample DXF from
   Adelaide Annexe & Canvas.
-- **Wall geometry redesign.** The current 3-door-return-on-one-side
-  model doesn't match the LR1/LR2/LR3 + L1/L2/L3 + LLR/LRR labels on
-  the client's measurement sheet. Gated on §9 of
-  [`docs/CLIENT_QUESTIONS.md`](CLIENT_QUESTIONS.md).
-- **Fixing-allowance + ×2 height math.** Currently the operator types
-  the cut height directly; the worksheet rule `HEIGHT = LESS FIXING
-  THEN x2` is included on every drawing as reference text but isn't
-  auto-applied. Gated on §1/§3 of CLIENT_QUESTIONS.
-- **Vertical quilting geometry.** The lookup table is on every
-  drawing, but no quilt lines are emitted. Gated on §4 of
-  CLIENT_QUESTIONS.
-- **DXF auto-export.** Operator currently saves the drawing manually.
+- **Quilting geometry.** Deferred behind an off-by-default
+  `QuiltingEnabled` flag. The measurement sheet has no quilt input and
+  the spacing rule is unconfirmed (the on-DXF "VERTICAL QUILTING
+  SPACING" lookup didn't reconcile cleanly with measured line spacing —
+  see `reference/DXF_FINDINGS.md`). Gated on a client confirmation of
+  the rule (CLIENT_QUESTIONS §3).
 - **Project save/load.** No JSON serialisation of `LiftBlanketJob`
   yet.
 - **Branded icons.** Currently using the SDK sample's placeholder
@@ -147,16 +175,22 @@ version:
 ## Current commit baseline
 
 - Branch: `main`
-- Last shipped version: **v1.1.4** (installer EXE in
-  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.1.4.exe`)
-- Build: clean (`dotnet build -c Release` produces `CanvasCovers.dll`
-  with zero warnings)
-- Installer: clean
-- Layer defaults retargeted to match the client's machine convention:
-  `1 Rotary Blade` (ACI 5 blue) for Outline + COP, `5 Draw and Text`
-  (ACI 6 magenta) for Annotation (the COP "COP" inline label only),
-  `0` (ACI 7 white) for the Titleblock layer (project info + dims +
-  worksheet reference text)
+- Version: **v1.2.0** (`MyAppVersion` in `CanvasCovers.iss`;
+  `AssemblyVersion`/`AssemblyFileVersion` 1.2.0.0). Installer EXE not
+  yet rebuilt for this version — run `.\Installer\build.ps1` to produce
+  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.2.0.exe`.
+- Build: clean (`dotnet build -c Release` → 0 warnings, 0 errors)
+- Tests: **21 passing** (`dotnet test CanvasCovers.Tests`) — headless
+  unit tests over `LiftBlanketCalculator`, `FixingAllowance`, the wall
+  model, and the DXF filename rule. The SDK-emission layer
+  (generator + exporter) is verified live in DraftSight, not by tests.
+- Layer defaults match the client's machine convention:
+  `1 Rotary Blade` (ACI 5 blue) for the **Outline/cut** layer,
+  `5 Draw and Text` (ACI 6 magenta) for **Cop + Annotation** (COP rect,
+  wall labels — draw/score, NOT cut), `0` (ACI 7 white) for the
+  Titleblock layer (project info + dims + worksheet reference text).
+  NB: COP moved from the cut layer to the draw layer in v1.2.0 to match
+  the reference DXFs.
 
 ## Quick verification
 
