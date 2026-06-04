@@ -14,6 +14,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
     public class LiftBlanketCalculator
     {
         private const double WidthAllowanceMm = 10.0;
+
+        // Wall identifier labels ("<net> <name> L/R/B") are text height 20
+        // in the client's reference DXFs — match that.
         private const double IdentifierTextHeight = 20.0;
 
         private readonly double _fixingAllowanceMm;
@@ -45,8 +48,12 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             string suffix)
         {
             double cutWidth = CutWidth(wall.Width);
+
+            // Assumes upstream validation guarantees MeasuredHeight > the
+            // fixing allowance; otherwise half goes negative and the cut
+            // rect inverts. The dialog enforces a positive measured height.
             double half = HalfHeight(wall.MeasuredHeight, _fixingAllowanceMm);
-            double cutHeight = half * 2.0;
+            double cutHeight = CutHeight(wall.MeasuredHeight, _fixingAllowanceMm);
 
             var layout = new WallLayout
             {
@@ -77,15 +84,14 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 };
             }
 
-            // Width dim below the wall; the height dim is added by the
-            // generator for the leftmost wall only (it owns cross-wall
-            // layout). We emit the per-wall width dim here so the spec stays
-            // self-contained.
+            // Width dim along the wall bottom edge (extension points only).
+            // The generator applies its own offset (DimGap) when it places
+            // the dim line — keeping layout decisions out of the math core.
             layout.Dimensions.Add(new DimSpec
             {
                 Ext1X = originX, Ext1Y = 0,
                 Ext2X = originX + cutWidth, Ext2Y = 0,
-                LineX = originX + cutWidth / 2.0, LineY = -300,
+                LineX = originX + cutWidth / 2.0, LineY = 0,
             });
 
             return layout;

@@ -87,5 +87,24 @@ namespace CanvasCovers.Tests
             Assert.IsTrue(layout.IdentifierLabel.HasValue);
             Assert.AreEqual("12346 TEST 12346 L", layout.IdentifierLabel.Value.Text);
         }
+
+        [TestMethod]
+        public void Layout_Offsets_All_X_By_OriginX()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50);
+            WallLayout layout = calc.LayoutWall(wall, originX: 1000, "12346 TEST 12346", "L");
+
+            // Cut rect shifts right by 1000; width unchanged at 2250.
+            Assert.AreEqual(1000.0, layout.CutRect.X0, 0.001);
+            Assert.AreEqual(3250.0, layout.CutRect.X1, 0.001);
+            // COP X shifts too: 1000 + 600 offset = 1600..1840.
+            Assert.IsTrue(layout.CopRect.HasValue);
+            Assert.AreEqual(1600.0, layout.CopRect.Value.X0, 0.001);
+            Assert.AreEqual(1840.0, layout.CopRect.Value.X1, 0.001);
+            // Y is unaffected by originX.
+            Assert.AreEqual(600.0, layout.CopRect.Value.Y0, 0.001);
+            Assert.AreEqual(1900.0, layout.CopRect.Value.Y1, 0.001);
+        }
     }
 }
