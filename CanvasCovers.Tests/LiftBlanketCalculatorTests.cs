@@ -106,5 +106,26 @@ namespace CanvasCovers.Tests
             Assert.AreEqual(600.0, layout.CopRect.Value.Y0, 0.001);
             Assert.AreEqual(1900.0, layout.CopRect.Value.Y1, 0.001);
         }
+
+        [TestMethod]
+        public void Width_Dimension_Extension_Points_On_Bottom_Edge()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50);
+            WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
+
+            Assert.AreEqual(1, layout.Dimensions.Count);
+            DimSpec d = layout.Dimensions[0];
+            // Extension points + dim line all on the bottom edge (Y=0). The
+            // generator owns the downward offset, so the calculator must NOT
+            // pre-offset the dim line — locking that contract here because
+            // the generator that depends on it can only be tested in-host.
+            Assert.AreEqual(0.0, d.Ext1Y, 0.001);
+            Assert.AreEqual(0.0, d.Ext2Y, 0.001);
+            Assert.AreEqual(0.0, d.LineY, 0.001);
+            // Spans the full cut width (0 .. 2250).
+            Assert.AreEqual(0.0, d.Ext1X, 0.001);
+            Assert.AreEqual(2250.0, d.Ext2X, 0.001);
+        }
     }
 }
