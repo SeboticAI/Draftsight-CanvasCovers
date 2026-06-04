@@ -30,7 +30,6 @@ namespace CanvasCovers.UI.Controls
 
         private static readonly Brush WallStroke = new SolidColorBrush(Color.FromRgb(0x1A, 0x3A, 0x52));
         private static readonly Brush WallFill = new SolidColorBrush(Color.FromRgb(0xEC, 0xEF, 0xF3));
-        private static readonly Brush ReturnFill = new SolidColorBrush(Color.FromRgb(0xDF, 0xE5, 0xEC));
         private static readonly Brush CopStroke = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
         private static readonly Brush CopFill = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
         private static readonly Brush DimStroke = new SolidColorBrush(Color.FromRgb(0x99, 0xA3, 0xAD));
@@ -133,9 +132,8 @@ namespace CanvasCovers.UI.Controls
             string[] order = mirrored
                 ? new[] { KeyDrRight, KeySeg3, KeySeg2, KeySeg1, KeyDrLeft }
                 : new[] { KeyDrLeft, KeySeg1, KeySeg2, KeySeg3, KeyDrRight };
-            double[] widths = mirrored
-                ? new[] { tab, interior, interior, interior, tab }
-                : new[] { tab, interior, interior, interior, tab };
+            // Symmetric, so mirroring the order doesn't change the widths.
+            double[] widths = { tab, interior, interior, interior, tab };
             string[] captions = mirrored
                 ? new[] { "DR-R", "S3", "S2", "S1", "DR-L" }
                 : new[] { "DR-L", "S1", "S2", "S3", "DR-R" };
