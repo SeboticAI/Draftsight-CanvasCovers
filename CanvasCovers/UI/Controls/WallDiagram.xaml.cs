@@ -17,14 +17,16 @@ namespace CanvasCovers.UI.Controls
     {
         // Dimension keys recognised by Highlight(). Each is a Tag value on the
         // matching input in LiftBlanketWindow.xaml.
-        public const string KeyMainWidth = "MainWidth";
-        public const string KeyMainHeight = "MainHeight";
-        public const string KeyDoorReturn1 = "DoorReturn1";
-        public const string KeyDoorReturn2 = "DoorReturn2";
-        public const string KeyDoorReturn3 = "DoorReturn3";
-        public const string KeyCopTopOffset = "CopTopOffset";
-        public const string KeyCopHeight = "CopHeight";
+        public const string KeyDrLeft = "DrLeft";
+        public const string KeySeg1 = "Seg1";
+        public const string KeySeg2 = "Seg2";
+        public const string KeySeg3 = "Seg3";
+        public const string KeyDrRight = "DrRight";
+        public const string KeyMeasuredHeight = "MeasuredHeight";
         public const string KeyCopWidth = "CopWidth";
+        public const string KeyCopHeight = "CopHeight";
+        public const string KeyCopGapBottom = "CopGapBottom";
+        public const string KeyCopOffsetLeft = "CopOffsetLeft";
 
         private static readonly Brush WallStroke = new SolidColorBrush(Color.FromRgb(0x1A, 0x3A, 0x52));
         private static readonly Brush WallFill = new SolidColorBrush(Color.FromRgb(0xEC, 0xEF, 0xF3));
@@ -108,118 +110,146 @@ namespace CanvasCovers.UI.Controls
 
         private void BuildFull(bool mirrored)
         {
-            // Canvas is 260 x 290. Wall outline lives inside an inset frame so
-            // dimension callouts can sit outside the rectangle without being
-            // clipped. The 3 door returns are fixed-width strips (the real
-            // values vary wildly between jobs and this is a reference picture,
-            // not a preview).
+            // Canvas 260 x 290. Illustrative only — not to scale. The wall is a
+            // plain rectangle; the bottom edge carries five segment callouts
+            // (DrLeft | Seg1 | Seg2 | Seg3 | DrRight), and an optional COP sits
+            // in the lower portion positioned from the wall bottom + left edge.
             const double wallTop = 50;
-            const double wallBottom = 230;
-            const double wallLeft = 30;
-            const double wallRight = 230;
-            const double returnWidth = 18;
-            const double wallHeight = wallBottom - wallTop;
+            const double wallBottom = 215;
+            const double wallLeft = 40;
+            const double wallRight = 225;
+            double wallWidth = wallRight - wallLeft;
 
-            double mainLeft, mainRight;
-            double dr1Left, dr2Left, dr3Left;
-            if (!mirrored)
+            // Wall outline.
+            Rectangle wall = AddRect(wallLeft, wallTop, wallWidth, wallBottom - wallTop, WallStroke, WallFill);
+
+            // Five bottom-edge segments. Illustrative proportions (DrLeft and
+            // DrRight are thin tabs; the three interior segments share the rest).
+            // For a mirrored (right) wall, the order flips so DrRight reads on
+            // the left, matching how the right wall is drawn in the real DXF.
+            double tab = wallWidth * 0.10;
+            double interior = (wallWidth - 2 * tab) / 3.0;
+
+            string[] order = mirrored
+                ? new[] { KeyDrRight, KeySeg3, KeySeg2, KeySeg1, KeyDrLeft }
+                : new[] { KeyDrLeft, KeySeg1, KeySeg2, KeySeg3, KeyDrRight };
+            double[] widths = mirrored
+                ? new[] { tab, interior, interior, interior, tab }
+                : new[] { tab, interior, interior, interior, tab };
+            string[] captions = mirrored
+                ? new[] { "DR-R", "S3", "S2", "S1", "DR-L" }
+                : new[] { "DR-L", "S1", "S2", "S3", "DR-R" };
+
+            double segDimY = wallBottom + 14;
+            double x = wallLeft;
+            for (int i = 0; i < order.Length; i++)
             {
-                // Order left-to-right: DR1, DR2, DR3, MAIN
-                dr1Left = wallLeft;
-                dr2Left = dr1Left + returnWidth;
-                dr3Left = dr2Left + returnWidth;
-                mainLeft = dr3Left + returnWidth;
-                mainRight = wallRight;
+                double segW = widths[i];
+                // Vertical separator inside the wall for each boundary (skip the
+                // outer edges, which are the wall outline itself).
+                if (i > 0)
+                {
+                    Line sep = new Line
+                    {
+                        X1 = x, X2 = x, Y1 = wallTop, Y2 = wallBottom,
+                        Stroke = DimStroke, StrokeThickness = 0.6,
+                    };
+                    DrawCanvas.Children.Add(sep);
+                }
+                Line[] segLines = AddHDimLine(x, x + segW, segDimY, DimStroke);
+                TextBlock segLabel = AddCenteredLabel(x + segW / 2, segDimY + 10, captions[i], 9, LabelText);
+                Register(order[i], segLabel, segLines);
+                x += segW;
             }
-            else
-            {
-                // Order left-to-right: MAIN, DR1, DR2, DR3
-                mainLeft = wallLeft;
-                mainRight = wallRight - returnWidth * 3;
-                dr1Left = mainRight;
-                dr2Left = dr1Left + returnWidth;
-                dr3Left = dr2Left + returnWidth;
-            }
-            double mainWidthPx = mainRight - mainLeft;
 
-            // Main area rectangle (lighter fill).
-            Rectangle main = AddRect(mainLeft, wallTop, mainWidthPx, wallHeight, WallStroke, WallFill);
+            // Measured Height dim on the outer side (left for a normal wall,
+            // right for a mirrored one).
+            double heightDimX = mirrored ? wallRight + 16 : wallLeft - 16;
+            Line[] heightLines = AddVDimLine(heightDimX, wallTop, wallBottom, DimStroke);
+            TextBlock heightLabel = AddRotatedLabel(
+                heightDimX + (mirrored ? 10 : -10), (wallTop + wallBottom) / 2,
+                "Meas. Height", 9, LabelText, !mirrored);
+            Register(KeyMeasuredHeight, heightLabel, Combine(wall, heightLines));
 
-            // Door return strips.
-            Rectangle dr1 = AddRect(dr1Left, wallTop, returnWidth, wallHeight, WallStroke, ReturnFill);
-            Rectangle dr2 = AddRect(dr2Left, wallTop, returnWidth, wallHeight, WallStroke, ReturnFill);
-            Rectangle dr3 = AddRect(dr3Left, wallTop, returnWidth, wallHeight, WallStroke, ReturnFill);
-
-            AddCenteredLabel(dr1Left + returnWidth / 2, (wallTop + wallBottom) / 2, "1", 10, LabelText);
-            AddCenteredLabel(dr2Left + returnWidth / 2, (wallTop + wallBottom) / 2, "2", 10, LabelText);
-            AddCenteredLabel(dr3Left + returnWidth / 2, (wallTop + wallBottom) / 2, "3", 10, LabelText);
-
-            Register(KeyDoorReturn1, null, dr1);
-            Register(KeyDoorReturn2, null, dr2);
-            Register(KeyDoorReturn3, null, dr3);
-
-            // COP cutout centered horizontally in the main area, top inset
-            // mimics a typical CopTopOffset.
-            double copWidthPx = mainWidthPx * 0.45;
-            double copHeightPx = 60;
-            double copTopOffsetPx = 22;
-            double copLeft = mainLeft + (mainWidthPx - copWidthPx) / 2;
-            double copTop = wallTop + copTopOffsetPx;
+            // COP rectangle in the lower portion.
+            double copWidthPx = wallWidth * 0.22;
+            double copHeightPx = 70;
+            double copGapBottomPx = 26;                 // gap from wall bottom up to COP bottom
+            double copOffsetLeftPx = wallWidth * 0.30;  // gap from wall left to COP left
+            double copLeft = wallLeft + copOffsetLeftPx;
+            double copBottom = wallBottom - copGapBottomPx;
+            double copTop = copBottom - copHeightPx;
 
             Rectangle cop = AddRect(copLeft, copTop, copWidthPx, copHeightPx, CopStroke, CopFill);
-            TextBlock copLabel = AddCenteredLabel(copLeft + copWidthPx / 2, copTop + copHeightPx / 2, "COP", 10, LabelText);
+            AddCenteredLabel(copLeft + copWidthPx / 2, copTop + copHeightPx / 2, "COP", 10, LabelText);
 
-            // CopWidth: horizontal dim line above COP.
-            Line[] copWidthLines = AddHDimLine(copLeft, copLeft + copWidthPx, copTop - 10, DimStroke);
-            TextBlock copWidthLabel = AddCenteredLabel(copLeft + copWidthPx / 2, copTop - 20, "COP Width", 10, LabelText);
-
-            // CopHeight: vertical dim line on outboard side of COP.
-            double copHeightDimX = mirrored ? copLeft - 10 : copLeft + copWidthPx + 10;
-            Line[] copHeightLines = AddVDimLine(copHeightDimX, copTop, copTop + copHeightPx, DimStroke);
-            TextBlock copHeightLabel = AddRotatedLabel(copHeightDimX + (mirrored ? -10 : 10), copTop + copHeightPx / 2, "COP Height", 10, LabelText, mirrored);
-
-            // CopTopOffset: vertical dim line between wall top and COP top,
-            // placed slightly off the COP rectangle on the side opposite the
-            // CopHeight callout to avoid overlap.
-            double copTopOffsetX = mirrored ? copLeft + copWidthPx + 10 : copLeft - 10;
-            Line[] copTopOffsetLines = AddVDimLine(copTopOffsetX, wallTop, copTop, DimStroke);
-            TextBlock copTopOffsetLabel = AddRotatedLabel(copTopOffsetX + (mirrored ? 10 : -10), (wallTop + copTop) / 2, "Top Offset", 9, LabelText, !mirrored);
-
+            // CopWidth: horizontal dim above the COP.
+            Line[] copWidthLines = AddHDimLine(copLeft, copLeft + copWidthPx, copTop - 8, DimStroke);
+            TextBlock copWidthLabel = AddCenteredLabel(copLeft + copWidthPx / 2, copTop - 17, "COP W", 9, LabelText);
             Register(KeyCopWidth, copWidthLabel, Combine(cop, copWidthLines));
+
+            // CopHeight: vertical dim on the inboard side of the COP.
+            double copHeightDimX = copLeft + copWidthPx + 10;
+            Line[] copHeightLines = AddVDimLine(copHeightDimX, copTop, copBottom, DimStroke);
+            TextBlock copHeightLabel = AddRotatedLabel(copHeightDimX + 10, (copTop + copBottom) / 2, "COP H", 9, LabelText, false);
             Register(KeyCopHeight, copHeightLabel, Combine(cop, copHeightLines));
-            Register(KeyCopTopOffset, copTopOffsetLabel, copTopOffsetLines);
 
-            // MainWidth dim line + label below the MAIN area only.
-            Line[] mainWidthLines = AddHDimLine(mainLeft, mainRight, wallBottom + 14, DimStroke);
-            TextBlock mainWidthLabel = AddCenteredLabel((mainLeft + mainRight) / 2, wallBottom + 26, "Main Width", 10, LabelText);
-            Register(KeyMainWidth, mainWidthLabel, Combine(main, mainWidthLines));
+            // CopGapBottom: vertical dim from the COP bottom down to the wall
+            // bottom, on the same inboard side.
+            Line[] copGapLines = AddVDimLine(copHeightDimX, copBottom, wallBottom, DimStroke);
+            TextBlock copGapLabel = AddRotatedLabel(copHeightDimX + 10, (copBottom + wallBottom) / 2, "From Bot.", 8, LabelText, false);
+            Register(KeyCopGapBottom, copGapLabel, copGapLines);
 
-            // MainHeight dim line + label outside the wall, on the door-return
-            // side so it sits clear of the COP-Height callout.
-            double heightDimX = mirrored ? wallRight + 14 : wallLeft - 14;
-            Line[] mainHeightLines = AddVDimLine(heightDimX, wallTop, wallBottom, DimStroke);
-            TextBlock mainHeightLabel = AddRotatedLabel(heightDimX + (mirrored ? 10 : -10), (wallTop + wallBottom) / 2, "Main Height", 10, LabelText, !mirrored);
-            Register(KeyMainHeight, mainHeightLabel, mainHeightLines);
+            // CopOffsetLeft: horizontal dim from the wall left edge to the COP
+            // left edge, drawn just below the COP.
+            double offsetDimY = copBottom + 6;
+            Line[] copOffsetLines = AddHDimLine(wallLeft, copLeft, offsetDimY, DimStroke);
+            TextBlock copOffsetLabel = AddCenteredLabel((wallLeft + copLeft) / 2, offsetDimY + 9, "From Left", 8, LabelText);
+            Register(KeyCopOffsetLeft, copOffsetLabel, copOffsetLines);
         }
 
         private void BuildRear()
         {
             const double wallTop = 60;
-            const double wallBottom = 220;
-            const double wallLeft = 50;
-            const double wallRight = 210;
+            const double wallBottom = 210;
+            const double wallLeft = 45;
+            const double wallRight = 215;
+            double wallWidth = wallRight - wallLeft;
 
-            Rectangle wall = AddRect(wallLeft, wallTop, wallRight - wallLeft, wallBottom - wallTop, WallStroke, WallFill);
-            AddCenteredLabel((wallLeft + wallRight) / 2, (wallTop + wallBottom) / 2 - 10, "REAR", 10, LabelText);
-            AddCenteredLabel((wallLeft + wallRight) / 2, (wallTop + wallBottom) / 2 + 6, "WALL", 10, LabelText);
+            Rectangle wall = AddRect(wallLeft, wallTop, wallWidth, wallBottom - wallTop, WallStroke, WallFill);
+            AddCenteredLabel((wallLeft + wallRight) / 2, (wallTop + wallBottom) / 2 - 8, "REAR", 10, LabelText);
+            AddCenteredLabel((wallLeft + wallRight) / 2, (wallTop + wallBottom) / 2 + 8, "WALL", 10, LabelText);
 
-            Line[] widthLines = AddHDimLine(wallLeft, wallRight, wallBottom + 14, DimStroke);
-            TextBlock widthLabel = AddCenteredLabel((wallLeft + wallRight) / 2, wallBottom + 26, "Width", 10, LabelText);
-            Register(KeyMainWidth, widthLabel, Combine(wall, widthLines));
+            // Five bottom-edge segments (no COP on a rear wall).
+            double tab = wallWidth * 0.10;
+            double interior = (wallWidth - 2 * tab) / 3.0;
+            string[] order = { KeyDrLeft, KeySeg1, KeySeg2, KeySeg3, KeyDrRight };
+            double[] widths = { tab, interior, interior, interior, tab };
+            string[] captions = { "DR-L", "S1", "S2", "S3", "DR-R" };
 
-            Line[] heightLines = AddVDimLine(wallLeft - 14, wallTop, wallBottom, DimStroke);
-            TextBlock heightLabel = AddRotatedLabel(wallLeft - 24, (wallTop + wallBottom) / 2, "Height", 10, LabelText, true);
-            Register(KeyMainHeight, heightLabel, heightLines);
+            double segDimY = wallBottom + 14;
+            double x = wallLeft;
+            for (int i = 0; i < order.Length; i++)
+            {
+                double segW = widths[i];
+                if (i > 0)
+                {
+                    Line sep = new Line
+                    {
+                        X1 = x, X2 = x, Y1 = wallTop, Y2 = wallBottom,
+                        Stroke = DimStroke, StrokeThickness = 0.6,
+                    };
+                    DrawCanvas.Children.Add(sep);
+                }
+                Line[] segLines = AddHDimLine(x, x + segW, segDimY, DimStroke);
+                TextBlock segLabel = AddCenteredLabel(x + segW / 2, segDimY + 10, captions[i], 9, LabelText);
+                Register(order[i], segLabel, segLines);
+                x += segW;
+            }
+
+            Line[] heightLines = AddVDimLine(wallLeft - 16, wallTop, wallBottom, DimStroke);
+            TextBlock heightLabel = AddRotatedLabel(wallLeft - 26, (wallTop + wallBottom) / 2, "Meas. Height", 9, LabelText, true);
+            Register(KeyMeasuredHeight, heightLabel, Combine(wall, heightLines));
         }
 
         private Rectangle AddRect(double x, double y, double w, double h, Brush stroke, Brush fill)
