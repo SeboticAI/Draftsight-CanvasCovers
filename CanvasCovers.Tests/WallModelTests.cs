@@ -27,5 +27,20 @@ namespace CanvasCovers.Tests
             var cop = new CopPlacement();
             Assert.IsFalse(cop.Enabled);
         }
+
+        [TestMethod]
+        public void WallDimensions_Width_Comes_From_Segments()
+        {
+            var wall = new WallDimensions();
+            wall.Segments.DoorReturnLeft = 250;
+            wall.Segments.Seg1 = 350;
+            wall.Segments.Seg2 = 240;
+            wall.Segments.Seg3 = 1400;
+            wall.MeasuredHeight = 2200;
+            Assert.AreEqual(2240.0, wall.Width);
+            Assert.AreEqual(2200.0, wall.MeasuredHeight);
+            Assert.IsTrue(wall.Enabled);
+            Assert.IsFalse(wall.Cop.Enabled);
+        }
     }
 }
