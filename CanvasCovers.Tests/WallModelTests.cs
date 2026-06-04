@@ -1,0 +1,31 @@
+using CanvasCovers.Models.Products.LiftBlanket;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace CanvasCovers.Tests
+{
+    [TestClass]
+    public class WallModelTests
+    {
+        [TestMethod]
+        public void WallSegments_TotalWidth_Sums_All_Boxes()
+        {
+            // Sheet job 12346 left wall bottom row: 250 350 240 1400 0
+            var s = new WallSegments
+            {
+                DoorReturnLeft = 250,
+                Seg1 = 350,
+                Seg2 = 240,
+                Seg3 = 1400,
+                DoorReturnRight = 0,
+            };
+            Assert.AreEqual(2240.0, s.TotalWidth);
+        }
+
+        [TestMethod]
+        public void CopPlacement_Defaults_Are_Off()
+        {
+            var cop = new CopPlacement();
+            Assert.IsFalse(cop.Enabled);
+        }
+    }
+}

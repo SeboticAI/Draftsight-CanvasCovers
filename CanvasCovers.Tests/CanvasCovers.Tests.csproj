@@ -14,11 +14,11 @@
          The interop-dependent generator is NOT linked here. -->
     <Compile Include="..\CanvasCovers\Geometry\Products\LiftBlanket\FixingAllowance.cs" Link="Linked\FixingAllowance.cs" />
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\LiftBlanketOptions.cs" Link="Linked\LiftBlanketOptions.cs" />
+    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\WallSegments.cs" Link="Linked\WallSegments.cs" />
+    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\CopPlacement.cs" Link="Linked\CopPlacement.cs" />
     <!--
     <Compile Include="..\CanvasCovers\Geometry\Products\LiftBlanket\WallLayout.cs" Link="Linked\WallLayout.cs" />
     <Compile Include="..\CanvasCovers\Geometry\Products\LiftBlanket\LiftBlanketCalculator.cs" Link="Linked\LiftBlanketCalculator.cs" />
-    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\WallSegments.cs" Link="Linked\WallSegments.cs" />
-    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\CopPlacement.cs" Link="Linked\CopPlacement.cs" />
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\WallDimensions.cs" Link="Linked\WallDimensions.cs" />
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\LiftBlanketJob.cs" Link="Linked\LiftBlanketJob.cs" />
     <Compile Include="..\CanvasCovers\Models\ProjectMetadata.cs" Link="Linked\ProjectMetadata.cs" />
