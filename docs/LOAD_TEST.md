@@ -95,25 +95,32 @@ sections top-to-bottom:
   O/Number, Sales Contact, Mobile, Measured By, Date (today by
   default), plus a multi-line **Notes** field for delivery
   instructions / special requests.
-- **Left Wall** — Main Width / Height, three Door Returns (zero if
-  not needed), optional COP cutout.
-- **Right Wall** — same shape, mirrored door return orientation.
-- **Rear Wall** — Width / Height. Disabled if Through Car is ticked.
+- **Left Wall** — five **Segment** boxes (DR-left / Seg1 / Seg2 /
+  Seg3 / DR-right — sum = wall width, place 0 if not needed), a
+  **Measured Height** (the raw "top of hook to bottom of blanket"
+  number, BEFORE the tool subtracts the allowance and doubles it),
+  and an optional **COP** (Width / Height / From Bottom / From Left).
+- **Right Wall** — same shape.
+- **Rear Wall** — five segments + Measured Height (no COP). Disabled
+  if Through Car is ticked.
 - **Options** — Through Car (omits rear wall), Plastic Cover on COP,
-  Fixings dropdown.
+  Fixings dropdown, **Fixing Allowance (mm)** (auto-fills from the
+  fixing type; editable), and **"Open DXF export dialog after
+  generating"** (on by default).
 - **Layers** — four editable rows with layer name, ACI colour index,
-  live colour swatch. Defaults match Adelaide Annexe's cutter
-  convention: `1 Rotary Blade` (ACI 5 blue) for Outline + COP,
-  `5 Draw and Text` (ACI 6 magenta) for Annotation, `0` (ACI 7 white)
-  for Title block / project info / dimensions. Reset to Defaults
-  button on the right.
+  live colour swatch. Defaults match the client's cutter convention:
+  `1 Rotary Blade` (ACI 5 blue) for **Outline (cuts)**,
+  `5 Draw and Text` (ACI 6 magenta) for **COP (draw/score)** and
+  **Annotation**, `0` (ACI 7 white) for Title block / project info /
+  dimensions. Reset to Defaults button on the right.
 
 On the right side of the dialog: a **wall diagram** side panel that
 retargets (Left / Right / Rear) when the mouse enters a wall section,
 and highlights the matching dim when a field gains focus.
 
-Default values are sensible (1400 mm × 2150 mm typical), so generating
-with defaults produces a meaningful drawing without touching anything.
+Default values are sensible (Seg3 = 1400, Measured Height 2200), so
+generating with defaults produces a meaningful drawing without
+touching anything.
 
 The dialog is **non-modal** — you can pan / zoom / select inside
 DraftSight while the form is open; the form stays above DraftSight
@@ -149,25 +156,48 @@ the DraftSight command prompt or use the View → Zoom Extents button.
 Expected:
 
 - Three walls laid out left-to-right at world origin (or just two if
-  Through Car was ticked).
-- Each wall is a closed **blue** polyline outline (on `1 Rotary
-  Blade`) with vertical fold lines between any non-zero door return
-  panels.
-- If a wall had COP enabled: a blue COP cutout polyline inside the
-  main wall area, with a small magenta "COP" label centred in it.
+  Through Car was ticked), each labelled `L` / `R` / `B`.
+- Each wall is a **plain closed blue rectangle** (on `1 Rotary
+  Blade`). Its height is the **doubled** cut height — e.g. a Measured
+  Height of 2200 with a 50 fixing allowance produces a 4300-tall
+  rectangle (`(2200 − 50) × 2`). Its width is the segment sum + 10mm.
+  There are **no** door-return steps and **no** fold lines in v1.2.0.
+- If a wall had COP enabled: a **magenta** COP rectangle (on
+  `5 Draw and Text` — the DRAW/score layer, NOT the blue cut layer)
+  in the lower half of the wall, with a "COP" label centred in it.
 - **No boxed title block.** Instead:
   - A **white legend** across the top: `HEIGHT / WIDTH / RETURNS /
     V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER`
   - A **white project info column** to the right of the walls:
-    project metadata, then static reference text (FIXINGS allowance
-    table, WIDTH/HEIGHT formula reminder, vertical quilting spacing
-    lookup), then NOTES if populated.
+    project metadata, FIXINGS allowance table, a `FIXING ALLOWANCE`
+    line, the WIDTH/HEIGHT formula reminder, then NOTES if populated.
+    (The vertical-quilting lookup block was removed in v1.2.0 —
+    quilting is deferred.)
 - **White DIMENSION entities** (selectable, editable):
-  - Main width below each wall
-  - Main height on the outer-left side of the leftmost wall only
+  - Cut width below each wall
+  - Cut height on the outer-left side of the leftmost wall only
     (other walls share the height; duplicates would stack)
-  - Each non-zero door return labelled across the top of its wall
-  - COP top-offset / height / width around the COP when enabled
+
+### 6a. Reproduce the reference job (geometry check)
+
+To confirm the geometry matches the client's real DXF, reproduce job
+**12346** left wall: segments `250 / 350 / 240 / 1400 / 0`, Measured
+Height `2200`, Fixing = Hooks Facing Out (allowance auto-fills 50),
+COP enabled with W `240` / H `1300` / From Bottom `600` / From Left
+`600`. Generate, then select the left cut rectangle and read its
+size: it should be **2250 wide × 4300 tall** (2240 segments + 10;
+(2200−50)×2). The COP rectangle should be 240 × 1300, sitting 600
+above the rectangle's bottom and 600 in from its left edge — entirely
+in the lower half. Compare against the numbers in
+[`reference/DXF_FINDINGS.md`](../reference/DXF_FINDINGS.md).
+
+### 6b. DXF export
+
+If "Open DXF export dialog after generating" was ticked (default), a
+Save-As dialog appears after Generate, pre-filled with the network
+number as the filename and a `.dxf` filter. Pick a folder, save, and
+re-open the file (or run `reference\parse-dxf.ps1 -Path <saved.dxf>`)
+to confirm the cut rectangle + COP coordinates round-trip correctly.
 
 ### 7. Try undo
 

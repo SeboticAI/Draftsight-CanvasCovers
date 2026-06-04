@@ -84,13 +84,14 @@ client.
     with ACI colours via the activate pattern
   - Geometry undo-grouped via `SketchManager.StartUndoRecord` /
     `StopUndoRecord`
-  - Wall outlines + COP cutouts on `1 Rotary Blade` (cuts)
-  - Proper `SketchManager.InsertAlignedDimension` entities for main
-    width, leftmost-wall height, each non-zero door return, and the
-    three COP dims when enabled
+  - Wall cut rectangles on `1 Rotary Blade` (cuts, blue); COP
+    rectangles + wall labels on `5 Draw and Text` (draw/score,
+    magenta — NOT cut)
+  - Proper `SketchManager.InsertAlignedDimension` entities for cut
+    width (per wall) and leftmost-wall cut height
   - Free-floating worksheet text on layer `0` (white): top legend,
-    project metadata column, FIXINGS lookup, WIDTH/HEIGHT formula,
-    vertical quilting spacing table, and NOTES block when populated
+    project metadata column, FIXINGS lookup, FIXING ALLOWANCE line,
+    WIDTH/HEIGHT formula, and NOTES block when populated
   - `DIMSCALE` auto-bumped to 30 via `Application.RunCommand` at the
     start of Generate so dim text + arrows are legible at lift-
     blanket scale

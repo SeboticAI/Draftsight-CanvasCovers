@@ -13,6 +13,11 @@ namespace CanvasCovers.UI.Controls
         {
             InitializeComponent();
             WireSwatches();
+            // Seed every row from the model defaults so LayerSettings is the
+            // single source of truth — the XAML Text values are just a
+            // design-time placeholder and must not drift from the model
+            // (the COP-on-draw-layer default in particular).
+            ResetToDefaults();
         }
 
         // Reads all four rows, appending each error to the supplied list and
@@ -24,7 +29,7 @@ namespace CanvasCovers.UI.Controls
             return new LayerSettings
             {
                 Outline = ReadRow(OutlineName, OutlineAci, "Outline", new LayerSetting("1 Rotary Blade", 5), errors),
-                Cop = ReadRow(CopName, CopAci, "COP", new LayerSetting("1 Rotary Blade", 5), errors),
+                Cop = ReadRow(CopName, CopAci, "COP", new LayerSetting("5 Draw and Text", 6), errors),
                 Annotation = ReadRow(AnnotationName, AnnotationAci, "Annotation", new LayerSetting("5 Draw and Text", 6), errors),
                 Titleblock = ReadRow(TitleblockName, TitleblockAci, "Title block", new LayerSetting("0", 7), errors),
             };
