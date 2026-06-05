@@ -82,12 +82,19 @@ namespace CanvasCovers.UI.Controls
             _topGapAuto = new TextBlock { Foreground = Brushes.Gray, FontSize = 11 };
         }
 
+        // Uniform field width, comfortably fits a 5-digit number plus a little.
+        private const double FieldW = 64;
+        private const double FieldH = 24;
+
         private TextBox MakeField(string hint)
         {
             var tb = new TextBox
             {
                 Text = string.Empty,
-                Width = 56,
+                Width = FieldW,
+                Height = FieldH,
+                FontSize = 13,
+                VerticalContentAlignment = VerticalAlignment.Center,
                 TextAlignment = TextAlignment.Center,
             };
             tb.TextChanged += Input_Changed;
@@ -100,7 +107,7 @@ namespace CanvasCovers.UI.Controls
                 Foreground = new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xA8)),
                 IsHitTestVisible = false,   // clicks pass through to the TextBox
                 TextAlignment = TextAlignment.Center,
-                Width = 56,
+                Width = FieldW,
             };
             return tb;
         }
@@ -174,6 +181,12 @@ namespace CanvasCovers.UI.Controls
             catch { /* skip this frame's preview; the next keystroke retries */ }
         }
 
+        // Fixed layout zones (px) reserved around the drawn wall.
+        private const double LeftZone = 78;    // height field on the left
+        private const double RightZone = 86;   // COP fields column on the right
+        private const double TopZone = 24;      // breathing room above the wall
+        private const double BottomZone = 56;   // segment fields + labels below
+
         private void RedrawCore()
         {
             // _drLeft guards against the checkbox Checked events firing during
@@ -188,99 +201,141 @@ namespace CanvasCovers.UI.Controls
 
             double cw = DrawCanvas.ActualWidth;
             double ch = DrawCanvas.ActualHeight;
-            // Need room for the box plus the field padding, else boxW/availW
-            // goes negative and a Rectangle size throws.
-            if (cw < 2 * 90 + 1 || ch < 2 * 50 + 1) return;
+            // Need room for the wall box plus the reserved field zones, else the
+            // box size goes non-positive and a Rectangle setter throws.
+            double availW = cw - LeftZone - RightZone;
+            double availH = ch - TopZone - BottomZone;
+            if (availW < 40 || availH < 40) return;
 
-            // The DRAWN shape uses values when present, else the nominal default
-            // schematic (so a blank form still shows a sensible layout).
+            // The preview draws the MEASURED wall (landscape, like the paper
+            // sheet) — width = segment sum + edge allowance, height = measured
+            // height. NB: this is display only. The generated DXF still doubles
+            // the height ((measured − fixing) × 2) and applies the fixing
+            // clearance — that geometry lives in the calculator/generator and
+            // is unchanged here.
             double drawWidth, drawHeight;
             if (_isRear)
             {
                 drawWidth = PositiveOr(ParseOr(_seg1.Text, 0), DefaultWidthMm) + _edgeAllowance;
-                drawHeight = LiftBlanketCalculator.CutHeight(
-                    PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm), _fixingAllowance);
             }
             else
             {
                 double segSum = ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0)
                     + ParseOr(_seg2.Text, 0) + ParseOr(_seg3.Text, 0) + ParseOr(_drRight.Text, 0);
                 drawWidth = PositiveOr(segSum, DefaultWidthMm) + _edgeAllowance;
-                drawHeight = LiftBlanketCalculator.CutHeight(
-                    PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm), _fixingAllowance);
             }
+            drawHeight = PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm);
             if (!IsFinitePositive(drawWidth) || !IsFinitePositive(drawHeight)) return;
 
-            double aspect = drawHeight / drawWidth;
-            aspect = Math.Max(0.5, Math.Min(2.0, aspect));   // bias toward square-ish
-
-            // Fill more of the horizontal space than before (smaller side pad).
-            double padX = 70, padY = 50;
-            double availW = cw - 2 * padX, availH = ch - 2 * padY;
+            // Fit the true-proportion wall into the available area.
+            double aspect = drawHeight / drawWidth;   // height : width
             double boxW = availW, boxH = availW * aspect;
             if (boxH > availH) { boxH = availH; boxW = availH / aspect; }
-            double boxLeft = (cw - boxW) / 2;
-            double boxTop = (ch - boxH) / 2;
+            if (!IsFinitePositive(boxW) || !IsFinitePositive(boxH)) return;
+            double boxLeft = LeftZone + (availW - boxW) / 2.0;
+            double boxTop = TopZone + (availH - boxH) / 2.0;
 
-            double measuredForFold = PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm);
-            double foldYmm = LiftBlanketCalculator.HalfHeight(measuredForFold, _fixingAllowance);
-
-            // Map mm (0..drawWidth / 0..drawHeight) to canvas px within the box.
+            // mm → px within the wall box (y up).
             Func<double, double> px = mmX => boxLeft + (mmX / drawWidth) * boxW;
             Func<double, double> py = mmY => boxTop + boxH - (mmY / drawHeight) * boxH;
 
             AddRect(boxLeft, boxTop, boxW, boxH, Brushes.SteelBlue, 2);
-            AddDashed(boxLeft, py(foldYmm), boxLeft + boxW, py(foldYmm), Brushes.HotPink);
+            // Faint fold line at the very top of the measured wall (the panel
+            // mirrors/doubles upward from here at Generate time).
+            AddDashed(boxLeft, boxTop, boxLeft + boxW, boxTop, Brushes.HotPink);
 
             if (_isRear)
             {
-                DrawRearFields(boxLeft, boxTop, boxW, boxH);
+                DrawRear(px, boxLeft, boxTop, boxW, boxH, drawWidth);
             }
             else
             {
-                DrawSegmentFields(boxLeft, boxTop, boxW, boxH);
-                DrawCop(px, py, boxLeft, boxTop, boxW, boxH, drawWidth, drawHeight, measuredForFold);
+                DrawSegments(px, boxLeft, boxTop, boxW, boxH, drawWidth);
+                DrawCop(px, py, boxLeft, boxTop, boxW, boxH, drawWidth, drawHeight);
             }
 
-            // Measured-height field on the outer left, both modes.
-            PlaceField(_measuredHeight, boxLeft - 70, boxTop + boxH / 2 - 12);
+            // Height field: left of the wall, label above (placed by PlaceField
+            // hint); centre it vertically on the wall.
+            PlaceField(_measuredHeight, boxLeft - LeftZone + 4, boxTop + boxH / 2.0 - FieldH / 2.0);
         }
 
-        // Left/Right: five segment fields in five EQUAL columns by index, so
-        // they never overlap even when blank/zero. The drawn divider lines use
-        // the real cumulative widths when values exist, else split evenly.
-        private void DrawSegmentFields(double boxLeft, double boxTop, double boxW, double boxH)
+        // Left/Right: five segment fields in a stable row below the wall (five
+        // equal columns by index — never positioned by value, so blank/zero
+        // fields never overlap). Inside the wall, a horizontal dimension line
+        // per section with the typed value echoed above it (blank until typed).
+        private void DrawSegments(Func<double, double> px, double boxLeft, double boxTop,
+            double boxW, double boxH, double drawWidth)
         {
-            var segFields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
+            var fields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
+            var texts = new[] { _drLeft.Text, _seg1.Text, _seg2.Text, _seg3.Text, _drRight.Text };
             double colW = boxW / 5.0;
+            double dimY = boxTop + boxH - 14;   // a little above the bottom edge
+
+            // Section boundaries follow the real cumulative widths when the row
+            // has values, else fall back to five equal slots so the guide reads
+            // cleanly on a blank form.
+            double sum = 0; for (int i = 0; i < 5; i++) sum += ParseOr(texts[i], 0);
+            bool haveValues = sum > 0;
+
+            double accumMm = 0;
             for (int i = 0; i < 5; i++)
             {
+                // Field: stable equal-column slot below the wall.
+                double colCenter = boxLeft + (i + 0.5) * colW;
+                PlaceField(fields[i], colCenter - FieldW / 2.0, boxTop + boxH + 8);
+
+                // Section span in px: by real widths if present, else equal slot.
+                double segMm = ParseOr(texts[i], 0);
+                double x0Px, x1Px;
+                if (haveValues)
+                {
+                    x0Px = px(accumMm);
+                    x1Px = px(accumMm + segMm);
+                    accumMm += segMm;
+                }
+                else
+                {
+                    x0Px = boxLeft + i * colW;
+                    x1Px = boxLeft + (i + 1) * colW;
+                }
+
+                // Divider between sections.
                 if (i > 0)
                 {
-                    double xDiv = boxLeft + i * colW;
+                    double xDiv = haveValues ? x0Px : boxLeft + i * colW;
                     AddLine(xDiv, boxTop, xDiv, boxTop + boxH, Brushes.LightGray, 0.6);
                 }
-                double colCenter = boxLeft + (i + 0.5) * colW;
-                PlaceField(segFields[i], colCenter - 28, boxTop + boxH + 8);
+
+                // Horizontal dimension line for this section + value echo.
+                if (x1Px - x0Px > 4)
+                {
+                    AddDim(x0Px, dimY, x1Px, dimY, horizontal: true);
+                    if (!string.IsNullOrEmpty(texts[i]))
+                        AddDimLabel(texts[i], (x0Px + x1Px) / 2.0, dimY - 14, center: true);
+                }
             }
         }
 
-        // Rear: a single Width field centred under the rectangle (reuses the
-        // _seg1 TextBox) + the height field (placed by the caller).
-        private void DrawRearFields(double boxLeft, double boxTop, double boxW, double boxH)
+        // Rear: single Width field centred below the wall, no COP, no segments.
+        private void DrawRear(Func<double, double> px, double boxLeft, double boxTop,
+            double boxW, double boxH, double drawWidth)
         {
-            // Park the unused L/R-only fields off-canvas so stale positions
-            // from a previous (non-rear) layout don't linger.
             HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
             HideField(_copHeight); HideField(_copGapBottom);
             _topGapAuto.Visibility = Visibility.Collapsed;
 
-            PlaceField(_seg1, boxLeft + boxW / 2.0 - 28, boxTop + boxH + 8);
+            PlaceField(_seg1, boxLeft + boxW / 2.0 - FieldW / 2.0, boxTop + boxH + 8);
+
+            // Width dimension line along the wall bottom + value echo.
+            double dimY = boxTop + boxH - 14;
+            AddDim(boxLeft + 4, dimY, boxLeft + boxW - 4, dimY, horizontal: true);
+            if (!string.IsNullOrEmpty(_seg1.Text))
+                AddDimLabel(_seg1.Text, boxLeft + boxW / 2.0, dimY - 14, center: true);
         }
 
         private void DrawCop(Func<double, double> px, Func<double, double> py,
             double boxLeft, double boxTop, double boxW, double boxH,
-            double drawWidth, double drawHeight, double measuredForFold)
+            double drawWidth, double drawHeight)
         {
             bool copOn = CopEnabled;
             _copHeight.Visibility = copOn ? Visibility.Visible : Visibility.Collapsed;
@@ -288,31 +343,48 @@ namespace CanvasCovers.UI.Controls
             _topGapAuto.Visibility = copOn ? Visibility.Visible : Visibility.Collapsed;
             if (!copOn) return;
 
-            // COP geometry uses values when present, else the default schematic
+            // COP geometry uses values when present, else a default schematic
             // slot, so the COP shows as a guide even on a blank form.
             double half = _edgeAllowance / 2.0;
             double copW = PositiveOr(ParseOr(_seg2.Text, 0), DefaultCopWidthMm);
             double copH = PositiveOr(ParseOr(_copHeight.Text, 0), DefaultCopHeightMm);
             double gap = NonNegOr(ParseOr(_copGapBottom.Text, -1), DefaultCopGapMm);
-            double copX0 = half + ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0);
-            // Keep the default COP horizontally centred-ish when no offset typed.
-            if (ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0) <= 0)
-                copX0 = half + (drawWidth - copW) / 2.0;
+            double offsetMm = ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0);
+            double copX0 = (offsetMm > 0) ? half + offsetMm : half + (drawWidth - copW) / 2.0;
 
             double copPxW = (copW / drawWidth) * boxW;
             double copPxH = (copH / drawHeight) * boxH;
             if (copPxW > 0 && copPxH > 0)
-            {
                 AddRect(px(copX0), py(gap + copH), copPxW, copPxH, Brushes.Purple, 1.5);
-            }
 
-            double measuredTopGap = ParseOr(_measuredHeight.Text, 0);
-            if (measuredTopGap > 0 && IsFinitePositive(copH))
+            // Vertical dimension lines for the COP stack, just left of the COP:
+            // from-bottom (0..gap), COP height (gap..gap+copH), top gap
+            // (gap+copH..measured). Value echoes only when the field is typed.
+            double dimX = px(copX0) - 10;
+            double yBottom = py(0), yGapTop = py(gap), yCopTop = py(gap + copH), yWallTop = boxTop;
+            AddDim(dimX, yBottom, dimX, yGapTop, horizontal: false);
+            AddDim(dimX, yGapTop, dimX, yCopTop, horizontal: false);
+            AddDim(dimX, yCopTop, dimX, yWallTop, horizontal: false);
+            if (!string.IsNullOrEmpty(_copGapBottom.Text))
+                AddDimLabel(_copGapBottom.Text, dimX - 4, (yBottom + yGapTop) / 2.0, center: false);
+            if (!string.IsNullOrEmpty(_copHeight.Text))
+                AddDimLabel(_copHeight.Text, dimX - 4, (yGapTop + yCopTop) / 2.0, center: false);
+
+            // COP input fields: fixed RIGHT column, clear of the drawing, so
+            // they're never covered and always clickable. Labels above (hints).
+            double colX = boxLeft + boxW + 8;
+            PlaceField(_copHeight, colX, boxTop + boxH * 0.30);
+            PlaceField(_copGapBottom, colX, boxTop + boxH * 0.55);
+
+            // Auto top-gap readout below the two COP fields (computed only when
+            // the real measured height + COP height are present).
+            double measured = ParseOr(_measuredHeight.Text, 0);
+            if (measured > 0 && IsFinitePositive(ParseOr(_copHeight.Text, 0)) && ParseOr(_copHeight.Text, 0) > 0)
             {
-                double topGap = LiftBlanketCalculator.AutoTopGap(measuredTopGap, _fixingAllowance, gap, copH);
-                _topGapAuto.Text = "top gap (auto): " +
-                    topGap.ToString("0", CultureInfo.InvariantCulture) +
-                    (topGap < 0 ? "  crosses fold" : "");
+                double topGap = LiftBlanketCalculator.AutoTopGap(measured, _fixingAllowance,
+                    ParseOr(_copGapBottom.Text, 0), ParseOr(_copHeight.Text, 0));
+                _topGapAuto.Text = "top gap: " + topGap.ToString("0", CultureInfo.InvariantCulture) +
+                    (topGap < 0 ? " ⚠" : "");
                 _topGapAuto.Foreground = topGap < 0 ? Brushes.Red : Brushes.Gray;
             }
             else
@@ -320,25 +392,65 @@ namespace CanvasCovers.UI.Controls
                 _topGapAuto.Text = "top gap (auto)";
                 _topGapAuto.Foreground = Brushes.Gray;
             }
+            Place(_topGapAuto, colX, boxTop + boxH * 0.55 + FieldH + 6);
 
-            PlaceField(_copHeight, px(copX0 + copW) + 6, py(gap + copH));
-            PlaceField(_copGapBottom, px(copX0 + copW) + 6, py(gap) - 12);
-            Place(_topGapAuto, px(copX0 + copW) + 6, py(gap + copH) - 26);
-
+            // Quilt preview only with real values (no schematic quilting).
             if (_quiltEnabled)
             {
                 var calc = new LiftBlanketCalculator(_fixingAllowance, _edgeAllowance);
                 var wall = ReadWallModel();
                 if (wall.Width > 0 && wall.MeasuredHeight > 0)
                 {
+                    // The quilt math works in CUT (doubled) coordinates; the
+                    // preview is in measured coords, so only the bottom-half
+                    // quilt lines (Y ≤ measured) map 1:1 — which is exactly the
+                    // region quilting fills. Clip anything above the wall.
                     WallLayout layout = calc.LayoutWall(wall, 0, "", "", _quiltEnabled, _quiltSpacing);
                     foreach (LineSpec q in layout.QuiltLines)
                     {
+                        if (q.Y0 > drawHeight + 0.5 || q.Y1 > drawHeight + 0.5) continue;
                         AddLine(px(q.X0), py(q.Y0), px(q.X1), py(q.Y1),
                             new SolidColorBrush(Color.FromRgb(0xD8, 0xB0, 0xE8)), 0.8);
                     }
                 }
             }
+        }
+
+        // A thin dimension line with small end ticks. Transient (in _shapes).
+        private void AddDim(double x1, double y1, double x2, double y2, bool horizontal)
+        {
+            Brush b = new SolidColorBrush(Color.FromRgb(0xC7, 0x7B, 0x30));
+            AddLine(x1, y1, x2, y2, b, 0.8);
+            if (horizontal)
+            {
+                AddLine(x1, y1 - 3, x1, y1 + 3, b, 0.8);
+                AddLine(x2, y2 - 3, x2, y2 + 3, b, 0.8);
+            }
+            else
+            {
+                AddLine(x1 - 3, y1, x1 + 3, y1, b, 0.8);
+                AddLine(x2 - 3, y2, x2 + 3, y2, b, 0.8);
+            }
+        }
+
+        // A transient value-echo label drawn on a dimension line. center=true
+        // horizontally centres on x; false right-aligns to x (for vertical dims
+        // sitting to the left of the COP).
+        private void AddDimLabel(string text, double x, double y, bool center)
+        {
+            var tb = new TextBlock
+            {
+                Text = text,
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xC7, 0x7B, 0x30)),
+                IsHitTestVisible = false,
+            };
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double w = tb.DesiredSize.Width;
+            Canvas.SetLeft(tb, center ? x - w / 2.0 : x - w);
+            Canvas.SetTop(tb, y - tb.DesiredSize.Height / 2.0);
+            DrawCanvas.Children.Add(tb);
+            _shapes.Add(tb);
         }
 
         private static double PositiveOr(double v, double fallback) => v > 0 ? v : fallback;
