@@ -95,31 +95,41 @@ sections top-to-bottom:
   O/Number, Sales Contact, Mobile, Measured By, Date (today by
   default), plus a multi-line **Notes** field for delivery
   instructions / special requests.
-- **Left Wall** — five **Segment** boxes (DR-left / Seg1 / Seg2 /
-  Seg3 / DR-right — sum = wall width, place 0 if not needed), a
-  **Measured Height** (the raw "top of hook to bottom of blanket"
-  number, BEFORE the tool subtracts the allowance and doubles it),
-  and an optional **COP** (Width / Height / From Bottom / From Left).
-- **Right Wall** — same shape.
-- **Rear Wall** — five segments + Measured Height (no COP). Disabled
-  if Through Car is ticked.
+- **Wall tabs** — a **TabControl** with **Left Wall / Right Wall /
+  Rear Wall** tabs (replacing the old stacked text-row sections). Each
+  tab is a drawn blanket with the input fields embedded on the drawing
+  where they sit on the paper sheet, and it **redraws live** as you
+  type:
+    - five **Segment** boxes (DR-left / Seg1 / Seg2 / Seg3 / DR-right —
+      sum = wall width, place 0 if not needed)
+    - a **Measured Height** (the raw "top of hook to bottom of blanket"
+      number, BEFORE the tool subtracts the allowance and doubles it)
+    - when **COP** is enabled (Left/Right only — the Rear tab has no
+      COP): a **COP height** and a **bottom gap** (gap from the wall
+      bottom up to the COP). The COP **width and left position are no
+      longer typed** — the COP width IS the middle segment (**Seg2**)
+      and its left edge is derived from the segments (door-return +
+      Seg1). The **top gap** (from the COP top up to the fold line) is
+      shown **auto / read-only**; it turns red ("crosses fold") if the
+      COP would cross the fold midline.
+    - the **Rear Wall** tab is disabled when Through Car is ticked.
 - **Options** — Through Car (omits rear wall), Plastic Cover on COP,
   Fixings dropdown, **Fixing Allowance (mm)** (auto-fills from the
-  fixing type; editable), and **"Open DXF export dialog after
+  fixing type; editable), **Edge Allowance (mm)** (default 10; split
+  half each horizontal side of the cut, and the same half insets the
+  quilting), **Quilting Spacing (mm)** (target gap; the line count is
+  even-divided so there is no remainder gap), a **"Draw quilting lines"**
+  checkbox (on by default), and **"Open DXF export dialog after
   generating"** (on by default).
 - **Layers** — four editable rows with layer name, ACI colour index,
   live colour swatch. Defaults match the client's cutter convention:
   `1 Rotary Blade` (ACI 5 blue) for **Outline (cuts)**,
-  `5 Draw and Text` (ACI 6 magenta) for **COP (draw/score)** and
-  **Annotation**, `0` (ACI 7 white) for Title block / project info /
-  dimensions. Reset to Defaults button on the right.
+  `5 Draw and Text` (ACI 6 magenta) for **COP + quilt lines
+  (draw/score)** and **Annotation**, `0` (ACI 7 white) for Title block /
+  project info / dimensions. Reset to Defaults button on the right.
 
-On the right side of the dialog: a **wall diagram** side panel that
-retargets (Left / Right / Rear) when the mouse enters a wall section,
-and highlights the matching dim when a field gains focus.
-
-Default values are sensible (Seg3 = 1400, Measured Height 2200), so
-generating with defaults produces a meaningful drawing without
+Default values are sensible (Seg2 = 240, Seg3 = 1400, Measured Height
+2200), so generating with defaults produces a meaningful drawing without
 touching anything.
 
 The dialog is **non-modal** — you can pan / zoom / select inside
@@ -131,15 +141,33 @@ without blocking input.
 - Put garbage (`abc`) in one numeric field.
 - Click Generate. Expect a red error message at the bottom listing
   *all* invalid fields at once (not just the first).
+- With COP enabled, set the COP height + bottom gap so they overflow
+  the measured half (e.g. bottom gap 600 + COP height 2000 on a 2200
+  measured / 50 allowance wall). The auto **top gap** label turns red
+  ("crosses fold") and Generate is **blocked** with a "crosses the fold
+  line" error.
 - Fix them. Click Generate again.
+
+### 3b. Try the live blanket
+
+- Type into a Segment or Measured Height field on the active tab and
+  watch the drawn blanket **reshape to true proportion** as you type —
+  a taller measured height makes a visibly taller rectangle.
+- Confirm that typing **does not drop keyboard focus per keystroke**:
+  you can type a multi-digit number straight through without the cursor
+  jumping out of the field after each character. (The fields are
+  persistent children of the canvas, repositioned-not-rebuilt on each
+  redraw, precisely so focus survives.)
+- Switch tabs (Left / Right / Rear) — each keeps its own values.
 
 ### 4. Try Through Car
 
 - Tick **Through Car (omits rear wall)** in Options.
-- Scroll up — the Rear Wall section's "Include this wall" checkbox
-  should immediately uncheck *and* become disabled.
-- Untick Through Car — checkbox re-enables but stays unchecked
-  (preserving user intent). Tick it manually to include rear.
+- The **Rear Wall tab** should immediately become **disabled** (you
+  can no longer select it).
+- Untick Through Car — the Rear tab re-enables but the rear wall stays
+  not-included (preserving user intent). Re-include it via its tab if
+  you want the rear wall.
 
 ### 5. Try the layers panel
 
@@ -160,19 +188,24 @@ Expected:
 - Each wall is a **plain closed blue rectangle** (on `1 Rotary
   Blade`). Its height is the **doubled** cut height — e.g. a Measured
   Height of 2200 with a 50 fixing allowance produces a 4300-tall
-  rectangle (`(2200 − 50) × 2`). Its width is the segment sum + 10mm.
-  There are **no** door-return steps and **no** fold lines in v1.2.0.
+  rectangle (`(2200 − 50) × 2`). Its width is the segment sum + the
+  edge allowance (default 10mm). There are **no** door-return steps.
 - If a wall had COP enabled: a **magenta** COP rectangle (on
   `5 Draw and Text` — the DRAW/score layer, NOT the blue cut layer)
-  in the lower half of the wall, with a "COP" label centred in it.
+  in the lower (measured) half of the wall, with a "COP" label centred
+  in it. Its width is the wall's middle segment (Seg2).
+- **Magenta quilt lines** (also on `5 Draw and Text`, the draw/score
+  layer) — vertical + horizontal score lines filling **only the bottom
+  half** up to the fold midline, bounded left/right by the door-return
+  boxes and inset by half the edge allowance, spaced by the Quilting
+  Spacing target (even-divided). Absent if "Draw quilting lines" was
+  unticked.
 - **No boxed title block.** Instead:
   - A **white legend** across the top: `HEIGHT / WIDTH / RETURNS /
     V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER`
   - A **white project info column** to the right of the walls:
     project metadata, FIXINGS allowance table, a `FIXING ALLOWANCE`
     line, the WIDTH/HEIGHT formula reminder, then NOTES if populated.
-    (The vertical-quilting lookup block was removed in v1.2.0 —
-    quilting is deferred.)
 - **White DIMENSION entities** (selectable, editable):
   - Cut width below each wall
   - Cut height on the outer-left side of the leftmost wall only
@@ -181,14 +214,22 @@ Expected:
 ### 6a. Reproduce the reference job (geometry check)
 
 To confirm the geometry matches the client's real DXF, reproduce job
-**12346** left wall: segments `250 / 350 / 240 / 1400 / 0`, Measured
+**12346** left wall on the **Left Wall tab**: segments `250 / 350 /
+240 / 1400 / 0` (DR-left / Seg1 / Seg2 / Seg3 / DR-right), Measured
 Height `2200`, Fixing = Hooks Facing Out (allowance auto-fills 50),
-COP enabled with W `240` / H `1300` / From Bottom `600` / From Left
-`600`. Generate, then select the left cut rectangle and read its
-size: it should be **2250 wide × 4300 tall** (2240 segments + 10;
-(2200−50)×2). The COP rectangle should be 240 × 1300, sitting 600
-above the rectangle's bottom and 600 in from its left edge — entirely
-in the lower half. Compare against the numbers in
+Edge Allowance `10`. Enable COP and type **only** its vertical numbers:
+COP height `1300`, bottom gap `600`. (There are **no** COP-width or
+COP-from-left fields any more — the width comes from Seg2 = `240` and
+the left edge is derived from the segments.) Confirm the auto **top gap**
+label reads **250** (= `(2200 − 50) − 600 − 1300`).
+
+Generate, then select the left cut rectangle and read its size: it
+should be **2250 wide × 4300 tall** (2240 segments + 10 edge allowance;
+(2200−50)×2). The COP rectangle should be **240 wide × 1300 tall**,
+its left edge at **X 605** and right edge at **X 845** (`edgeAllowance/2
+(5) + DoorReturnLeft (250) + Seg1 (350)` = 605; + Seg2 240 = 845), and
+its **Y from 600 to 1900** — entirely in the lower (measured) half.
+Compare against the numbers in
 [`reference/DXF_FINDINGS.md`](../reference/DXF_FINDINGS.md).
 
 ### 6b. DXF export
@@ -202,7 +243,7 @@ to confirm the cut rectangle + COP coordinates round-trip correctly.
 ### 7. Try undo
 
 Press **Ctrl+Z** once. Expect the entire generation (walls + COP +
-text + dims) to vanish in one undo step.
+quilt lines + text + dims) to vanish in one undo step.
 
 ### 8. Try re-generation
 
