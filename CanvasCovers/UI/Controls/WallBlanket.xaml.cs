@@ -176,9 +176,11 @@ namespace CanvasCovers.UI.Controls
             AddRect(left, top, w, h, WallStroke, 2);
 
             // Segment X boundaries: DR-L | S1 | S2(COP) | S3 | DR-R. Fixed
-            // fractions of the wall width. The COP column (x2..x3) is where the
-            // purple COP sits, so the COP lines up directly over its S2 field.
-            double[] frac = { 0.0, 0.12, 0.40, 0.60, 0.88, 1.0 };
+            // fractions of the wall width. Asymmetric so the COP (S2) sits a
+            // bit RIGHT of centre with a bigger S1 gap to its left and a smaller
+            // S3 to its right — matching the sheet's diagram. Same for both
+            // walls; names/order unchanged.
+            double[] frac = { 0.0, 0.10, 0.52, 0.66, 0.90, 1.0 };
             double[] bx = new double[6];
             for (int i = 0; i < 6; i++) bx[i] = left + w * frac[i];
 
