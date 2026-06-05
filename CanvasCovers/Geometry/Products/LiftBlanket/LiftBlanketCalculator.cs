@@ -56,11 +56,34 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             return foldMidline - copGapFromBottom - copHeight;
         }
 
+        // Interior line offsets that divide [start, end] into equal gaps as
+        // close as possible to targetGap. The count of GAPS is round(span /
+        // targetGap), clamped to at least 1; the returned list is the
+        // interior boundaries (count = gaps − 1). Returns empty for a
+        // nonpositive span or spacing. Even division means no remainder gap.
+        public static List<double> EvenlySpaced(double start, double end, double targetGap)
+        {
+            var result = new List<double>();
+            double span = end - start;
+            if (span <= 0 || targetGap <= 0) return result;
+
+            int gaps = (int)System.Math.Round(span / targetGap, System.MidpointRounding.AwayFromZero);
+            if (gaps < 1) gaps = 1;
+            double step = span / gaps;
+            for (int i = 1; i < gaps; i++)
+            {
+                result.Add(start + i * step);
+            }
+            return result;
+        }
+
         public WallLayout LayoutWall(
             WallDimensions wall,
             double originX,
             string projectTag,
-            string suffix)
+            string suffix,
+            bool quiltingEnabled = false,
+            double verticalQuiltingSpacingMm = 0)
         {
             double halfEdge = _edgeAllowanceMm / 2.0;
             double cutWidth = CutWidth(wall.Width, _edgeAllowanceMm);
@@ -116,7 +139,46 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 LineX = originX + cutWidth / 2.0, LineY = 0,
             });
 
+            if (quiltingEnabled)
+            {
+                AddQuiltLines(layout, wall, originX, cutWidth, halfHeight,
+                    halfEdge, verticalQuiltingSpacingMm);
+            }
+
             return layout;
+        }
+
+        // Fills layout.QuiltLines with vertical + horizontal lines confined to
+        // the bottom (measured) half. Side bounds come from the door-return
+        // boxes (DR-L from the left, DR-R from the right); all four edges are
+        // inset by the half-allowance. Horizontal lines are spaced by the
+        // operator's target; vertical lines even-divide the bounded width to
+        // a similar gap.
+        private void AddQuiltLines(
+            WallLayout layout, WallDimensions wall, double originX,
+            double cutWidth, double foldMidline, double half,
+            double verticalSpacing)
+        {
+            double left = originX + wall.Segments.DoorReturnLeft + half;
+            double right = originX + cutWidth - wall.Segments.DoorReturnRight - half;
+            double bottom = half;
+            double top = foldMidline;
+
+            if (right <= left || top <= bottom) return;
+
+            // Horizontal lines (run left→right), spaced up the height by the
+            // operator's target spacing, even-divided.
+            foreach (double y in EvenlySpaced(bottom, top, verticalSpacing))
+            {
+                layout.QuiltLines.Add(new LineSpec(left, y, right, y));
+            }
+
+            // Vertical lines (run bottom→top), even-dividing the bounded width
+            // to roughly the same target gap.
+            foreach (double x in EvenlySpaced(left, right, verticalSpacing))
+            {
+                layout.QuiltLines.Add(new LineSpec(x, bottom, x, top));
+            }
         }
     }
 }
