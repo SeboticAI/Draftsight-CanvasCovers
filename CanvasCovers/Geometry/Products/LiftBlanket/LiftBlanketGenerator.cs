@@ -73,7 +73,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
                     foreach (var pair in EnumerateWalls(job))
                     {
-                        WallLayout layout = calc.LayoutWall(pair.Wall, cursorX, projectTag, pair.Suffix);
+                        WallLayout layout = calc.LayoutWall(
+                            pair.Wall, cursorX, projectTag, pair.Suffix,
+                            job.Options.QuiltingEnabled,
+                            job.Options.VerticalQuiltingSpacingMm);
                         DrawWall(sketch, layers, layout, isFirstWall);
                         double cutWidth = layout.CutRect.X1 - layout.CutRect.X0;
                         double cutHeight = layout.CutRect.Y1 - layout.CutRect.Y0;
@@ -126,6 +129,18 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 RectSpec c = layout.CopRect.Value;
                 sketch.InsertPolyline2D(
                     new[] { c.X0, c.Y0, c.X1, c.Y0, c.X1, c.Y1, c.X0, c.Y1 }, true);
+            }
+
+            // Quilt lines on the draw/score layer (same layer as COP), never
+            // the cut layer. Each is a 2-point open polyline.
+            if (layout.QuiltLines.Count > 0)
+            {
+                layers.Activate(_layerSettings.Cop.Name);
+                foreach (LineSpec q in layout.QuiltLines)
+                {
+                    sketch.InsertPolyline2D(
+                        new[] { q.X0, q.Y0, q.X1, q.Y1 }, false);
+                }
             }
 
             // Wall identifier label on the annotation (draw) layer.
