@@ -152,6 +152,13 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 PlasticCoverOnCop = PlasticCoverOption.IsChecked == true,
                 Fixings = fixing,
                 FixingAllowanceMm = allowance,
+                // The edge-allowance, quilting-spacing and quilting-on inputs
+                // drive both the live preview (via SetSharedParams) AND the
+                // generated drawing — read them here so operator changes reach
+                // the generator, not just the preview.
+                EdgeAllowanceMm = ParseOr(EdgeAllowanceInput.Text, 10),
+                VerticalQuiltingSpacingMm = ParseOr(QuiltingSpacingInput.Text, 700),
+                QuiltingEnabled = QuiltingOption.IsChecked == true,
             };
         }
 
