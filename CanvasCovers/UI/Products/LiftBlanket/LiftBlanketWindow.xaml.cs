@@ -41,9 +41,9 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             // Fields start EMPTY (greyed in-box placeholders prompt for input);
             // no values are pre-seeded. Configure sets each tab's mode: Left/
             // Right get the 5-segment + COP layout, Rear gets width + height.
-            LeftBlanket.Configure(isRear: false);
-            RightBlanket.Configure(isRear: false);
-            RearBlanket.Configure(isRear: true);
+            LeftBlanket.Configure(isRear: false, mirrored: false);
+            RightBlanket.Configure(isRear: false, mirrored: true);
+            RearBlanket.Configure(isRear: true, mirrored: false);
             PushSharedParams();
         }
 

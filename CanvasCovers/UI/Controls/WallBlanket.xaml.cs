@@ -46,6 +46,7 @@ namespace CanvasCovers.UI.Controls
 
         private double _fixingAllowance = 50;
         private bool _isRear;
+        private bool _mirrored;   // Right wall: COP + its fields on the right (mirror of Left)
 
         private static readonly Brush WallStroke = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB));
         private static readonly Brush CopStroke = new SolidColorBrush(Color.FromRgb(0x93, 0x33, 0xEA));
@@ -88,9 +89,10 @@ namespace CanvasCovers.UI.Controls
             return tb;
         }
 
-        public void Configure(bool isRear)
+        public void Configure(bool isRear, bool mirrored)
         {
             _isRear = isRear;
+            _mirrored = mirrored;
             IncludeCop.Visibility = isRear ? Visibility.Collapsed : Visibility.Visible;
             _labels[_seg1].Text = isRear ? "Width" : "S1";
             Redraw();
@@ -150,22 +152,20 @@ namespace CanvasCovers.UI.Controls
         // ---- Left / Right: the full measurement-sheet schematic ----
         private void DrawWallSheet(double cw, double ch)
         {
-            // Fixed wall rectangle, centred in a band that leaves room for the
-            // right-side height dim + field and the bottom segment fields. The
-            // COP fields now sit INSIDE the wall band (beside the COP dim
-            // lines), so the left margin no longer reserves a field column.
-            // The shape NEVER changes with typed values.
-            double left = 90, right = cw - 110;
+            // Fixed wall rectangle. SYMMETRIC side margins: the height dim +
+            // field sit on the right for the Left wall and on the LEFT for the
+            // mirrored Right wall, so both sides need room. The shape NEVER
+            // changes with typed values.
+            double sideMargin = 100;
+            double left = sideMargin, right = cw - sideMargin;
             double top = 56, bottom = ch - 96;
             if (right - left < 120 || bottom - top < 120) return;
 
-            // Landscape, like the test sheet (wider than tall, but not a thin
-            // strip). Target width ≈ 1.4 × height for the sheet look, but never
-            // narrower than the 5 segment fields need to read clearly, and
-            // never wider than the available band. Re-centre within the band.
+            // Landscape, like the test sheet. Fill most of the band; stay wide
+            // enough for the 5 segment fields, never wider than the band.
             double availW = right - left, availH = bottom - top;
             double minFieldsW = 5 * (FieldW + 12);    // 5 fields + breathing room
-            double targetW = availH * 1.40;           // sheet-like landscape aspect
+            double targetW = availH * 1.50;           // sheet-like landscape aspect
             double wWall = Math.Max(minFieldsW, targetW);
             wWall = Math.Min(wWall, availW);
             double cx0 = (left + right) / 2;
@@ -175,18 +175,24 @@ namespace CanvasCovers.UI.Controls
 
             AddRect(left, top, w, h, WallStroke, 2);
 
-            // Segment X boundaries: DR-L | S1 | S2(COP) | S3 | DR-R. Fixed
-            // fractions of the wall width. Asymmetric so the COP (S2) sits a
-            // bit RIGHT of centre with a bigger S1 gap to its left and a smaller
-            // S3 to its right — matching the sheet's diagram. Same for both
-            // walls; names/order unchanged.
-            double[] frac = { 0.0, 0.10, 0.52, 0.66, 0.90, 1.0 };
+            // Segment X boundaries: DR-L | S1 | S2(COP) | S3 | DR-R. The base
+            // layout puts the COP (S2) LEFT-of-centre (big S1 gap to its right,
+            // small S3 to its left). The RIGHT wall MIRRORS this — the whole
+            // layout is reflected so the COP sits right-of-centre — because the
+            // two walls face each other on the sheet. Field labels keep their
+            // DR-L | S1 | S2 | S3 | DR-R order; only the proportions + COP side
+            // flip.
+            double[] frac = { 0.0, 0.10, 0.34, 0.48, 0.90, 1.0 };
+            if (_mirrored)
+            {
+                double[] r = new double[6];
+                for (int i = 0; i < 6; i++) r[i] = 1.0 - frac[5 - i];
+                frac = r;
+            }
             double[] bx = new double[6];
             for (int i = 0; i < 6; i++) bx[i] = left + w * frac[i];
 
             // Dashed vertical dividers at each internal segment boundary.
-            // (No quilt lines in the preview — the DXF carries them; drawing
-            // them here only overlapped and blocked the COP input fields.)
             for (int i = 1; i < 5; i++)
                 AddDashedV(bx[i], top, bottom, GuideStroke);
 
@@ -201,23 +207,21 @@ namespace CanvasCovers.UI.Controls
                 AddRect(copLeft, copTop, copRight - copLeft, copBottom - copTop, CopStroke, 1.5);
                 AddCenteredText("COP", (copLeft + copRight) / 2, (copTop + copBottom) / 2, 12, CopStroke);
 
-                // Vertical COP-stack dimension lines just left of the COP.
-                double stackX = copLeft - 20;
+                // COP dim lines + fields go OUTBOARD of the COP: to its left on
+                // the Left wall, to its right on the mirrored Right wall.
+                double stackX = _mirrored ? copRight + 20 : copLeft - 20;
                 AddVDim(stackX, top, copTop);        // top gap (auto)
                 AddVDim(stackX, copTop, copBottom);  // COP height
                 AddVDim(stackX, copBottom, bottom);  // from bottom
 
-                // COP fields sit RIGHT NEXT TO their dimension line (no leader
-                // lines): each field just left of stackX, vertically centred on
-                // the dim segment it drives, with its label directly above.
-                double fieldX = stackX - FieldW - 8;
+                double fieldX = _mirrored ? stackX + 8 : stackX - FieldW - 8;
                 double copHFieldY = (copTop + copBottom) / 2 - FieldH / 2;
                 double gapFieldY = (copBottom + bottom) / 2 - FieldH / 2;
                 PlaceLabeledField(_copHeight, fieldX, copHFieldY);
                 PlaceLabeledField(_copGapBottom, fieldX, gapFieldY);
 
-                // Auto top-gap readout centred on the top-gap dim segment.
-                AddTopGapReadout(stackX - 6, (top + copTop) / 2);
+                AddTopGapReadout(_mirrored ? stackX + 6 : stackX - 6,
+                    (top + copTop) / 2, _mirrored);
             }
             else
             {
@@ -225,13 +229,21 @@ namespace CanvasCovers.UI.Controls
                 HideField(_copGapBottom);
             }
 
-            // Height dimension on the RIGHT + field further right.
-            double htDimX = right + 18;
-            AddVDim(htDimX, top, bottom);
-            PlaceLabeledField(_measuredHeight, right + 30, top + h / 2 - FieldH / 2);
+            // Height dimension + field: outer side AWAY from the COP — right
+            // edge on the Left wall, left edge on the mirrored Right wall.
+            if (_mirrored)
+            {
+                AddVDim(left - 18, top, bottom);
+                PlaceLabeledField(_measuredHeight, left - 30 - FieldW, top + h / 2 - FieldH / 2);
+            }
+            else
+            {
+                AddVDim(right + 18, top, bottom);
+                PlaceLabeledField(_measuredHeight, right + 30, top + h / 2 - FieldH / 2);
+            }
 
-            // Five segment dimension spans + fields below the wall (no value
-            // echoed on the dim line — the value lives only in the field).
+            // Five segment dimension spans + fields below the wall (labels keep
+            // DR-L | S1 | S2 | S3 | DR-R order; the spans already mirror via bx).
             var fields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
             double dimY = bottom + 14;
             double fieldY = bottom + 26;
@@ -289,8 +301,9 @@ namespace CanvasCovers.UI.Controls
         }
 
         // The auto top-gap readout (computed from measured height + COP inputs);
-        // shows a hint until both are present.
-        private void AddTopGapReadout(double xRight, double yCenter)
+        // shows a hint until both are present. On a mirrored wall the text
+        // reads to the RIGHT of the anchor, else to the left.
+        private void AddTopGapReadout(double anchorX, double yCenter, bool mirrored)
         {
             string text;
             Brush brush = LabelText;
@@ -308,7 +321,18 @@ namespace CanvasCovers.UI.Controls
             {
                 text = "top gap";
             }
-            AddRightText(text, xRight, yCenter, 10, brush);
+            if (mirrored) AddLeftText(text, anchorX, yCenter, 10, brush);
+            else AddRightText(text, anchorX, yCenter, 10, brush);
+        }
+
+        // Left-aligned text starting at x (mirror of AddRightText).
+        private void AddLeftText(string text, double x, double cy, double size, Brush brush)
+        {
+            var tb = new TextBlock { Text = text, FontSize = size, Foreground = brush, IsHitTestVisible = false };
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(tb, x);
+            Canvas.SetTop(tb, cy - tb.DesiredSize.Height / 2);
+            DrawCanvas.Children.Add(tb); _shapes.Add(tb);
         }
 
         // ---- dimension-symbol primitives (real dim lines with end arrows) ----
