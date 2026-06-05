@@ -50,7 +50,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             if (sketch == null) throw new InvalidOperationException("DraftSight did not return a sketch manager.");
 
             string projectTag = BuildProjectTag(job.Project);
-            var calc = new LiftBlanketCalculator(job.Options.FixingAllowanceMm);
+            var calc = new LiftBlanketCalculator(
+                job.Options.FixingAllowanceMm, job.Options.EdgeAllowanceMm);
 
             using (LayerHelper layers = new LayerHelper(document))
             {
