@@ -1,0 +1,15 @@
+<UserControl x:Class="CanvasCovers.UI.Controls.WallBlanket"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <CheckBox x:Name="IncludeWall" Content="Include this wall" IsChecked="True"
+                      Margin="0,0,16,0" Checked="Input_Changed" Unchecked="Input_Changed" />
+            <CheckBox x:Name="IncludeCop" Content="Include COP cutout" IsChecked="True"
+                      Checked="Input_Changed" Unchecked="Input_Changed" />
+        </DockPanel>
+        <Canvas x:Name="DrawCanvas" Background="#FFFFFF"
+                MinHeight="380" ClipToBounds="True"
+                SizeChanged="DrawCanvas_SizeChanged" />
+    </DockPanel>
+</UserControl>
