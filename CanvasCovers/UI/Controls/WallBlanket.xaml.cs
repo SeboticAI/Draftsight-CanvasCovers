@@ -106,7 +106,10 @@ namespace CanvasCovers.UI.Controls
 
         private void Redraw()
         {
-            if (DrawCanvas == null) return;
+            // _drLeft guards against the checkbox Checked events firing during
+            // InitializeComponent (before the constructor builds the fields),
+            // independent of XAML element-declaration order.
+            if (DrawCanvas == null || _drLeft == null) return;
 
             // Tear down ONLY the transient drawn shapes. The TextBoxes and the
             // auto top-gap label stay in the visual tree so editing keeps focus.
