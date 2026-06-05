@@ -55,6 +55,18 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             using (LayerHelper layers = new LayerHelper(document))
             {
+                // Create the cutter's full layer set (all seven) so the DXF
+                // always carries the complete set, even layers with no geometry.
+                if (_layerSettings.Layers != null)
+                {
+                    foreach (LayerSetting layer in _layerSettings.Layers)
+                    {
+                        if (!string.IsNullOrWhiteSpace(layer.Name))
+                            layers.EnsureLayer(layer.Name, layer.ColorIndex);
+                    }
+                }
+                // Belt-and-braces: ensure each role's resolved layer exists even
+                // if it wasn't in the list (Resolve falls back to a default).
                 layers.EnsureLayer(_layerSettings.Outline.Name, _layerSettings.Outline.ColorIndex);
                 layers.EnsureLayer(_layerSettings.Cop.Name, _layerSettings.Cop.ColorIndex);
                 layers.EnsureLayer(_layerSettings.Annotation.Name, _layerSettings.Annotation.ColorIndex);
@@ -99,17 +111,19 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             }
         }
 
-        // L, then R, then B (back) unless Through Car omits the back wall.
+        // Draw order across the page: Left, then Rear (B) in the MIDDLE, then
+        // Right — so the back wall sits between the two side walls, matching
+        // the physical layout. Rear is omitted when Through Car is ticked.
         private struct WallEntry { public WallDimensions Wall; public string Suffix; }
 
         private static IEnumerable<WallEntry> EnumerateWalls(LiftBlanketJob job)
         {
             if (job.LeftWall != null && job.LeftWall.Enabled)
                 yield return new WallEntry { Wall = job.LeftWall, Suffix = "L" };
-            if (job.RightWall != null && job.RightWall.Enabled)
-                yield return new WallEntry { Wall = job.RightWall, Suffix = "R" };
             if (job.RearWall != null && job.RearWall.Enabled && !job.Options.ThroughCar)
                 yield return new WallEntry { Wall = job.RearWall, Suffix = "B" };
+            if (job.RightWall != null && job.RightWall.Enabled)
+                yield return new WallEntry { Wall = job.RightWall, Suffix = "R" };
         }
 
         private void DrawWall(SketchManager sketch, LayerHelper layers, WallLayout layout, bool isLeftmost)
