@@ -101,10 +101,33 @@ namespace CanvasCovers.UI.Controls
 
         private static double ParseOr(string s, double fallback)
         {
-            return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : fallback;
+            // double.TryParse accepts "NaN"/"Infinity" and returns true with a
+            // non-finite value; those would later reach WPF Rectangle/Line
+            // setters, which throw on NaN/Infinity. Treat non-finite as the
+            // fallback so a mid-type entry can never produce a non-finite size.
+            return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double v)
+                   && !double.IsNaN(v) && !double.IsInfinity(v)
+                ? v : fallback;
+        }
+
+        private static bool IsFinitePositive(double d)
+        {
+            return !double.IsNaN(d) && !double.IsInfinity(d) && d > 0;
         }
 
         private void Redraw()
+        {
+            // The preview redraws on every keystroke from operator-typed values.
+            // Despite the finite/positive guards below, wrap the whole rebuild
+            // in a swallow-all backstop: a transient bad mid-type value must
+            // skip that frame, never throw on the host UI thread (an unhandled
+            // exception here would crash DraftSight — there is no dispatcher
+            // exception handler).
+            try { RedrawCore(); }
+            catch { /* skip this frame's preview; the next keystroke retries */ }
+        }
+
+        private void RedrawCore()
         {
             // _drLeft guards against the checkbox Checked events firing during
             // InitializeComponent (before the constructor builds the fields),
@@ -118,14 +141,19 @@ namespace CanvasCovers.UI.Controls
 
             double cw = DrawCanvas.ActualWidth;
             double ch = DrawCanvas.ActualHeight;
-            if (cw < 20 || ch < 20) return;
+            // Need enough room for the box plus the field padding (padX=90),
+            // else boxW/availW goes negative and a Rectangle size throws.
+            if (cw < 2 * 90 + 1 || ch < 2 * 50 + 1) return;
 
             double segSum = ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0)
                 + ParseOr(_seg2.Text, 0) + ParseOr(_seg3.Text, 0) + ParseOr(_drRight.Text, 0);
             double cutWidth = segSum + _edgeAllowance;
             double measuredH = ParseOr(_measuredHeight.Text, 2200);
             double cutHeight = LiftBlanketCalculator.CutHeight(measuredH, _fixingAllowance);
-            if (cutWidth <= 0 || cutHeight <= 0) return;
+            // NaN-safe: NaN <= 0 is false, so the old "<= 0" guard let non-finite
+            // geometry through to the WPF setters (which throw). IsFinitePositive
+            // rejects NaN/Infinity/zero/negative.
+            if (!IsFinitePositive(cutWidth) || !IsFinitePositive(cutHeight)) return;
 
             double aspect = cutHeight / cutWidth;
             aspect = Math.Max(0.33, Math.Min(3.0, aspect));
@@ -161,8 +189,15 @@ namespace CanvasCovers.UI.Controls
                 double gap = ParseOr(_copGapBottom.Text, 600);
                 double copX0 = half + ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0);
                 double copW = ParseOr(_seg2.Text, 0);
-                AddRect(px(copX0), py(gap + copH), (copW / cutWidth) * boxW,
-                    ((copH) / cutHeight) * boxH, Brushes.Purple, 1.5);
+                double copPxW = (copW / cutWidth) * boxW;
+                double copPxH = (copH / cutHeight) * boxH;
+                // A negative/zero COP width or height (mid-type "-", an empty
+                // Seg2, etc.) would make Rectangle.Width/Height throw — skip the
+                // COP rect for this frame but keep drawing the rest of the wall.
+                if (copPxW > 0 && copPxH > 0)
+                {
+                    AddRect(px(copX0), py(gap + copH), copPxW, copPxH, Brushes.Purple, 1.5);
+                }
 
                 double topGap = LiftBlanketCalculator.AutoTopGap(measuredH, _fixingAllowance, gap, copH);
                 _topGapAuto.Text = "top gap (auto): " +
