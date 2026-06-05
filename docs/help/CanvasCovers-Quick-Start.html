@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CanvasCovers — Lift Blanket Quick Start</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 14mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #222; font-size: 10.5pt; line-height: 1.45; margin: 0;
+  }
+  .header {
+    background: #1A3A52; color: #fff; padding: 18px 22px; border-radius: 4px;
+    margin-bottom: 18px;
+  }
+  .header h1 { margin: 0; font-size: 19pt; letter-spacing: .3px; }
+  .header .sub { margin-top: 3px; font-size: 11pt; color: #cfe0ec; }
+  .header .meta { margin-top: 8px; font-size: 8.5pt; color: #9fbdd2; }
+  h2 {
+    color: #1A3A52; font-size: 13pt; margin: 18px 0 7px;
+    border-bottom: 2px solid #C77B30; padding-bottom: 3px;
+  }
+  h3 { color: #1A3A52; font-size: 11pt; margin: 12px 0 4px; }
+  p { margin: 5px 0; }
+  ol, ul { margin: 5px 0 8px; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .accent { color: #C77B30; font-weight: 600; }
+  .box {
+    border: 1px solid #ddd; border-left: 4px solid #C77B30;
+    background: #faf7f3; padding: 9px 13px; margin: 10px 0; border-radius: 3px;
+  }
+  .box.note { border-left-color: #1A3A52; background: #f3f7fa; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10pt; }
+  th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #1A3A52; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+  code { background: #eef1f3; padding: 1px 4px; border-radius: 3px; font-size: 9.5pt; }
+  .swatch { display: inline-block; width: 11px; height: 11px; border: 1px solid #555; vertical-align: middle; margin-right: 4px; }
+  .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 8.5pt; color: #888; }
+  .pagebreak { page-break-before: always; }
+  .two { display: flex; gap: 16px; }
+  .two > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ADELAIDE ANNEXES &amp; CANVAS</h1>
+  <div class="sub">Lift Blanket Generator — Quick Start Guide</div>
+  <div class="meta">CanvasCovers add-in for DraftSight · Beta v1.4.5</div>
+</div>
+
+<p>This add-in turns your paper lift-blanket measurement sheet into a
+cutter-ready DXF. You type the measurements into a form laid out like the
+sheet, click <span class="accent">Generate</span>, and it draws the cut
+piece, the COP cut-out, the quilting lines, and the dimensions on the
+correct cutter layers.</p>
+
+<h2>1. Install &amp; turn it on (one-time)</h2>
+<ol>
+  <li>Close DraftSight.</li>
+  <li>Run <code>BesiaCAD-CanvasCovers-Setup-1.4.5.exe</code> and approve the
+      Windows admin prompt.</li>
+  <li>Open DraftSight, go to <span class="accent">Tools → Add-Ins</span>,
+      and tick <span class="accent">CanvasCovers</span>. (Leave "Start Up"
+      unticked.) You only do this once per DraftSight session.</li>
+  <li>A <span class="accent">CanvasCovers</span> tab appears on the ribbon
+      with a <span class="accent">Canvas Covers</span> button.</li>
+</ol>
+
+<h2>2. Make a drawing</h2>
+<ol>
+  <li><b>Open or start a drawing first</b> (the tool draws into the active
+      drawing).</li>
+  <li>Click ribbon → <span class="accent">CanvasCovers → Canvas Covers</span>,
+      then pick the <span class="accent">Lift Blanket</span> tile.</li>
+  <li>Fill in the form (next section), then click
+      <span class="accent">Generate Drawing</span>.</li>
+  <li>Type <code>ZE</code> (Zoom Extents) to see the whole drawing.</li>
+  <li>If you ticked the export option, a <b>Save-As</b> box appears to save
+      the DXF (it pre-fills the file name with the network number).</li>
+</ol>
+<div class="box note"><b>Undo:</b> one press of <b>Ctrl+Z</b> removes the
+entire generated drawing, so it's safe to generate, look, tweak, and
+re-generate.</div>
+
+<h2>3. Filling in the form</h2>
+
+<h3>Project information</h3>
+<p>Company, Network Number, Project, etc. The <b>Network Number</b> becomes
+the DXF file name and the label on each wall, so fill it in.</p>
+
+<h3>Wall tabs — Left / Right / Rear</h3>
+<p>One tab per wall. Each tab shows a diagram of the blanket with the input
+boxes where the measurements sit on your paper sheet. <b>The diagram is just
+a guide — it doesn't change shape as you type.</b> The
+<span class="accent">Right</span> wall is shown mirrored from the Left, the
+way the two walls face each other on the sheet.</p>
+
+<table>
+  <tr><th>Field</th><th>What to type</th></tr>
+  <tr><td><b>DR-L / DR-R</b></td><td>The door-return tabs at the two outer corners. Put <b>0</b> if not needed.</td></tr>
+  <tr><td><b>S1</b></td><td>The gap from the door-return line across to the COP.</td></tr>
+  <tr><td><b>COP W (S2)</b></td><td>The width of the COP cut-out (the middle bottom-row box). <b>This is the COP width</b> — you don't type a separate COP width.</td></tr>
+  <tr><td><b>S3</b></td><td>The gap from the COP across to the other door-return line.</td></tr>
+  <tr><td><b>Height</b></td><td>The measured height (top of hook / centre of press-stud down to the bottom of the blanket). The tool subtracts the fixing allowance and doubles it for the cut — you type the plain measured number.</td></tr>
+  <tr><td><b>COP H</b></td><td>The height of the COP cut-out.</td></tr>
+  <tr><td><b>From bottom</b></td><td>The gap from the blanket bottom up to the bottom of the COP.</td></tr>
+</table>
+
+<div class="box">The <b>top gap</b> (from the top of the COP up to the fold
+line) is worked out for you and shown next to the COP. It turns
+<b style="color:#c00">red</b> if your COP would cross the fold line — fix the
+COP height or "from bottom" until it goes back to normal.</div>
+
+<p>If a wall has no COP, untick <span class="accent">Include COP cutout</span>
+on that tab. If you're not doing a wall at all, untick
+<span class="accent">Include this wall</span>.</p>
+
+<div class="pagebreak"></div>
+
+<h3>Options</h3>
+<table>
+  <tr><th>Option</th><th>What it does</th></tr>
+  <tr><td><b>Through Car</b></td><td>Omits the rear wall (disables the Rear tab).</td></tr>
+  <tr><td><b>Plastic Cover on COP</b></td><td>Noted on the drawing's info panel.</td></tr>
+  <tr><td><b>Fixings</b></td><td>Pick the fixing type. This auto-fills the Fixing Allowance below.</td></tr>
+  <tr><td><b>Fixing Allowance (mm)</b></td><td>Subtracted from the measured height before doubling. Auto-set by the fixing type; editable if a job differs.</td></tr>
+  <tr><td><b>Edge Allowance (mm)</b></td><td>Added to the cut width (default 10), split evenly on each side. Also sets how far the quilting sits in from the edges.</td></tr>
+  <tr><td><b>Quilting Spacing (mm)</b></td><td>Target gap between quilt lines. The tool evens it out so the lines divide cleanly.</td></tr>
+  <tr><td><b>Draw quilting lines</b></td><td>Turn the quilting on or off.</td></tr>
+  <tr><td><b>Open DXF export…</b></td><td>Pops the Save-As box after generating.</td></tr>
+</table>
+
+<h3>Layers</h3>
+<p>The seven cutter layers are listed with their colours and which job each
+one does (Cut / COP / Annotation / Title). The defaults already match your
+machine — just click <span class="accent">Reset to Defaults</span> if anything
+gets changed by accident:</p>
+<table>
+  <tr><th>Layer</th><th>Colour</th><th>Used for</th></tr>
+  <tr><td>1 Rotary Blade</td><td><span class="swatch" style="background:blue"></span>Blue</td><td>The cut outline (the part that gets cut)</td></tr>
+  <tr><td>5 Draw and Text</td><td><span class="swatch" style="background:magenta"></span>Magenta</td><td>COP + quilt lines + wall labels (drawn/scored, <b>not cut</b>)</td></tr>
+  <tr><td>0</td><td><span class="swatch" style="background:#fff"></span>White</td><td>Dimensions + the project info text</td></tr>
+</table>
+<p>All seven layers (0, the four blade layers, 5 Draw and Text, Defpoints)
+are created in every DXF so the file is always complete.</p>
+
+<h2>4. If the form won't generate</h2>
+<p>The tool checks your entries and shows a red message listing
+<b>everything</b> that needs fixing, e.g.:</p>
+<ul>
+  <li>A box left blank or with letters in it.</li>
+  <li>A measured height that isn't bigger than the fixing allowance.</li>
+  <li>A COP that would run past the edge or cross the fold line.</li>
+  <li>No walls ticked, or a layer job not assigned.</li>
+</ul>
+<p>Fix the listed items and click Generate again — your entries stay put.</p>
+
+<div class="box note"><b>If a drawing looks incomplete</b> the tool will tell
+you "some entities could not be drawn." If that happens, Undo (Ctrl+Z) and
+generate again. If it keeps happening on the same job, send us the job
+details.</div>
+
+<h2>5. What we'd love feedback on (beta)</h2>
+<ul>
+  <li>Do the <b>cut pieces and COP cut-outs</b> come out the right size and
+      in the right place vs. your usual DXFs?</li>
+  <li>Is the <b>quilting</b> right — line spacing, how far in from the edges,
+      where the vertical lines sit? (This is the part we're least sure of.)</li>
+  <li>Are the <b>layers and colours</b> exactly what your machine expects?</li>
+  <li>Anything on the form that's confusing or in the wrong spot?</li>
+</ul>
+
+<div class="footer">
+  CanvasCovers for DraftSight · Beta v1.4.5 · Built for Adelaide Annexes &amp;
+  Canvas by SeboticAI. &nbsp; To uninstall: Windows Settings → Apps →
+  "BesiaCAD Canvas Covers" → Uninstall.
+</div>
+
+</body>
+</html>
