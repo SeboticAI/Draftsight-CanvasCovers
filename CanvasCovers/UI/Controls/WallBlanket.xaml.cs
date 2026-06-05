@@ -166,33 +166,43 @@ namespace CanvasCovers.UI.Controls
             AddLine(left + drW, top, left + drW, bottom, GuideStroke, 1);
             AddLine(right - drW, top, right - drW, bottom, GuideStroke, 1);
 
-            // COP rectangle, fixed in the middle-left third.
-            double copW = w * 0.14, copH = h * 0.42;
-            double copLeft = left + drW + (w - 2 * drW) * 0.22;
-            double copTop = top + h * 0.30;
-            double copBottom = copTop + copH;
-            AddRect(copLeft, copTop, copW, copH, CopStroke, 1.5);
-            AddCenteredText("COP", copLeft + copW / 2, copTop + copH / 2, 12, CopStroke);
+            // COP block — only when "Include COP cutout" is ticked. When off,
+            // the COP rectangle, its stack dims and its fields all disappear,
+            // so the schematic reflects the wall the operator is building.
+            if (CopEnabled)
+            {
+                // COP rectangle, fixed in the middle-left third.
+                double copW = w * 0.14, copH = h * 0.42;
+                double copLeft = left + drW + (w - 2 * drW) * 0.22;
+                double copTop = top + h * 0.30;
+                double copBottom = copTop + copH;
+                AddRect(copLeft, copTop, copW, copH, CopStroke, 1.5);
+                AddCenteredText("COP", copLeft + copW / 2, copTop + copH / 2, 12, CopStroke);
 
-            // Vertical COP stack dimension lines to the LEFT of the COP:
-            // top gap (wall top -> COP top), COP height (COP top -> COP bottom),
-            // from-bottom (COP bottom -> wall bottom). Real dimension symbols.
-            double stackX = copLeft - 22;
-            AddVDim(stackX, top, copTop);
-            AddVDim(stackX, copTop, copBottom);
-            AddVDim(stackX, copBottom, bottom);
+                // Vertical COP stack dimension lines to the LEFT of the COP:
+                // top gap (wall top -> COP top), COP height (COP top -> COP
+                // bottom), from-bottom (COP bottom -> wall bottom).
+                double stackX = copLeft - 22;
+                AddVDim(stackX, top, copTop);
+                AddVDim(stackX, copTop, copBottom);
+                AddVDim(stackX, copBottom, bottom);
 
-            // COP fields: a fixed column on the LEFT, each with a label above
-            // and a connector line to its stack segment. Echo value on the dim.
-            double colX = 14;
-            PlaceLabeledField(_copHeight, colX, top + h * 0.20);
-            ConnectAndEcho(colX + FieldW, top + h * 0.20 + FieldH / 2, stackX, (copTop + copBottom) / 2, _copHeight.Text);
+                // COP fields: a fixed column on the LEFT, label above each, a
+                // connector to its stack segment, value echoed on the dim.
+                double colX = 14;
+                PlaceLabeledField(_copHeight, colX, top + h * 0.20);
+                ConnectAndEcho(colX + FieldW, top + h * 0.20 + FieldH / 2, stackX, (copTop + copBottom) / 2, _copHeight.Text);
 
-            PlaceLabeledField(_copGapBottom, colX, top + h * 0.55);
-            ConnectAndEcho(colX + FieldW, top + h * 0.55 + FieldH / 2, stackX, (copBottom + bottom) / 2, _copGapBottom.Text);
+                PlaceLabeledField(_copGapBottom, colX, top + h * 0.55);
+                ConnectAndEcho(colX + FieldW, top + h * 0.55 + FieldH / 2, stackX, (copBottom + bottom) / 2, _copGapBottom.Text);
 
-            // top gap (auto) readout near the top-gap dim.
-            AddTopGapReadout(stackX - 4, (top + copTop) / 2);
+                AddTopGapReadout(stackX - 4, (top + copTop) / 2);
+            }
+            else
+            {
+                HideField(_copHeight);
+                HideField(_copGapBottom);
+            }
 
             // Height dimension on the RIGHT + field further right.
             double htDimX = right + 20;
