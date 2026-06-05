@@ -62,7 +62,24 @@ Fixing allowances (from on-drawing FIXINGS table, all jobs identical):
 `HOOKS = -50`, `PRESS STUDS = -40`, `EYELET TG9 = -30`,
 `EYELET TG7 = -30`, `VELCRO = 0`.
 
-## Quilting — partially understood, NEEDS CONFIRMATION
+## Quilting — BUILT (v1.3.0+) with an agreed default; exact spacing rule still unconfirmed
+
+**Status update:** quilting is now implemented. The agreed rules (from the
+client over the redesign sessions, see the design spec):
+- HORIZONTAL lines run the **full cut width** minus the edge clearance
+  (edge-to-edge, NOT bounded by the door returns).
+- VERTICAL lines sit on the **DR-L and DR-R boundaries** (skipped when
+  that door-return segment is 0), plus even-fill verticals between them.
+- Both sets fill **only the bottom (measured) half**, up to the fold
+  midline, inset by half the edge allowance.
+- Spacing is an **operator-entered target**, even-divided so there's no
+  remainder gap (`LiftBlanketCalculator.AddQuiltLines` / `EvenlySpaced`,
+  capped at 200 gaps). The on-DXF "VERTICAL QUILTING SPACING" lookup
+  (below) never reconciled cleanly with measured spacing, so the operator
+  types the value for now — the client may give the real formula after
+  beta. The original analysis follows.
+
+### Original analysis (unreconciled)
 
 The on-drawing lookup is labelled **"VERTICAL QUILTING SPACING"**:
 `4700=783, 4500=750, 4300=716, 4100=683`. Roughly height/6.

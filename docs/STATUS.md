@@ -5,260 +5,237 @@ working state changes meaningfully (new feature lands, refactor commits,
 gating issue identified). Skim [ROADMAP.md](ROADMAP.md) for what's queued
 next.
 
+**Current version: v1.4.5** on branch `feat/sheet-mirroring-cop-quilting`.
+Installer: `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.4.5.exe` — this is
+the build going to the client for **beta testing**.
+
 ---
 
 ## Headline
 
 The add-in loads cleanly in DraftSight 2026, surfaces a branded ribbon
-button, presents a product picker, drives a **non-modal** Lift Blanket
-dialog (DraftSight stays interactive — pan/zoom while the form is open)
-with project metadata + a Left/Right/Rear tabbed live-blanket input +
-options + configurable layers + a free-text NOTES field, and emits a
-layered drawing (cuts + segment-driven COP + bottom-half quilting) that
-mirrors the
-client's reference DXF visual convention: blue cut path, white free-
-floating project + worksheet text, proper DIMENSION entities. Ctrl+Z
+button, presents a product picker, and drives a **non-modal** Lift Blanket
+dialog (DraftSight stays interactive — pan/zoom while the form is open). The
+dialog has: project metadata + a **Left / Right / Rear tabbed input** where
+each wall is drawn as a **fixed schematic copy of the paper measurement
+sheet** with the input fields embedded on the drawing, an Options section,
+a **7-layer cutter-layer panel**, and a free-text NOTES field. Generate emits
+a layered drawing — blue cut rectangles, segment-driven COP cutouts on the
+draw layer, bottom-half quilting, DIMENSION entities, and free-floating
+worksheet text — then optionally exports a native R2018 ASCII DXF. Ctrl+Z
 reverts the whole generation in one step.
 
-As of **v1.3.0** the wall model is rebuilt from the client's real
-reference DXFs (see [`reference/DXF_FINDINGS.md`](../reference/DXF_FINDINGS.md)):
-each wall is a plain rectangle whose **cut height is auto-derived**
-(`(measuredHeight − fixingAllowance) × 2`) and width is the sum of the
-five measurement-sheet segment boxes + an operator-entered **edge
-allowance** (default 10 mm). COP is now **segment-driven**: its width is
-the middle segment (Seg2) and its left edge is measured from the door-
-return line (`edgeAllowance/2 + DoorReturnLeft + Seg1`); the operator
-types only the COP's vertical numbers (bottom-gap + height), and the
-**top gap up to the fold line is auto-derived** and validated (a COP that
-crosses the fold is a blocking error). **Quilting is now built** —
-vertical + horizontal score lines fill the bottom half up to the fold,
-even-divided to an operator-entered spacing. A headless
-`LiftBlanketCalculator` holds all this geometry math and is covered by
-26 MSTest unit tests asserting against the real DXF coordinates; the
-generator is a thin SDK translator over its output. After Generate, an
-optional **native DXF export** (Save-As dialog, filename defaulting to
-the network number) writes the drawing as R2018 ASCII DXF. The wall
-input is now a **tabbed live UI**: a Left/Right/Rear `TabControl` where
-each tab draws the blanket to true height:width proportion and
-live-redraws as you type, with the measurement fields embedded on the
-drawing where they sit on the paper sheet (replacing the old stacked
-text-row sections + passive side diagram).
+The **calculation model** (the cut geometry) and the **preview diagram** are
+two separate things, and this distinction is load-bearing:
 
-The architecture is ready for additional products — caravan annexe slot
-exists in the picker as a disabled tile pending the spec from the
-client.
+- The **calculation** (in the headless `LiftBlanketCalculator`) produces the
+  real cut geometry: doubled height, segment-driven COP, quilting. It is
+  unit-tested against the client's reference DXF coordinates. **This is what
+  ends up in the DXF.**
+- The **preview diagram** (in `WallBlanket`) is a *fixed schematic* — it
+  never resizes or rescales based on typed values. It exists only to show the
+  operator the layout and host the input fields where they sit on the paper
+  sheet. (An earlier true-proportion preview collapsed to an unusable sliver
+  when a single digit was typed mid-edit — the fixed schematic deliberately
+  avoids that whole class of bug.)
 
-## Last verified runtime
+---
 
-- DraftSight 2026 Premium trial, Windows 11 Pro 26200
-- Operator can: open picker → Lift Blanket tile → fill the Left/Right/
-  Rear blanket tabs (defaults prepopulated; each tab redraws to true
-  proportion as you type) → Generate → see walls with segment-driven COP
-  cutouts + bottom-half quilt lines + DIMENSION-entity dims + a right-
-  side info column with project metadata, FIXINGS lookup table, WIDTH/
-  HEIGHT formula reminder, and optional NOTES — all on the layer
-  convention the client's machine expects (`1 Rotary Blade` for cuts,
-  `5 Draw and Text` for COP + quilt lines, `0` for white text)
-- `Ctrl+Z` after generation reverts cleanly
-- Layer Manager (`LAYER` command) lists `1 Rotary Blade`, `5 Draw and
-  Text`, `0` with their ACI colours set
-- While the dialog is open: DraftSight pan / zoom / select all work;
-  closing DraftSight does not affect the dialog (and vice versa);
-  clicking the ribbon button while a dialog is already open just
-  brings the existing dialog forward
+## The calculation model (how it computes the cut geometry)
+
+All in `LiftBlanketCalculator` (SDK-free, headless, unit-tested). For each
+enabled wall:
+
+**Width (horizontal):**
+- The operator types five bottom-row segment boxes: `DR-L | S1 | S2 | S3 | DR-R`
+  (door-return-left, three interior segments, door-return-right). Place 0
+  where not needed.
+- `cutWidth = (DR-L + S1 + S2 + S3 + DR-R) + edgeAllowance`. The edge
+  allowance is an operator field, default **10 mm**, split evenly: half on
+  each horizontal side, and that same half is the inset for quilting.
+
+**Height (vertical):**
+- The operator types the **measured** height (top-of-hook / centre-of-press-
+  stud to bottom of blanket).
+- `foldMidline = measuredHeight − fixingAllowance` (the blanket folds here).
+- `cutHeight = foldMidline × 2` (the bottom panel is the measured half; the
+  top is its mirror). So measured 2200, fixing 50 → fold 2150, cut 4300.
+- The fixing allowance defaults per fixing type (Hooks −50, Press Studs −40,
+  Eyelet TG9/TG7 −30, Velcro 0) and is operator-editable per job.
+
+**COP (the cut-out panel) — segment-driven:**
+- The COP's **width is the middle segment, Seg2**. Its left edge =
+  `edgeAllowance/2 + DR-L + S1` (measured from the door-return line, not the
+  blanket edge). So you don't type a COP width/offset — the segments drive it.
+- Vertically the operator types **bottom-gap** (wall bottom → COP bottom) and
+  **COP height**. The **top gap** (COP top → fold line) is auto-derived:
+  `autoTopGap = foldMidline − bottomGap − copHeight`. A negative top gap means
+  the COP crosses the fold — a **blocking validation error**. The COP sits in
+  the bottom (measured) half only; the top half mirrors it at cut time.
+
+**Quilting (score lines on the draw layer, bottom half only):**
+- **Horizontal lines** run the **full cut width minus the edge clearance**
+  (`half … cutWidth−half`), spaced up the height by the operator's
+  "vertical quilting spacing" target, even-divided (the line count is rounded
+  so there is no remainder gap). They fill from the bottom clearance up to the
+  fold midline.
+- **Vertical lines**: one on the **DR-L boundary** and one on the **DR-R
+  boundary** (each skipped if that door-return segment is 0), **plus**
+  even-fill interior verticals between those two boundaries. Same bottom-to-
+  fold extent.
+- `EvenlySpaced` rounds the gap count to land on even spacing and **caps it at
+  200 gaps** so a tiny spacing value can't emit thousands of lines and freeze
+  the host.
+
+**Walls + DXF layout:**
+- Walls are drawn left-to-right as **L → Rear → R** (the back wall sits in the
+  middle, between the side walls). Through Car omits the rear wall.
+- Wall identifier label per wall: `<network> <project> L/R/B`, text height 20.
+
+---
+
+## The UI (what the operator sees)
+
+- **Left / Right / Rear tabs.** Each L/R tab is a **fixed sheet schematic**:
+  a landscape blanket rectangle, the COP drawn over the S2 column, the five
+  segment fields in a row below, a measured-height field on the side, and the
+  COP height / from-bottom fields beside their dimension lines. Real
+  dimension-symbol lines (with arrowheads) annotate each section. **The Right
+  wall is a mirror of the Left** (COP and its fields on the opposite side),
+  since the two walls face each other on the sheet. The Rear tab is just a
+  Width + Height (no segments, no COP) and is disabled when Through Car is
+  ticked.
+- All input fields **start empty** with greyed external labels. The schematic
+  draws a sensible default layout regardless. Typing fills the fields; the
+  drawing does **not** rescale.
+- The auto top-gap shows live beside the COP and turns red with a ⚠ when the
+  COP crosses the fold.
+- **Options:** Through Car, Plastic Cover on COP, Fixings dropdown (auto-fills
+  the fixing allowance), Fixing Allowance (mm), Edge Allowance (mm), Quilting
+  Spacing (mm), "Draw quilting lines", and "Open DXF export dialog after
+  generating".
+- **Layers panel:** all **seven cutter layers** (`0`, `1 Rotary Blade`,
+  `2 Drag Blade`, `3 Crease Tool`, `4 Drill Tool`, `5 Draw and Text`,
+  `Defpoints`) as rows, each with an **ACI colour swatch dropdown** and four
+  **role checkboxes** (Cut / COP / Annot. / Title). A role belongs to exactly
+  one layer (ticking it elsewhere unticks the prior). All seven layers are
+  created in the DXF; only assigned ones carry geometry. Defaults: Cut →
+  `1 Rotary Blade` (blue 5), COP + Annotation → `5 Draw and Text` (magenta 6),
+  Title → `0` (white 7). "Reset to Defaults" button.
+
+---
+
+## Validation + user feedback (added v1.4.5)
+
+The app surfaces problems instead of failing silently:
+
+- **Blocking validation at Generate** (all errors shown at once): non-numeric
+  / negative / NaN / Infinity fields; a wall with no width; **measured height
+  must exceed the fixing allowance** (else the cut inverts); **COP must fit
+  horizontally** within the cut piece; **COP must not cross the fold**;
+  **quilting spacing ≥ 50 mm**; **at least one wall enabled**; every layer
+  role assigned.
+- **Generate vs export are separate**: an export failure reads "the drawing
+  generated, but DXF export failed", not a misleading "failed to generate".
+- **Missing-entity warning**: the generator counts SDK inserts that return
+  null and warns "N entities could not be drawn" so a silently-incomplete
+  drawing is surfaced.
+- A generate failure (e.g. no drawing open) keeps the dialog open and tells
+  the operator to Ctrl+Z any partial geometry before retrying.
+
+---
 
 ## What works end-to-end
 
-- COM add-in load (CLSID `aa497758-3d06-46b7-9f75-7a8f2fffed7c`)
-- Ribbon registration on the active workspace
-- Orphan-tab cleanup at startup (handles crash-recovery)
-- Product picker UI with Lift Blanket tile available, Caravan Annexe
-  tile disabled with explanatory tooltip
-- Lift Blanket dialog:
-  - Branded header, project metadata (incl. multi-line NOTES), a
-    Left/Right/Rear `TabControl` of interactive wall blankets, options,
-    and a configurable LAYERS panel with live colour swatches
-  - Non-modal — DraftSight stays interactive; dialog parented to the
-    DraftSight HWND so alt-tab cycles them together
-  - Each wall tab draws the blanket to true height:width proportion with
-    the measurement fields embedded where they sit on the sheet, and
-    live-redraws on every keystroke without dropping keyboard focus; the
-    COP's auto top-gap shows read-only and turns red when it crosses the
-    fold
-  - Multi-error validation: all errors shown at once (including Seg2 > 0
-    when COP is on, and the COP-crosses-fold blocking check)
-  - **Generate-fails-keeps-dialog-open**: if the generator throws
-    (e.g. no active drawing), the error is shown and the dialog stays
-    open so the operator can retry (`GenerateRequestedEventArgs.Cancel`)
-  - Through Car ticking disables the Rear Wall tab
-  - LAYERS panel "Reset to Defaults" button
-  - Esc closes the dialog (`ApplicationCommands.Close` key binding)
-- Generator:
-  - Four named layers (Outline/COP/Annotation/Titleblock) created
-    with ACI colours via the activate pattern
-  - Geometry undo-grouped via `SketchManager.StartUndoRecord` /
-    `StopUndoRecord`
-  - Wall cut rectangles on `1 Rotary Blade` (cuts, blue); COP
-    rectangles + quilt lines + wall labels on `5 Draw and Text`
-    (draw/score, magenta — NOT cut)
-  - Quilt lines (vertical + horizontal) filling only the bottom half up
-    to the fold midline, bounded by the door-return boxes, inset by half
-    the edge allowance, even-divided to the operator's spacing target
-    (toggleable off)
-  - Proper `SketchManager.InsertAlignedDimension` entities for cut
-    width (per wall) and leftmost-wall cut height
-  - Free-floating worksheet text on layer `0` (white): top legend,
-    project metadata column, FIXINGS lookup, FIXING ALLOWANCE line,
-    WIDTH/HEIGHT formula, and NOTES block when populated
-  - `DIMSCALE` auto-bumped to 30 via `Application.RunCommand` at the
-    start of Generate so dim text + arrows are legible at lift-
-    blanket scale
+- COM add-in load (CLSID `aa497758-3d06-46b7-9f75-7a8f2fffed7c`), ribbon
+  registration, orphan-tab cleanup at startup.
+- Product picker (Lift Blanket available; Caravan Annexe disabled with a
+  tooltip).
+- The full Lift Blanket dialog described above, non-modal, parented to the
+  DraftSight HWND, with focus-preserving live redraw.
+- Generator: creates all 7 layers; draws cut rectangles on the cut layer, COP
+  + quilt lines + labels on the draw layer, dims + worksheet text on layer 0;
+  undo-grouped; `DIMSCALE` bumped to 30; `InsertAlignedDimension` for dims.
+- Native DXF export (Save-As, filename = network number, R2018 ASCII DXF).
 - Diagnostic `_CANVASCOVERSLAYERTEST` command (logs to
-  `%LocalAppData%\CanvasCovers\layertest.log`)
-- **Inno Setup installer.** `Installer\CanvasCovers.iss` + `build.ps1`
-  produce a per-machine, admin-elevated EXE that lays down the payload,
-  drops the addin XML in ProgramData, and runs RegAsm /codebase.
-  Uninstall via Settings → Apps reverses all of it.
-
-## Recently completed (v1.3.0)
-
-The sheet-mirroring + quilting release. Built on the v1.2.0 wall model:
-
-- **Segment-driven COP.** The COP cut-out is now derived from the wall's
-  five bottom-row segments instead of typed as free numbers. COP width =
-  the middle segment (Seg2); COP left edge = `edgeAllowance/2 +
-  DoorReturnLeft + Seg1` (measured from the door-return line). The old
-  "COP W / COP H / From Bottom / From Left" four-field input is gone —
-  the operator types only the 5 segments + measured height, and for the
-  COP vertically the bottom-gap + COP height.
-- **Auto top-gap to the fold line.** The gap from the COP top up to the
-  fold (`(measuredHeight − fixingAllowance) − bottomGap − copHeight`) is
-  auto-derived and shown read-only. A negative top gap (COP crosses the
-  fold) is a **blocking validation error**.
-- **Editable edge allowance.** A single operator field (default 10 mm),
-  split evenly — half on each horizontal side of the cut rect, and that
-  same half is the inset of quilting from the bottom + side outlines.
-  Replaces the old hardcoded +10 mm width rule.
-- **Quilting built.** Vertical + horizontal score lines on the draw
-  layer (`5 Draw and Text`), filling only the bottom half up to the fold
-  midline, bounded left/right by the door-return boxes, inset by half the
-  edge allowance, spaced by an operator-entered target that even-divides
-  (the line count is rounded so there is no remainder gap). Toggleable
-  off via a "Draw quilting lines" checkbox.
-- **Tabbed true-proportion live UI.** The three stacked wall sections +
-  passive side diagram are replaced by a Left/Right/Rear `TabControl`.
-  Each tab is an interactive `WallBlanket` that draws to true height:
-  width proportion and live-redraws as you type, with the measurement
-  fields embedded on the drawing where they sit on the paper sheet. The
-  Rear tab is disabled under Through Car. The old `WallDiagram` control
-  was deleted.
-
-## Recently completed (v1.2.0)
-
-These were "deliberately not built" before v1.2.0 and now work — built
-by reverse-engineering the client's reference DXFs rather than waiting
-on a client walkthrough:
-
-- **Wall geometry redesign.** Replaced the wrong-shaped
-  3-door-return-on-one-side model with the real one: each wall is a
-  plain rectangle, width = sum of the five segment boxes
-  (DrLeft / Seg1 / Seg2 / Seg3 / DrRight) + 10 mm, walls enumerated
-  L / R / B(ack).
-- **Fixing-allowance + ×2 height math.** The operator now types the
-  **measured** height; the tool applies `(measured − allowance) × 2`.
-  The allowance defaults per fixing type (Hooks 50, Press Studs 40,
-  Velcro 0) and is operator-editable per job.
-- **DXF export.** A native Save-As dialog (filename defaulting to the
-  network number) writes R2018 ASCII DXF after Generate, gated on a
-  dialog checkbox.
+  `%LocalAppData%\CanvasCovers\layertest.log`).
+- Inno Setup installer (`Installer\CanvasCovers.iss` + `build.ps1`).
 
 ## What's deliberately not yet built
 
-- **Caravan annexe flow.** Picker tile exists, dialog and generator do
-  not. Gated on receiving a measurement form / sample DXF from
-  Adelaide Annexe & Canvas.
-- **Quilting spacing rule (confirmation pending).** Quilting itself is
-  now built (v1.3.0), but the *spacing rule* is still operator-entered
-  and unconfirmed with the client. The agreed default is to even-divide
-  a typed target spacing (rounding the line count so there is no
-  remainder gap); the on-DXF "VERTICAL QUILTING SPACING" lookup never
-  reconciled cleanly with measured line spacing (see
-  `reference/DXF_FINDINGS.md`). The client may later refine the exact
-  rule (CLIENT_QUESTIONS §3).
-- **Project save/load.** No JSON serialisation of `LiftBlanketJob`
-  yet.
-- **Branded icons.** Currently using the SDK sample's placeholder
-  PNGs.
-- **Code signing.** Add-in shows "Unknown Publisher" on first load.
+- **Caravan annexe flow.** Picker tile exists; dialog + generator do not.
+  Gated on a measurement form / sample DXF from the client.
+- **Quilting spacing rule confirmation.** Quilting is built, but the exact
+  spacing *rule* is operator-entered and unconfirmed. The agreed default is to
+  even-divide a typed target. The on-DXF "VERTICAL QUILTING SPACING" lookup
+  never reconciled cleanly (see `reference/DXF_FINDINGS.md`); the client may
+  refine it after beta (CLIENT_QUESTIONS §3).
+- **Project save/load** (no JSON serialisation of `LiftBlanketJob`).
+- **Branded icons** (using the SDK sample placeholder PNGs).
+- **Code signing** (add-in shows "Unknown Publisher").
 
 ## Known gotchas (don't re-learn these)
 
-All documented in detail in [`/CLAUDE.md`](../CLAUDE.md) §9. The short
-version:
+Detailed in [`/CLAUDE.md`](../CLAUDE.md) §9. The short version, with the
+v1.4.x additions:
 
-1. **`Application.RemoveUserInterface(guid)` preemptively on first
-   connect** — corrupts internal state. Iterate tabs and remove by
-   GUID instead (App.cs).
-2. **Toolbar items with empty icon paths crash the host** when
-   `dsUIState_Document` activates. Use ribbon (text-only style is
-   tolerant of empty icons) or supply real PNG paths.
-3. **`EntityHelper.SetLayer` / `GetLayer` crash on freshly-inserted
-   entities.** Use the activate-based pattern — see `LayerHelper`.
-4. **`InsertLinearDimension` is horizontal-only.** Its dim rotation
-   defaults to 0, so two ext points sharing an X coordinate measure
-   as zero length. Use `InsertAlignedDimension` for cases where
-   either orientation can occur — it aligns the dim along the line
-   between the two ext points and works for both axes.
-5. **`InsertNoteWithParameters` silently produced no visible output**
-   in our testing (returned without error but no entity appeared on
-   screen). `InsertSimpleNote(x, y, z, height, angle, text)` is the
-   reliable single-line text API. Set `Justify` after creation if you
-   need centre or middle alignment.
-6. **`MessageBox.Show` from a `Command.ExecuteNotify` handler is
-   risky.** Use `Application.GetCommandMessage().PrintLine(...)` for
-   command-line feedback; reserve `MessageBox.Show` for catch blocks
-   surfacing fatal errors.
-7. **Non-modal dialogs from a COM addin** need their owner HWND set
-   via `WindowInteropHelper` so they alt-tab with the host and stay
-   above DraftSight when appropriate. `Process.GetCurrentProcess()
-   .MainWindowHandle` is the DraftSight main window (since the addin
-   runs in-process). Setting `DialogResult` on a non-modal window
-   throws, so don't set `IsCancel="True"` on the Cancel button — use
-   `KeyBinding` for Esc instead.
+1. `Application.RemoveUserInterface(guid)` preemptively on first connect
+   corrupts internal state — iterate tabs and remove by GUID instead.
+2. Toolbar items with empty icon paths crash the host — use the ribbon.
+3. `EntityHelper.SetLayer/GetLayer` crash on freshly-inserted entities — use
+   the activate-based pattern (`LayerHelper`).
+4. `InsertLinearDimension` is horizontal-only — use `InsertAlignedDimension`.
+5. `InsertNoteWithParameters` produces no visible output — use
+   `InsertSimpleNote`.
+6. `MessageBox.Show` from a `Command.ExecuteNotify` is risky — reserve for
+   catch blocks.
+7. Non-modal dialogs need their owner HWND set; setting `DialogResult` throws,
+   so use `KeyBinding` for Esc.
+8. **(v1.4.x) WPF init-order NRE.** Event handlers wired in XAML
+   (`TextChanged`, `Checked`) fire *during* `InitializeComponent`, before
+   later-declared named elements exist. Guard with an order-independent
+   `_initialized` flag set after `InitializeComponent`, not by null-checking a
+   specific element (which may be declared before the trigger and so never be
+   null when it fires).
+9. **(v1.4.x) WPF setters throw on non-finite/negative.** `Rectangle.Width/
+   Height` and `Line` coords throw on NaN/Infinity/negative, and
+   `double.TryParse("NaN")` returns true. Any typed value that feeds a WPF
+   size must go through a NaN/Infinity-rejecting parse, and the live redraw
+   must be wrapped in a swallow-all try/catch (no dispatcher exception handler
+   exists in-host — an unhandled throw crashes DraftSight).
+10. **(v1.4.x) Z-order: drawn shapes can cover input fields and swallow
+    clicks.** Give embedded input fields a high `Panel.ZIndex` so a line/rect
+    drawn later in the redraw can't intercept their clicks.
+11. **(v1.4.x) The preview is a FIXED schematic on purpose.** Do not make it
+    rescale to typed values — that reintroduces the collapse-on-keystroke bug.
+    The real geometry lives in the calculator; the preview only illustrates.
 
 ## Current commit baseline
 
 - Branch: `feat/sheet-mirroring-cop-quilting`
-- Version: **v1.3.0** (`MyAppVersion` in `CanvasCovers.iss`;
-  `AssemblyVersion`/`AssemblyFileVersion` 1.3.0.0). Installer EXE built —
-  run `.\Installer\build.ps1` to produce
-  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.3.0.exe`.
-- Build: clean (`dotnet build -c Release` → 0 warnings, 0 errors)
-- Tests: **26 passing** (`dotnet test CanvasCovers.Tests`) — headless
-  unit tests over `LiftBlanketCalculator` (incl. segment-driven COP,
-  auto top-gap, and quilting), `FixingAllowance`, the wall model, and
-  the DXF filename rule. The SDK-emission layer (generator + exporter)
-  is verified live in DraftSight, not by tests.
-- Layer defaults match the client's machine convention:
-  `1 Rotary Blade` (ACI 5 blue) for the **Outline/cut** layer,
-  `5 Draw and Text` (ACI 6 magenta) for **Cop + Annotation** (COP rect,
-  quilt lines, wall labels — draw/score, NOT cut), `0` (ACI 7 white) for
-  the Titleblock layer (project info + dims + worksheet reference text).
-  NB: COP + quilt lines live on the draw layer (`5 Draw and Text`), not
-  the cut layer — matching the reference DXFs.
+- Version: **v1.4.5** (`MyAppVersion` in `CanvasCovers.iss`;
+  `AssemblyVersion`/`AssemblyFileVersion` 1.4.5.0). Installer built:
+  `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.4.5.exe`.
+- Build: clean (`dotnet build -c Release` → 0 warnings, 0 errors).
+- Tests: **29 passing** (`dotnet test CanvasCovers.Tests`) — headless unit
+  tests over `LiftBlanketCalculator` (segment-driven COP, auto top-gap,
+  quilting + the line-count cap), `FixingAllowance`, the wall model, and the
+  DXF filename rule. The SDK-emission layer (generator + exporter) and the WPF
+  UI are verified live in DraftSight, not by tests.
+- Layer defaults: `1 Rotary Blade` (ACI 5 blue) = Cut; `5 Draw and Text`
+  (ACI 6 magenta) = COP + quilt + annotation (draw/score, NOT cut); `0`
+  (ACI 7 white) = dims + worksheet text. All 7 cutter layers created in the
+  DXF.
 
 ## Quick verification
 
 ```powershell
-# Close DraftSight first.
+# Close DraftSight first (the build script refuses while it's running).
 .\Installer\build.ps1
-# Then double-click the EXE in Installer\Output\ (UAC prompts for admin).
+# Then run the EXE in Installer\Output\ as admin (UAC prompts).
 ```
 
-In DraftSight after install: new drawing → tick CanvasCovers in
-Add-Ins → ribbon "CanvasCovers" tab → "Canvas Covers" button → "Lift
-Blanket" tile in picker → Generate.
-
-To remove: Settings → Apps → *BesiaCAD Canvas Covers* → Uninstall.
-Upgrades auto-uninstall the previous version via the installer's
-`PrepareToInstall`.
+In DraftSight after install: new drawing → tick CanvasCovers in Add-Ins →
+ribbon "CanvasCovers" tab → "Canvas Covers" button → "Lift Blanket" tile →
+fill a wall tab → Generate. To remove: Settings → Apps → *BesiaCAD Canvas
+Covers* → Uninstall. Upgrades auto-uninstall the previous version.

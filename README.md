@@ -4,17 +4,19 @@ A multi-product DraftSight add-in that automates canvas-product CAD
 drafting. Operator enters job parameters into a branded WPF form, the
 add-in draws the parts on layered, colour-coded, machine-ready output.
 
-**Built for:** Adelaide Annexes & Canvas. Currently in pre-paid demo
-state — lift blanket flow works end-to-end; geometry shape and
-fixing-allowance math need a client sit-down before the tool can
-produce real jobs.
+**Built for:** Adelaide Annexes & Canvas. The lift-blanket flow is
+feature-complete and matches the client's real measurement sheet:
+segment-driven COP, doubled-height math, built quilting, the fixed
+sheet-style preview (mirrored Left/Right walls), the 7-layer cutter
+panel, DXF export, and full input validation. **v1.4.5 is going to the
+client for beta testing.**
 
 **Target host:** DraftSight 2026 Professional or higher (SDK access
 required).
 **Stack:** C# / .NET Framework 4.8, WPF, DraftSight COM interop.
 
-**Current shipped version:** v1.1.5 — installer EXE in
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.1.5.exe`.
+**Current version:** v1.4.5 — installer EXE in
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.4.5.exe`.
 
 ---
 
@@ -22,13 +24,16 @@ required).
 
 Read in this order:
 
-1. **[docs/STATUS.md](docs/STATUS.md)** — what works right now and
-   what doesn't. Five minutes; orients you to the current state.
-2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — what's queued next and
-   why. The §0 item (client Q&A) blocks everything else.
-3. **[docs/CLIENT_QUESTIONS.md](docs/CLIENT_QUESTIONS.md)** — the
-   meeting script. Bring this + a printed measurement sheet + a
-   generated drawing to the next client meeting.
+1. **[docs/STATUS.md](docs/STATUS.md)** — what works right now, the
+   calculation model, and the known gotchas. Read this first; it's the
+   canonical current-state doc (kept current to v1.4.5).
+2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — what's queued next. The §0
+   item is now **client beta feedback** (v1.4.5 is the beta build); the
+   working principle is "change only what's needed, don't touch stable
+   old code."
+3. **[docs/CLIENT_QUESTIONS.md](docs/CLIENT_QUESTIONS.md)** — remaining
+   open questions (the big one — the exact quilting spacing rule — is
+   the only unconfirmed geometry rule left).
 4. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — code structure,
    key types, how to add a new product.
 5. **[docs/BUSINESS_CONTEXT.md](docs/BUSINESS_CONTEXT.md)** — client,
@@ -100,7 +105,9 @@ For a detailed code tour, see
 - Not multi-version — targets DraftSight 2026 only at this stage.
 - Not signed — shows "Unknown Publisher" on add-in load.
 - Not licence-gated — runs unconditionally.
-- Geometry shape doesn't match the client's real measurement form
-  yet — gated on [§9 of CLIENT_QUESTIONS.md](docs/CLIENT_QUESTIONS.md).
+- Only the lift-blanket product is built; the caravan annexe is a
+  disabled picker tile pending a sample DXF.
+- The quilting *spacing rule* is an operator-entered target pending the
+  client's real formula (the geometry shape itself matches the sheet).
 
 All of these are tracked in [docs/ROADMAP.md](docs/ROADMAP.md).

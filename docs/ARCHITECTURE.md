@@ -44,7 +44,7 @@ CanvasCovers/
 ├── CanvasCovers.xml                    DraftSight add-in config (CLSID, help text, button bitmap path)
 ├── Commands/
 │   ├── CommandBase.cs                  Wraps CreateCommand2 + ExecuteNotify + CreateUserCommand.
-│   ├── OpenCanvasCoversCommand.cs      Ribbon entry. Opens picker, shows lift-blanket dialog non-modally, runs generator on GenerateRequested.
+│   ├── OpenCanvasCoversCommand.cs      Ribbon entry. Opens picker, shows lift-blanket dialog non-modally, runs generator on GenerateRequested. Generate + export are SEPARATE try/catch blocks (an export failure isn't reported as a generate failure); warns if the generator's FailedInsertCount > 0.
 │   └── LayerTestCommand.cs             Diagnostic. Verifies activate-based layer pattern in isolation. Logs to %LocalAppData%\CanvasCovers\layertest.log.
 ├── Common/                             Empty placeholder for cross-cutting helpers.
 ├── Geometry/
@@ -54,14 +54,14 @@ CanvasCovers/
 │           ├── LiftBlanketCalculator.cs Headless, SDK-free geometry math: cut width (+ edge allowance), cut height ((measured−allowance)×2), fold midline, segment-derived COP placement in the bottom half, auto top-gap, even-divided quilt lines, identifier label. Unit-tested. Emits WallLayout DTOs.
 │           ├── WallLayout.cs           DTOs the calculator emits / the generator consumes: RectSpec, DimSpec, LabelSpec, LineSpec (quilt lines), WallLayout.
 │           ├── FixingAllowance.cs       Static lookup: FixingType → default mm allowance (Hooks 50, Press Studs 40, Velcro 0). Headless, unit-tested.
-│           └── LiftBlanketGenerator.cs Thin SDK translator: walks WallLayout, emits cut rects (Outline) + COP + quilt lines (draw) + labels (Annotation) + DIMENSION entities + free-floating layer-0 text. DIMSCALE bumped via RunCommand. NO geometry math (all in the calculator).
+│           └── LiftBlanketGenerator.cs Thin SDK translator: creates all 7 layers, walks WallLayout (L → Rear → R), emits cut rects (Outline) + COP + quilt lines (draw) + labels (Annotation) + DIMENSION entities + free-floating layer-0 text. DIMSCALE bumped via RunCommand. Counts null SDK inserts (FailedInsertCount). NO geometry math (all in the calculator).
 ├── IO/
 │   ├── DxfExporter.Filename.cs         Headless half: DefaultFileName(ProjectMetadata) → "<networkNumber>.dxf" (timestamp fallback). Unit-tested.
 │   └── DxfExporter.cs                  SDK half: native Save-As dialog → Document.SaveAs(path, R2018_ASCII_DXF, out errors).
 ├── Models/
 │   ├── ProjectMetadata.cs              Shared. Company, project, network number, date, notes, etc.
 │   ├── LayerSetting.cs                 Shared. Layer name + ACI colour index.
-│   ├── LayerSettings.cs                Shared. Four LayerSettings (Outline, COP, Annotation, Titleblock). Defaults match Adelaide Annexe's cutter convention.
+│   ├── LayerSettings.cs                Shared. The cutter's full SEVEN-layer set (0, the four tool-blade layers, 5 Draw and Text, Defpoints) + a role→layer assignment (OutlineLayer/CopLayer/AnnotationLayer/TitleblockLayer). The Outline/Cop/Annotation/Titleblock accessors are COMPUTED (resolve the assigned name to a LayerSetting). All seven created in the DXF.
 │   ├── ProductKind.cs                  Enum (LiftBlanket, CaravanAnnexe). Used by picker → command dispatch.
 │   └── Products/
 │       └── LiftBlanket/
@@ -80,14 +80,14 @@ CanvasCovers/
     ├── Controls/                       Shared WPF UserControls reusable across product dialogs.
     │   ├── BrandedHeader.xaml/.cs      Navy banner with company name + contact info. Subtitle is settable.
     │   ├── ProjectMetadataPanel.xaml/.cs   8-field grid + multi-line NOTES. Read() returns ProjectMetadata; Apply(model) populates.
-    │   ├── LayersPanel.xaml/.cs        4-row table of layer name/ACI/swatch. Read(errors) returns LayerSettings; Reset to Defaults.
-    │   └── WallBlanket.xaml/.cs        Interactive per-wall input surface. Draws the blanket to true height:width proportion (clamped) with the measurement fields embedded where they sit on the paper sheet, and live-redraws as you type. Configure(isRear) hides the COP fields on the rear wall; SetSharedParams pushes the options-panel allowances/quilting in so the preview computes the same fold + COP + auto top-gap. (Replaced the old passive WallDiagram.)
+    │   ├── LayersPanel.xaml/.cs        SEVEN-layer table: each cutter layer row has a name, an ACI colour-swatch dropdown, and four role CHECKBOXES (Cut/COP/Annot./Title). A role lives on exactly one layer. Read(errors) returns LayerSettings (errors if a role is unassigned); Reset to Defaults.
+    │   └── WallBlanket.xaml/.cs        Per-wall input surface drawn as a FIXED schematic copy of the paper sheet (NOT to scale — positions are canvas-derived, never value-driven). Hosts the embedded measurement fields + real dimension-symbol lines. Left/Right walls MIRROR each other (Right = COP + fields on the opposite side). Configure(isRear, mirrored) selects the mode. Live-redraws on edit without dropping focus (fields are persistent canvas children; only drawn shapes are rebuilt). (Replaced the old true-proportion preview that collapsed on a keystroke, and the even-older passive WallDiagram.)
     └── Products/
         └── LiftBlanket/
             ├── LiftBlanketWindow.xaml/.cs       Non-modal dialog. Hosts UserControls + a TabControl of three WallBlanket tabs (Left/Right/Rear) + options. Fires GenerateRequested.
             └── GenerateRequestedEventArgs.cs   Cancel-able EventArgs. Generator sets Cancel=true on failure so the dialog stays open for retry.
 
-CanvasCovers.Tests/                     Headless MSTest project (net48). Links the SDK-free source (calculator, fixing allowance, models, DXF filename half) via <Compile ... Link=...> and references NO interop, so it runs on any machine without DraftSight. 26 tests.
+CanvasCovers.Tests/                     Headless MSTest project (net48). Links the SDK-free source (calculator, fixing allowance, models, DXF filename half) via <Compile ... Link=...> and references NO interop, so it runs on any machine without DraftSight. 29 tests (calculator geometry incl. segment-driven COP, auto top-gap, quilting + line-count cap; fixing allowance; wall model; DXF filename).
 CanvasCovers.sln                        Ties the add-in + test project together.
 docs/                                   Documentation (this folder). See README.md for index.
 scripts/                                rollback-canvascovers.ps1 — startup-crash recovery only. Install path is the Inno installer.
@@ -185,13 +185,17 @@ testable without DraftSight, and the generator stays a thin translator.
 ### `LiftBlanketGenerator` (the SDK translator)
 
 Takes a `LiftBlanketJob`. Reads layer config from `job.Layers`,
-ensures the four layers exist, bumps `DIMSCALE` via
-`Application.RunCommand` so dim text reads at lift-blanket scale, then
-walks each wall via the calculator (L → R → B, B omitted when Through
+**creates all seven cutter layers** (so the DXF always carries the full
+set), bumps `DIMSCALE` via `Application.RunCommand` so dim text reads at
+lift-blanket scale, then walks each wall via the calculator (**L → Rear
+→ R**, so the back wall sits in the middle; Rear omitted when Through
 Car) and emits the resulting `WallLayout` as DraftSight entities.
 Wrapped in `SketchManager.StartUndoRecord` / `StopUndoRecord` so one
 Ctrl+Z reverts the whole generation. **No geometry math lives here** —
-it only translates DTOs into SDK calls.
+it only translates DTOs into SDK calls. SDK inserts route through an
+`InsertPolyline` helper that increments `FailedInsertCount` when the SDK
+returns null, so the command can warn the operator that some geometry
+silently failed to draw.
 
 Layer assignment (matches the reference DXFs):
 
@@ -242,26 +246,36 @@ Four of them, all in `UI/Controls/`. Reusable across product dialogs:
 - `ProjectMetadataPanel` — 8-field grid + DatePicker + multi-line
   NOTES textbox. Exposes `Read()` returning `ProjectMetadata` and
   `Apply(metadata)` for populating from saved state.
-- `LayersPanel` — 4-row editable table with live colour swatches and
-  a "Reset to Defaults" button. Exposes `Read(List<string> errors)`
-  returning `LayerSettings` (appends errors instead of throwing) and
-  `Apply(settings)`.
-- `WallBlanket` — interactive per-wall input surface (replaced the old
-  passive `WallDiagram`). Draws the blanket to **true height:width
-  proportion** (clamped) on a `Canvas` in code-behind, with the
-  measurement `TextBox`es embedded where they sit on the paper sheet
-  (five segments, measured height, and — when COP is on — COP height +
-  gap-from-bottom). It live-redraws on every keystroke. Crucially, the
-  embedded `TextBox`es and the auto-top-gap label are **persistent
-  children** added once and only repositioned each redraw — only the
-  drawn shapes (rect, fold line, COP, quilt lines) are torn down and
-  rebuilt — so editing never yanks a focused `TextBox` out of the visual
-  tree mid-keystroke. The auto top-gap label is read-only and turns red
-  ("crosses fold") when the COP would cross the fold line.
-  `Configure(isRear)` hides the COP fields for the rear wall;
-  `SetSharedParams(fixing, edge, quiltSpacing, quiltOn)` pushes the
-  options-panel values in so the live preview computes the same fold +
-  COP + quilting geometry as Generate will.
+- `LayersPanel` — the cutter's **seven-layer** table built in code-
+  behind. Each row: a layer-name label, an ACI colour-swatch dropdown,
+  and four role checkboxes (Cut / COP / Annot. / Title). A role belongs
+  to exactly one layer (ticking it on one row unticks it on any other,
+  guarded by `_suppressRoleSync`). The two-roles-on-one-layer case
+  (COP + Annotation both default to `5 Draw and Text`) round-trips
+  because `RoleChecks` is keyed by role. Exposes `Read(List<string>
+  errors)` returning `LayerSettings` (error per unassigned role) and
+  `Apply(settings)`. "Reset to Defaults" button.
+- `WallBlanket` — per-wall input surface drawn as a **FIXED schematic**
+  on a `Canvas`. **It is deliberately NOT to scale** — the wall
+  rectangle and every internal feature sit at fixed canvas-derived
+  positions; typed values never move or rescale anything (an earlier
+  true-proportion version collapsed to a sliver when a digit was typed
+  mid-edit). The schematic illustrates the layout and hosts the embedded
+  fields (five segments, measured height, and — when COP is on — COP
+  height + gap-from-bottom) with real dimension-symbol lines. **Left and
+  Right walls mirror each other** (Right = COP and its fields on the
+  opposite side), since the walls face each other on the sheet;
+  `Configure(isRear, mirrored)` selects the mode. The embedded `TextBox`es
+  and their labels are **persistent children** added once and only
+  repositioned each redraw — only the drawn shapes are torn down and
+  rebuilt — so editing never drops focus; fields get a high `ZIndex` so a
+  drawn shape can't cover them and swallow clicks. The auto top-gap turns
+  red ("crosses fold") live. `SetSharedParams(fixing, edge, quiltSpacing,
+  quiltOn)` pushes the options-panel values in (the control only uses the
+  fixing allowance, for the top-gap readout). Every typed value is parsed
+  through a NaN/Infinity-rejecting `ParseOr`, and the whole redraw is in a
+  swallow-all `try/catch` (no dispatcher exception handler exists in-host,
+  so an unhandled throw would crash DraftSight).
 
 ### `ProductPickerWindow`
 
@@ -279,15 +293,25 @@ the DraftSight main HWND as `WindowInteropHelper.Owner`, so the
 operator can pan/zoom DraftSight while the form is open.
 
 Hosts the shared UserControls (header, metadata panel, layers panel)
-plus a `TabControl` of three `WallBlanket` tabs (Left / Right / Rear)
-and an options panel. The Rear tab is disabled under Through Car. The
-options panel's edge-allowance, quilting-spacing and quilting-on values
-are pushed into every blanket via `SetSharedParams` so each live preview
-computes the same fold + COP + quilting geometry. On Generate, runs
-multi-error validation: every field is read (including a Seg2 > 0 check
-when COP is on and an `AutoTopGap < 0` "crosses the fold" check), errors
-accumulated in a `List<string>`, all displayed at once if any are
-present.
+plus a `TabControl` of three `WallBlanket` tabs (Left / Right / Rear,
+Right mirrored) and an options panel. The Rear tab is disabled under
+Through Car. The options panel's edge-allowance, quilting-spacing and
+quilting-on values are pushed into every blanket via `SetSharedParams`.
+
+On Generate, runs **multi-error validation** (all errors shown at once),
+the operator-feedback layer added in v1.4.5:
+- Every field through `ReadPositive`/`ReadNonNegative`, which now reject
+  NaN/Infinity as well as negative/non-numeric.
+- A wall needs a non-zero width; **measured height must exceed the fixing
+  allowance** (else the cut inverts); the **COP must fit horizontally**
+  (`half + DR-L + S1 + S2 ≤ cutWidth − half`) and **not cross the fold**
+  (`AutoTopGap < 0`); **Seg2 > 0** when COP is on.
+- **Quilting spacing ≥ 50 mm** (a tiny value would emit thousands of
+  lines); **at least one wall enabled**; every layer role assigned.
+
+The `_initialized` flag guards the Options `TextChanged` handlers, which
+WPF fires *during* `InitializeComponent` before later-declared elements
+exist (see CLAUDE.md §9 / STATUS gotcha #8).
 
 Hand-off to the generator uses a `Cancel`-able event pattern (see
 [`GenerateRequestedEventArgs.cs`](../CanvasCovers/UI/Products/LiftBlanket/GenerateRequestedEventArgs.cs)):

@@ -96,10 +96,11 @@ sections top-to-bottom:
   default), plus a multi-line **Notes** field for delivery
   instructions / special requests.
 - **Wall tabs** — a **TabControl** with **Left Wall / Right Wall /
-  Rear Wall** tabs (replacing the old stacked text-row sections). Each
-  tab is a drawn blanket with the input fields embedded on the drawing
-  where they sit on the paper sheet, and it **redraws live** as you
-  type:
+  Rear Wall** tabs. Each L/R tab is a **fixed schematic copy of the paper
+  sheet** (NOT to scale — the drawing never resizes with your values; it
+  just shows the layout and hosts the fields). The **Right wall is a
+  mirror of the Left** (COP + its fields on the opposite side). The Rear
+  tab is a plain Width + Height. Fields embedded on the drawing:
     - five **Segment** boxes (DR-left / Seg1 / Seg2 / Seg3 / DR-right —
       sum = wall width, place 0 if not needed)
     - a **Measured Height** (the raw "top of hook to bottom of blanket"
@@ -121,16 +122,18 @@ sections top-to-bottom:
   even-divided so there is no remainder gap), a **"Draw quilting lines"**
   checkbox (on by default), and **"Open DXF export dialog after
   generating"** (on by default).
-- **Layers** — four editable rows with layer name, ACI colour index,
-  live colour swatch. Defaults match the client's cutter convention:
-  `1 Rotary Blade` (ACI 5 blue) for **Outline (cuts)**,
-  `5 Draw and Text` (ACI 6 magenta) for **COP + quilt lines
-  (draw/score)** and **Annotation**, `0` (ACI 7 white) for Title block /
-  project info / dimensions. Reset to Defaults button on the right.
+- **Layers** — the cutter's **seven layers** (`0`, `1 Rotary Blade`,
+  `2 Drag Blade`, `3 Crease Tool`, `4 Drill Tool`, `5 Draw and Text`,
+  `Defpoints`) as rows, each with an **ACI colour-swatch dropdown** and
+  four **role checkboxes** (Cut / COP / Annot. / Title). A role can only
+  be on one layer. All seven are created in the DXF; only assigned ones
+  carry geometry. Defaults: Cut → `1 Rotary Blade` (blue 5), COP +
+  Annotation → `5 Draw and Text` (magenta 6), Title → `0` (white 7).
+  Reset to Defaults button.
 
-Default values are sensible (Seg2 = 240, Seg3 = 1400, Measured Height
-2200), so generating with defaults produces a meaningful drawing without
-touching anything.
+All input fields **start empty** (greyed external labels prompt for
+input); nothing is pre-seeded. The schematic still draws a sensible
+default layout so you can see where each field maps before typing.
 
 The dialog is **non-modal** — you can pan / zoom / select inside
 DraftSight while the form is open; the form stays above DraftSight
@@ -146,18 +149,25 @@ without blocking input.
   measured / 50 allowance wall). The auto **top gap** label turns red
   ("crosses fold") and Generate is **blocked** with a "crosses the fold
   line" error.
+- Other blocking validations to spot-check (all v1.4.5): a measured
+  height **≤ the fixing allowance**; a COP that **extends past the right
+  edge** (huge Seg1/Seg2); a **quilting spacing under 50mm**; **all
+  walls unticked**; an **unassigned layer role**. Each gives a specific,
+  named error.
 - Fix them. Click Generate again.
 
-### 3b. Try the live blanket
+### 3b. Try the schematic
 
-- Type into a Segment or Measured Height field on the active tab and
-  watch the drawn blanket **reshape to true proportion** as you type —
-  a taller measured height makes a visibly taller rectangle.
-- Confirm that typing **does not drop keyboard focus per keystroke**:
-  you can type a multi-digit number straight through without the cursor
-  jumping out of the field after each character. (The fields are
-  persistent children of the canvas, repositioned-not-rebuilt on each
-  redraw, precisely so focus survives.)
+- The blanket diagram is a **fixed schematic** — typing does **not**
+  resize or reshape it (deliberate: a value-driven preview used to
+  collapse to a sliver on a single keystroke). It just shows the layout.
+- Confirm typing **does not drop keyboard focus per keystroke**: a
+  multi-digit number types straight through. (Fields are persistent
+  canvas children, repositioned-not-rebuilt each redraw.)
+- Compare the **Left** and **Right** tabs — they should be **mirror
+  images** (COP and its fields on opposite sides).
+- Type a stray `-` or clear a field mid-edit — the preview should just
+  skip a frame, never error.
 - Switch tabs (Left / Right / Rear) — each keeps its own values.
 
 ### 4. Try Through Car
@@ -171,10 +181,14 @@ without blocking input.
 
 ### 5. Try the layers panel
 
-- Change Outline's ACI from `5` (Blue) to `1` (Red). The swatch on
-  the right updates live.
-- Click **Reset to Defaults**. All four rows return to the
-  Adelaide-Annexe cutter convention.
+- Pick a different colour from a layer's swatch dropdown.
+- Re-assign a role: tick the **Cut** box on a different layer — it should
+  untick on the layer that had it (a role lives on one layer only).
+- Untick a role's only layer, then Generate — expect a "tick a layer's
+  'Cut' box" error.
+- Click **Reset to Defaults**. All seven rows return to the
+  Adelaide-Annexe cutter convention (Cut→Rotary Blade, COP+Annot→Draw
+  and Text, Title→0).
 
 ### 6. Generate
 
@@ -183,8 +197,9 @@ the DraftSight command prompt or use the View → Zoom Extents button.
 
 Expected:
 
-- Three walls laid out left-to-right at world origin (or just two if
-  Through Car was ticked), each labelled `L` / `R` / `B`.
+- Three walls laid out left-to-right at world origin in the order
+  **L → Rear(B) → R** (the back wall sits in the middle), or just two
+  (L → R) if Through Car was ticked. Each labelled `L` / `B` / `R`.
 - Each wall is a **plain closed blue rectangle** (on `1 Rotary
   Blade`). Its height is the **doubled** cut height — e.g. a Measured
   Height of 2200 with a 50 fixing allowance produces a 4300-tall
@@ -195,11 +210,14 @@ Expected:
   in the lower (measured) half of the wall, with a "COP" label centred
   in it. Its width is the wall's middle segment (Seg2).
 - **Magenta quilt lines** (also on `5 Draw and Text`, the draw/score
-  layer) — vertical + horizontal score lines filling **only the bottom
-  half** up to the fold midline, bounded left/right by the door-return
-  boxes and inset by half the edge allowance, spaced by the Quilting
-  Spacing target (even-divided). Absent if "Draw quilting lines" was
-  unticked.
+  layer), filling **only the bottom half** up to the fold midline:
+    - **horizontal** lines run the **full cut width** minus the edge
+      clearance (edge-to-edge, NOT bounded by the door returns), spaced
+      by the Quilting Spacing target (even-divided);
+    - **vertical** lines sit on the **DR-L and DR-R boundaries** (each
+      skipped if that door-return segment is 0), plus even-fill verticals
+      between them.
+  Absent if "Draw quilting lines" was unticked.
 - **No boxed title block.** Instead:
   - A **white legend** across the top: `HEIGHT / WIDTH / RETURNS /
     V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER`

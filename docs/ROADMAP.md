@@ -11,27 +11,32 @@ break: "what was next?"
 
 ## Up next (in order)
 
-### 0. Client Q&A pass (CLIENT_QUESTIONS.md)
+### 0. CLIENT BETA FEEDBACK (current driver)
 
-**Gated on:** an hour with Adelaide Annexe (call / shop-floor visit).
+**v1.4.5 is the build going to Adelaide Annexe for beta testing.** The
+lift-blanket flow is feature-complete: segment-driven COP, doubled-height
+math, built quilting, the fixed sheet schematic with mirrored Left/Right
+walls, the 7-layer panel, DXF export, and a full validation/feedback
+layer. The next move is **the client's feedback on the real DXFs they
+cut.**
 
-Before any more code, get answers to the 10 sections in
-[`CLIENT_QUESTIONS.md`](CLIENT_QUESTIONS.md). The big ones:
+When feedback arrives, the working principle (per the user) is:
+**change only what's needed; don't touch stable old code.** Most-likely
+feedback areas, with where they'd land:
+- **Quilting spacing rule** — still the one unconfirmed geometry rule.
+  Currently an operator-entered target, even-divided. If the client gives
+  the real formula/lookup, it's a small change in
+  `LiftBlanketCalculator.AddQuiltLines` + a test (CLIENT_QUESTIONS §3).
+- **Diagram cosmetics** — the preview is a fixed schematic in
+  `WallBlanket`; tweaks there don't touch the calculation.
+- **Layer / colour fidelity** — the 7-layer panel + defaults in
+  `LayerSettings`; adjust defaults, not the generator.
+- **Text / annotation layout** — `LiftBlanketGenerator`'s
+  `DrawProjectAnnotations` / `DrawTopLegend`.
 
-- **§9 Wall segment labels** (LLR, LR1/2/3, L1/2/3, LRR) — blocking
-  the wall-geometry redesign. Our current 3-DR-on-one-side model is
-  wrong-shaped; we need to know what each label represents before
-  rebuilding the data model + dialog + diagram + generator.
-- **§1 / §3 Fixing-allowance + ×2 height math** — currently the
-  operator does this by hand. If the tool should auto-apply, we need
-  the exact rule (and what `×2` is about).
-- **§4 Vertical / horizontal quilting** — formula or lookup table?
-  Both V QUILT and H QUILT?
-- **§5 Drag Blade / Crease Tool / Drill Tool** — which products use
-  them?
-
-Lots of v1.1.x code decisions become cheap to revisit once these are
-answered.
+Also pending: a short **help document** for the operator to send with the
+installer (how the form maps to the sheet, what each field does). Flagged
+for the next session.
 
 ### 1. Caravan annexe product flow
 
@@ -54,22 +59,13 @@ Once we have either, the work is roughly:
 Until specs arrive this is "ready to build, not started". Don't invent
 the structure — it'll be wrong.
 
-### 2. DXF auto-export
+### 2. ~~DXF auto-export~~ — DONE (v1.2.0)
 
-**Why now:** biggest remaining UX gap. Operator currently has to know
-DraftSight's File → Save As → DXF flow. We already know enough to
-generate a sensible default filename and folder.
-
-- After successful generation, optionally save the active document as
-  DXF to a configured directory (e.g. `Documents/CanvasCovers/Output/`)
-- Filename derived from project metadata:
-  `{Company}-{NetworkNumber}-{ProductType}-{yyyy-MM-dd}.dxf`
-  (fallback to `CanvasCovers-{timestamp}.dxf` if fields are blank)
-- Add a "Save DXF" checkbox to the dialog, default on
-- Possibly an "Output folder" field in a new settings panel
-
-API call shape: `document.SaveAs(path, ...)` — verify signature via
-PowerShell reflection of the interop DLL (we know the pattern works).
+Native Save-As after Generate, filename = network number (timestamp
+fallback), R2018 ASCII DXF, gated on a dialog checkbox. v1.4.5 added an
+export-specific error path (a save failure no longer reads as a generate
+failure). A *configured output folder* (vs the operator picking each
+time) is still possible if the client wants it — low priority.
 
 ### 3. Project save / load
 
@@ -113,9 +109,10 @@ unprofessional and degrades trust in a commercial release.
 ## Mid-priority (after the above are done)
 
 - **Field tooltips** — for the operator who doesn't already know the
-  measurement form. Hover-help on each input.
-- **Visual preview in the dialog** — small WPF canvas showing what
-  will be drawn before Generate is clicked. Catches gross errors early.
+  measurement form. Hover-help on each input. (A standalone help doc is
+  the near-term substitute — see Up-next §0.)
+- ~~**Visual preview in the dialog**~~ — DONE. The `WallBlanket` fixed
+  schematic shows the layout + dimension lines before Generate.
 - **Multi-job batch** — operator has 5 jobs queued up; generate them
   one after another into separate drawings or a single drawing.
 - **Cutting-list / measurement summary print** — alongside the DXF,
@@ -158,9 +155,17 @@ lost. Each entry is one line; expand if/when picked up.
 - Title block layout is row-of-text; not pretty. A grid-cell layout
   with proper field/value alignment would be more professional but
   needs more InsertNote calls and field-precise positioning.
-- The full ACI palette (8-255) isn't previewed accurately in the
-  layers panel swatches — unknown indices render as light grey. Not
-  a problem in practice (most operators use 1-7).
-- Through Car checkbox event fires during XAML init with
-  `RearWallEnabled == null`; we guard against it but the guard is
-  fragile. A `Loaded` event handler hookup would be more correct.
+- The layers panel colour dropdown offers only ACI 1-7 (the cutter's
+  palette). The full 8-255 range isn't selectable. Fine in practice.
+- WPF init-order: handlers fire during `InitializeComponent`. Resolved
+  with the order-independent `_initialized` flag (window) and the
+  `_drLeft == null` guard (WallBlanket) — see STATUS gotcha #8.
+- **Deferred review nice-to-haves (low value, not worth touching stable
+  code for):** the Fixings dropdown change triggers a double redraw of
+  all 3 blankets; `LayerSettings.Cop/.Outline/...` accessors re-run a
+  7-item LINQ scan on each access in the generator (resolve once if ever
+  a hot path); `AddDashedV` allocates a `DoubleCollection` per frame.
+  None affect correctness or perceptible performance.
+- Blank network number still produces a timestamp DXF filename with no
+  warning; the wall labels are then unlabelled. Could add a soft confirm
+  at generate time if the client finds it confusing.

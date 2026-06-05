@@ -560,6 +560,22 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   dialog only calls `Close()` when `!e.Cancel`. See
   `LiftBlanketWindow.GenerateButton_Click` / `GenerateRequested`
   event + `GenerateRequestedEventArgs` for the working pattern.
+- **`SketchManager.InsertPolyline2D(coords, closed)` — second arg is the
+  closed flag.** `true` for a closed rectangle (4 corners), `false` for an
+  open 2-point line (e.g. quilt lines). Verified against the SDK sample.
+- **SDK inserts can silently return null** (no exception, no entity). The
+  generator counts these (`LiftBlanketGenerator.FailedInsertCount`) and
+  warns the operator post-generate, rather than shipping a silently
+  incomplete drawing. Don't assume an insert succeeded.
+- **There is NO dispatcher exception handler in-host.** An unhandled
+  exception on the WPF/COM UI thread crashes DraftSight outright. Any code
+  that runs on a redraw/event path from operator input (e.g. a live
+  preview) must be defended: wrap the body in a swallow-all try/catch, and
+  reject non-finite values BEFORE they reach a WPF setter
+  (`double.TryParse("NaN")` returns true; `Rectangle.Width = NaN/negative`
+  throws). This bit us twice in live testing. See STATUS.md gotchas #8–11
+  for the full WPF-lifecycle set (init-order NRE, non-finite-to-setter,
+  z-order-over-fields, fixed-schematic-not-live-scale).
 
 ---
 
