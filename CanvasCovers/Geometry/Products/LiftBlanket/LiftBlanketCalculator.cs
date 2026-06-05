@@ -52,8 +52,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             double measuredHeight, double fixingAllowanceMm,
             double copGapFromBottom, double copHeight)
         {
-            double fold = HalfHeight(measuredHeight, fixingAllowanceMm);
-            return fold - copGapFromBottom - copHeight;
+            double foldMidline = HalfHeight(measuredHeight, fixingAllowanceMm);
+            return foldMidline - copGapFromBottom - copHeight;
         }
 
         public WallLayout LayoutWall(
@@ -62,11 +62,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             string projectTag,
             string suffix)
         {
-            double half = _edgeAllowanceMm / 2.0;
+            double halfEdge = _edgeAllowanceMm / 2.0;
             double cutWidth = CutWidth(wall.Width, _edgeAllowanceMm);
 
             // Assumes upstream validation guarantees MeasuredHeight > the
-            // fixing allowance; otherwise half goes negative and the cut
+            // fixing allowance; otherwise halfHeight goes negative and the cut
             // rect inverts. The dialog enforces a positive measured height.
             double halfHeight = HalfHeight(wall.MeasuredHeight, _fixingAllowanceMm);
             double cutHeight = CutHeight(wall.MeasuredHeight, _fixingAllowanceMm);
@@ -84,7 +84,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 // width is the middle box (Seg2), and its left edge sits
                 // half-allowance + DoorReturnLeft + Seg1 in from the cut edge
                 // (measured from the door-return line, per the sheet).
-                double copX0 = originX + half
+                double copX0 = originX + halfEdge
                     + wall.Segments.DoorReturnLeft + wall.Segments.Seg1;
                 double copWidth = wall.Segments.Seg2;
                 double copY0 = wall.Cop.GapFromBottom;
