@@ -150,51 +150,73 @@ namespace CanvasCovers.UI.Controls
         // ---- Left / Right: the full measurement-sheet schematic ----
         private void DrawWallSheet(double cw, double ch)
         {
-            // Fixed wall rectangle: a landscape box, centred, leaving margins
-            // for the left field column, the right height field, the top stack
-            // labels and the bottom segment fields.
-            double left = 150, right = cw - 110;
-            double top = 70, bottom = ch - 110;
+            // Fixed wall rectangle: portrait-ish (taller than wide), centred,
+            // leaving margins for the left COP-field column, the right height
+            // field, and the bottom segment fields. The shape NEVER changes
+            // with typed values.
+            double left = 160, right = cw - 140;
+            double top = 56, bottom = ch - 96;
             if (right - left < 120 || bottom - top < 120) return;
+
+            // Landscape, like the test sheet (wider than tall, but not a thin
+            // strip). Target width ≈ 1.4 × height for the sheet look, but never
+            // narrower than the 5 segment fields need to read clearly, and
+            // never wider than the available band. Re-centre within the band.
+            double availW = right - left, availH = bottom - top;
+            double minFieldsW = 5 * (FieldW + 12);    // 5 fields + breathing room
+            double targetW = availH * 1.40;           // sheet-like landscape aspect
+            double wWall = Math.Max(minFieldsW, targetW);
+            wWall = Math.Min(wWall, availW);
+            double cx0 = (left + right) / 2;
+            left = cx0 - wWall / 2;
+            right = cx0 + wWall / 2;
             double w = right - left, h = bottom - top;
 
-            // Wall outline.
             AddRect(left, top, w, h, WallStroke, 2);
 
-            // Door-return guide verticals (the two outer "place zero" columns).
-            double drW = w * 0.10;
-            AddLine(left + drW, top, left + drW, bottom, GuideStroke, 1);
-            AddLine(right - drW, top, right - drW, bottom, GuideStroke, 1);
+            // Segment X boundaries: DR-L | S1 | S2(COP) | S3 | DR-R. Fixed
+            // fractions of the wall width. The COP column (x2..x3) is where the
+            // purple COP sits, so the COP lines up directly over its S2 field.
+            double[] frac = { 0.0, 0.12, 0.40, 0.60, 0.88, 1.0 };
+            double[] bx = new double[6];
+            for (int i = 0; i < 6; i++) bx[i] = left + w * frac[i];
 
-            // COP block — only when "Include COP cutout" is ticked. When off,
-            // the COP rectangle, its stack dims and its fields all disappear,
-            // so the schematic reflects the wall the operator is building.
+            // Dashed vertical dividers at each internal segment boundary.
+            for (int i = 1; i < 5; i++)
+                AddDashedV(bx[i], top, bottom, GuideStroke);
+
+            // Illustrative quilt guides (NOT to the real spacing — the DXF uses
+            // the real even-division math). A vertical quilt line at the DR-L
+            // boundary (bx[1]) and the DR-R boundary (bx[4]) unless that DR
+            // segment is zero; then evenly fill internal lines between them.
+            DrawQuiltGuides(bx, top, bottom);
+
+            // COP block — only when "Include COP cutout" is ticked.
             if (CopEnabled)
             {
-                // COP rectangle, fixed in the middle-left third.
-                double copW = w * 0.14, copH = h * 0.42;
-                double copLeft = left + drW + (w - 2 * drW) * 0.22;
-                double copTop = top + h * 0.30;
-                double copBottom = copTop + copH;
-                AddRect(copLeft, copTop, copW, copH, CopStroke, 1.5);
-                AddCenteredText("COP", copLeft + copW / 2, copTop + copH / 2, 12, CopStroke);
+                double copInset = (bx[3] - bx[2]) * 0.10;
+                double copLeft = bx[2] + copInset;
+                double copRight = bx[3] - copInset;
+                double copTop = top + h * 0.28;
+                double copBottom = top + h * 0.72;
+                AddRect(copLeft, copTop, copRight - copLeft, copBottom - copTop, CopStroke, 1.5);
+                AddCenteredText("COP", (copLeft + copRight) / 2, (copTop + copBottom) / 2, 12, CopStroke);
 
-                // Vertical COP stack dimension lines to the LEFT of the COP:
-                // top gap (wall top -> COP top), COP height (COP top -> COP
-                // bottom), from-bottom (COP bottom -> wall bottom).
-                double stackX = copLeft - 22;
-                AddVDim(stackX, top, copTop);
-                AddVDim(stackX, copTop, copBottom);
-                AddVDim(stackX, copBottom, bottom);
+                // Vertical COP-stack dimension lines just left of the COP.
+                double stackX = copLeft - 16;
+                AddVDim(stackX, top, copTop);        // top gap (auto)
+                AddVDim(stackX, copTop, copBottom);  // COP height
+                AddVDim(stackX, copBottom, bottom);  // from bottom
 
-                // COP fields: a fixed column on the LEFT, label above each, a
-                // connector to its stack segment, value echoed on the dim.
+                // COP fields in a fixed LEFT column with STRAIGHT horizontal
+                // leader lines to the matching stack midpoints.
                 double colX = 14;
-                PlaceLabeledField(_copHeight, colX, top + h * 0.20);
-                ConnectAndEcho(colX + FieldW, top + h * 0.20 + FieldH / 2, stackX, (copTop + copBottom) / 2, _copHeight.Text);
-
-                PlaceLabeledField(_copGapBottom, colX, top + h * 0.55);
-                ConnectAndEcho(colX + FieldW, top + h * 0.55 + FieldH / 2, stackX, (copBottom + bottom) / 2, _copGapBottom.Text);
+                double copHFieldY = copTop + (copBottom - copTop) / 2 - FieldH / 2;
+                double gapFieldY = copBottom + (bottom - copBottom) / 2 - FieldH / 2;
+                PlaceLabeledField(_copHeight, colX, copHFieldY);
+                AddStraightLeader(colX + FieldW, copHFieldY + FieldH / 2, stackX);
+                PlaceLabeledField(_copGapBottom, colX, gapFieldY);
+                AddStraightLeader(colX + FieldW, gapFieldY + FieldH / 2, stackX);
 
                 AddTopGapReadout(stackX - 4, (top + copTop) / 2);
             }
@@ -205,35 +227,69 @@ namespace CanvasCovers.UI.Controls
             }
 
             // Height dimension on the RIGHT + field further right.
-            double htDimX = right + 20;
+            double htDimX = right + 18;
             AddVDim(htDimX, top, bottom);
-            PlaceLabeledField(_measuredHeight, right + 34, top + h / 2 - FieldH / 2);
-            EchoOnVDim(htDimX, (top + bottom) / 2, _measuredHeight.Text);
+            PlaceLabeledField(_measuredHeight, right + 30, top + h / 2 - FieldH / 2);
 
-            // Five segment slots along the bottom: fixed horizontal dim spans +
-            // fields below, each wired to its span and echoing its value.
-            // Spans: DR-L (drW), S1, COP W (under the COP), S3, DR-R (drW).
-            double inner = w - 2 * drW;
-            double[] frac = { 0.0, 0.18, 0.42, 0.82, 1.0 };  // S1|S2|S3 boundaries within inner
-            double x0 = left, x1 = left + drW;
-            double x2 = left + drW + inner * frac[1];
-            double x3 = left + drW + inner * frac[2];
-            double x4 = left + drW + inner * frac[3];
-            double x5 = right;
-            double[] bx0 = { x0, x1, x2, x3, x4 };
-            double[] bx1 = { x1, x2, x3, x4, x5 };
+            // Five segment dimension spans + fields below the wall (no value
+            // echoed on the dim line — the value lives only in the field).
             var fields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
-            string[] texts = { _drLeft.Text, _seg1.Text, _seg2.Text, _seg3.Text, _drRight.Text };
-            double dimY = bottom + 16;
-            double fieldY = bottom + 30;
+            double dimY = bottom + 14;
+            double fieldY = bottom + 26;
             for (int i = 0; i < 5; i++)
             {
-                AddHDim(bx0[i], bx1[i], dimY);
-                double cx = (bx0[i] + bx1[i]) / 2;
-                if (!string.IsNullOrEmpty(texts[i]))
-                    AddCenteredText(texts[i], cx, dimY - 8, 10, DimStroke);
+                AddHDim(bx[i], bx[i + 1], dimY);
+                double cx = (bx[i] + bx[i + 1]) / 2;
                 PlaceLabeledFieldBelow(fields[i], cx - FieldW / 2, fieldY);
             }
+        }
+
+        // Illustrative quilt guides for the preview. Outer lines sit at the
+        // DR-L boundary (bx[1]) and DR-R boundary (bx[4]) — skipped if that DR
+        // segment reads 0. Internal lines evenly fill between whatever outer
+        // bounds exist. Drawn faint; purely a visual cue, not the real spacing.
+        private void DrawQuiltGuides(double[] bx, double top, double bottom)
+        {
+            // A single quilt line on the DR-L boundary (bx[1]) and the DR-R
+            // boundary (bx[4]) — each in line with the door-return segment,
+            // the same way the COP aligns over S2. A boundary is skipped when
+            // its door-return segment reads zero. No internal fill lines.
+            Brush quilt = new SolidColorBrush(Color.FromRgb(0xD8, 0xB0, 0xE8));
+            if (!IsZeroOrBlank(_drLeft.Text))
+                AddLine(bx[1], top + 4, bx[1], bottom - 4, quilt, 0.9);
+            if (!IsZeroOrBlank(_drRight.Text))
+                AddLine(bx[4], top + 4, bx[4], bottom - 4, quilt, 0.9);
+        }
+
+        // True when the field is blank or parses to zero — used to decide
+        // whether a door-return quilt line is drawn.
+        private static bool IsZeroOrBlank(string s)
+        {
+            return string.IsNullOrWhiteSpace(s) || ParseOr(s) == 0;
+        }
+
+        // A straight horizontal leader from a field edge to a dim line at the
+        // same Y (a small dashed connector — no angle).
+        private void AddStraightLeader(double fromX, double y, double toX)
+        {
+            var dash = new Line
+            {
+                X1 = fromX, Y1 = y, X2 = toX, Y2 = y,
+                Stroke = GuideStroke, StrokeThickness = 0.7,
+                StrokeDashArray = new DoubleCollection { 2, 2 },
+            };
+            DrawCanvas.Children.Add(dash); _shapes.Add(dash);
+        }
+
+        private void AddDashedV(double x, double y0, double y1, Brush stroke)
+        {
+            var line = new Line
+            {
+                X1 = x, Y1 = y0, X2 = x, Y2 = y1,
+                Stroke = stroke, StrokeThickness = 0.8,
+                StrokeDashArray = new DoubleCollection { 4, 3 },
+            };
+            DrawCanvas.Children.Add(line); _shapes.Add(line);
         }
 
         // ---- Rear: a plain rectangle with Width + Height ----
@@ -243,27 +299,31 @@ namespace CanvasCovers.UI.Controls
             HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
             HideField(_copHeight); HideField(_copGapBottom);
 
-            double left = 150, right = cw - 110;
-            double top = 70, bottom = ch - 90;
+            double left = 160, right = cw - 140;
+            double top = 56, bottom = ch - 96;
             if (right - left < 120 || bottom - top < 120) return;
+
+            // Portrait-ish, matching the L/R walls.
+            double availH = bottom - top;
+            double maxW = availH * 0.80;
+            double wWall = Math.Min(right - left, maxW);
+            double cx0 = (left + right) / 2;
+            left = cx0 - wWall / 2;
+            right = cx0 + wWall / 2;
             double w = right - left, h = bottom - top;
 
             AddRect(left, top, w, h, WallStroke, 2);
             AddCenteredText("REAR WALL", (left + right) / 2, top + h / 2, 12, LabelText);
 
-            // Width dim along the bottom + field below.
-            double dimY = bottom + 16;
+            // Width dim along the bottom + field below (no value on the dim).
+            double dimY = bottom + 14;
             AddHDim(left, right, dimY);
-            double cx = (left + right) / 2;
-            if (!string.IsNullOrEmpty(_seg1.Text))
-                AddCenteredText(_seg1.Text, cx, dimY - 8, 10, DimStroke);
-            PlaceLabeledFieldBelow(_seg1, cx - FieldW / 2, bottom + 30);
+            PlaceLabeledFieldBelow(_seg1, (left + right) / 2 - FieldW / 2, bottom + 26);
 
-            // Height dim on the right + field.
-            double htDimX = right + 20;
+            // Height dim on the right + field (no value on the dim).
+            double htDimX = right + 18;
             AddVDim(htDimX, top, bottom);
-            PlaceLabeledField(_measuredHeight, right + 34, top + h / 2 - FieldH / 2);
-            EchoOnVDim(htDimX, (top + bottom) / 2, _measuredHeight.Text);
+            PlaceLabeledField(_measuredHeight, right + 30, top + h / 2 - FieldH / 2);
         }
 
         // The auto top-gap readout (computed from measured height + COP inputs);
@@ -332,27 +392,6 @@ namespace CanvasCovers.UI.Controls
             };
             DrawCanvas.Children.Add(poly);
             _shapes.Add(poly);
-        }
-
-        // A dashed connector from a field edge to a dim line, plus the echoed
-        // value drawn on the dim (centred at the dim midpoint).
-        private void ConnectAndEcho(double fx, double fy, double dx, double dy, string value)
-        {
-            var dash = new Line
-            {
-                X1 = fx, Y1 = fy, X2 = dx, Y2 = dy,
-                Stroke = GuideStroke, StrokeThickness = 0.7,
-                StrokeDashArray = new DoubleCollection { 2, 2 },
-            };
-            DrawCanvas.Children.Add(dash); _shapes.Add(dash);
-            if (!string.IsNullOrEmpty(value))
-                AddRightText(value, dx - 4, dy, 10, DimStroke);
-        }
-
-        private void EchoOnVDim(double x, double yCenter, string value)
-        {
-            if (!string.IsNullOrEmpty(value))
-                AddCenteredText(value, x + 12, yCenter, 10, DimStroke);
         }
 
         // ---- field + label placement (label OUTSIDE the box) ----
