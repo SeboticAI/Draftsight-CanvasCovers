@@ -148,34 +148,53 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             return layout;
         }
 
-        // Fills layout.QuiltLines with vertical + horizontal lines confined to
-        // the bottom (measured) half. Side bounds come from the door-return
-        // boxes (DR-L from the left, DR-R from the right); all four edges are
-        // inset by the half-allowance. Horizontal lines are spaced by the
-        // operator's target; vertical lines even-divide the bounded width to
-        // a similar gap.
+        // Fills layout.QuiltLines, confined to the bottom (measured) half
+        // (Y from the bottom clearance up to the fold midline). Two line sets:
+        //
+        //  - HORIZONTAL lines run the FULL width minus the edge clearance
+        //    (X: half .. cutWidth-half) — edge-to-edge, NOT bounded by the
+        //    door-return segments — spaced up the height by the operator's
+        //    vertical spacing, even-divided. (Matches the client's DXF, where
+        //    the horizontals span the full wall width.)
+        //
+        //  - VERTICAL lines: a line on the DR-L boundary (half + DoorReturnLeft)
+        //    and on the DR-R boundary (cutWidth - half - DoorReturnRight), each
+        //    drawn only when that door-return segment is non-zero, PLUS interior
+        //    lines that even-divide the span between those two boundaries.
         private void AddQuiltLines(
             WallLayout layout, WallDimensions wall, double originX,
             double cutWidth, double foldMidline, double half,
             double verticalSpacing)
         {
-            double left = originX + wall.Segments.DoorReturnLeft + half;
-            double right = originX + cutWidth - wall.Segments.DoorReturnRight - half;
             double bottom = half;
             double top = foldMidline;
+            if (top <= bottom) return;
 
-            if (right <= left || top <= bottom) return;
-
-            // Horizontal lines (run left→right), spaced up the height by the
-            // operator's target spacing, even-divided.
-            foreach (double y in EvenlySpaced(bottom, top, verticalSpacing))
+            // Horizontal lines: full width minus the edge clearance.
+            double hLeft = originX + half;
+            double hRight = originX + cutWidth - half;
+            if (hRight > hLeft)
             {
-                layout.QuiltLines.Add(new LineSpec(left, y, right, y));
+                foreach (double y in EvenlySpaced(bottom, top, verticalSpacing))
+                {
+                    layout.QuiltLines.Add(new LineSpec(hLeft, y, hRight, y));
+                }
             }
 
-            // Vertical lines (run bottom→top), even-dividing the bounded width
-            // to roughly the same target gap.
-            foreach (double x in EvenlySpaced(left, right, verticalSpacing))
+            // Vertical lines: DR-L / DR-R boundary lines (skipped when that
+            // door return is zero) + even-fill between them.
+            double drLeft = wall.Segments.DoorReturnLeft;
+            double drRight = wall.Segments.DoorReturnRight;
+            double leftBound = originX + half + drLeft;
+            double rightBound = originX + cutWidth - half - drRight;
+            if (rightBound <= leftBound) return;
+
+            if (drLeft > 0)
+                layout.QuiltLines.Add(new LineSpec(leftBound, bottom, leftBound, top));
+            if (drRight > 0)
+                layout.QuiltLines.Add(new LineSpec(rightBound, bottom, rightBound, top));
+
+            foreach (double x in EvenlySpaced(leftBound, rightBound, verticalSpacing))
             {
                 layout.QuiltLines.Add(new LineSpec(x, bottom, x, top));
             }

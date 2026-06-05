@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CanvasCovers.Geometry.Products.LiftBlanket;
 using CanvasCovers.Models.Products.LiftBlanket;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -58,29 +59,76 @@ namespace CanvasCovers.Tests
         }
 
         [TestMethod]
-        public void Quilt_Lines_Stay_In_Bottom_Half_And_Within_Side_Bounds()
+        public void Horizontal_Quilt_Lines_Span_Full_Width_Minus_Clearance()
         {
+            // Horizontal lines run edge-to-edge, inset only by the half-edge
+            // allowance (NOT bounded by the door-return segments). For the
+            // reference: cut width 2250, half 5 → X spans 5..2245.
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, edgeAllowanceMm: 10);
             WallLayout layout = calc.LayoutWall(
                 wall, originX: 0, "12346 TEST 12346", "L",
                 quiltingEnabled: true, verticalQuiltingSpacingMm: 700);
 
-            Assert.IsTrue(layout.QuiltLines.Count > 0);
-
-            double half = 5;
-            double leftBound = 250 + half;
-            double rightBound = 2250 - 0 - half;
-            double bottomBound = half;
-            double topBound = 2150;
-
-            foreach (LineSpec l in layout.QuiltLines)
+            var horizontals = layout.QuiltLines.Where(l => System.Math.Abs(l.Y0 - l.Y1) < 0.001).ToList();
+            Assert.IsTrue(horizontals.Count > 0, "expected horizontal quilt lines");
+            foreach (LineSpec h in horizontals)
             {
-                Assert.IsTrue(l.X0 >= leftBound - 0.001 && l.X1 <= rightBound + 0.001,
-                    $"line X out of bounds: {l.X0}..{l.X1}");
-                Assert.IsTrue(l.Y0 >= bottomBound - 0.001 && l.Y1 <= topBound + 0.001,
-                    $"line Y out of bounds: {l.Y0}..{l.Y1}");
+                Assert.AreEqual(5.0, h.X0, 0.001, "horizontal left edge = half allowance");
+                Assert.AreEqual(2245.0, h.X1, 0.001, "horizontal right edge = cutWidth - half");
+                Assert.IsTrue(h.Y0 >= 5 - 0.001 && h.Y0 <= 2150 + 0.001, "horizontal Y in [half, fold]");
             }
+        }
+
+        [TestMethod]
+        public void Vertical_Quilt_Includes_DoorReturn_Boundary_Lines()
+        {
+            // A vertical line sits on the DR-L boundary (half + DR-L = 255).
+            // DR-R is 0 here, so the DR-R boundary line is SKIPPED. Verticals
+            // span the bottom region (half=5) up to the fold (2150).
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+            WallLayout layout = calc.LayoutWall(
+                wall, originX: 0, "12346 TEST 12346", "L",
+                quiltingEnabled: true, verticalQuiltingSpacingMm: 700);
+
+            var verticals = layout.QuiltLines.Where(l => System.Math.Abs(l.X0 - l.X1) < 0.001).ToList();
+            Assert.IsTrue(verticals.Count > 0, "expected vertical quilt lines");
+
+            // DR-L boundary line present at X = 255.
+            Assert.IsTrue(verticals.Any(v => System.Math.Abs(v.X0 - 255.0) < 0.001),
+                "expected a vertical quilt line on the DR-L boundary (255)");
+            // DR-R is 0 → no boundary line at the right cut edge (2245).
+            Assert.IsFalse(verticals.Any(v => System.Math.Abs(v.X0 - 2245.0) < 0.001),
+                "DR-R is 0 so no DR-R boundary line should be drawn");
+
+            foreach (LineSpec v in verticals)
+            {
+                Assert.AreEqual(5.0, v.Y0, 0.001, "vertical bottom = half allowance");
+                Assert.AreEqual(2150.0, v.Y1, 0.001, "vertical top = fold midline");
+            }
+        }
+
+        [TestMethod]
+        public void Vertical_Quilt_Draws_Both_DoorReturn_Lines_When_Both_Present()
+        {
+            // With both DR-L and DR-R non-zero, both boundary lines appear.
+            var wall = Job12346LeftWall();
+            wall.Segments.DoorReturnRight = 100;   // now 250 + 350 + 240 + 1400 + 100
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+            WallLayout layout = calc.LayoutWall(
+                wall, originX: 0, "12346 TEST 12346", "L",
+                quiltingEnabled: true, verticalQuiltingSpacingMm: 700);
+
+            double cutWidth = 250 + 350 + 240 + 1400 + 100 + 10;  // 2350
+            double drLeftLine = 5 + 250;                          // 255
+            double drRightLine = cutWidth - 5 - 100;              // 2245
+
+            var verticals = layout.QuiltLines.Where(l => System.Math.Abs(l.X0 - l.X1) < 0.001).ToList();
+            Assert.IsTrue(verticals.Any(v => System.Math.Abs(v.X0 - drLeftLine) < 0.001),
+                "expected DR-L boundary line at 255");
+            Assert.IsTrue(verticals.Any(v => System.Math.Abs(v.X0 - drRightLine) < 0.001),
+                "expected DR-R boundary line at 2245");
         }
 
         [TestMethod]

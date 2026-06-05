@@ -186,11 +186,13 @@ namespace CanvasCovers.UI.Controls
             for (int i = 1; i < 5; i++)
                 AddDashedV(bx[i], top, bottom, GuideStroke);
 
-            // Illustrative quilt guides (NOT to the real spacing — the DXF uses
-            // the real even-division math). A vertical quilt line at the DR-L
-            // boundary (bx[1]) and the DR-R boundary (bx[4]) unless that DR
-            // segment is zero; then evenly fill internal lines between them.
-            DrawQuiltGuides(bx, top, bottom);
+            // Illustrative quilt guides (not to the real spacing — the DXF
+            // uses the even-division math). Mirrors the real rule's shape:
+            // horizontal lines span the FULL width (minus a small inset),
+            // vertical lines sit on the DR-L/DR-R boundaries (when non-zero)
+            // plus a couple of even-fill lines between them. Confined to the
+            // lower portion to suggest the bottom (measured) half.
+            DrawQuiltGuides(bx, left, right, top, bottom);
 
             // COP block — only when "Include COP cutout" is ticked.
             if (CopEnabled)
@@ -249,17 +251,44 @@ namespace CanvasCovers.UI.Controls
         // DR-L boundary (bx[1]) and DR-R boundary (bx[4]) — skipped if that DR
         // segment reads 0. Internal lines evenly fill between whatever outer
         // bounds exist. Drawn faint; purely a visual cue, not the real spacing.
-        private void DrawQuiltGuides(double[] bx, double top, double bottom)
+        private void DrawQuiltGuides(double[] bx, double left, double right, double top, double bottom)
         {
-            // A single quilt line on the DR-L boundary (bx[1]) and the DR-R
-            // boundary (bx[4]) — each in line with the door-return segment,
-            // the same way the COP aligns over S2. A boundary is skipped when
-            // its door-return segment reads zero. No internal fill lines.
             Brush quilt = new SolidColorBrush(Color.FromRgb(0xD8, 0xB0, 0xE8));
+
+            // The quilt region is the lower portion of the schematic (the
+            // bottom/measured half) — from the fold-ish line down to the
+            // bottom, inset slightly from the edges.
+            double qTop = top + (bottom - top) * 0.42;   // ~ the fold area
+            double qBottom = bottom - 4;
+            double inset = 4;
+            double qLeft = left + inset;
+            double qRight = right - inset;
+
+            // Horizontal lines span the FULL width minus the inset (matching the
+            // DXF, where horizontals are edge-to-edge, not bounded by the DRs).
+            const int hLines = 3;
+            for (int i = 1; i <= hLines; i++)
+            {
+                double y = qTop + (qBottom - qTop) * i / (hLines + 1);
+                AddLine(qLeft, y, qRight, y, quilt, 0.9);
+            }
+
+            // Vertical lines on the DR-L (bx[1]) and DR-R (bx[4]) boundaries,
+            // each only when that door return is non-zero, plus a couple of
+            // even-fill lines between the boundaries.
+            double vLeft = IsZeroOrBlank(_drLeft.Text) ? qLeft : bx[1];
+            double vRight = IsZeroOrBlank(_drRight.Text) ? qRight : bx[4];
             if (!IsZeroOrBlank(_drLeft.Text))
-                AddLine(bx[1], top + 4, bx[1], bottom - 4, quilt, 0.9);
+                AddLine(bx[1], qTop, bx[1], qBottom, quilt, 0.9);
             if (!IsZeroOrBlank(_drRight.Text))
-                AddLine(bx[4], top + 4, bx[4], bottom - 4, quilt, 0.9);
+                AddLine(bx[4], qTop, bx[4], qBottom, quilt, 0.9);
+
+            const int vFill = 2;
+            for (int i = 1; i <= vFill; i++)
+            {
+                double x = vLeft + (vRight - vLeft) * i / (vFill + 1);
+                AddLine(x, qTop, x, qBottom, quilt, 0.9);
+            }
         }
 
         // True when the field is blank or parses to zero — used to decide
