@@ -10,7 +10,7 @@
 ; ---------------------------------------------------------------------------
 
 #define MyAppName          "BesiaCAD Canvas Covers"
-#define MyAppVersion       "1.3.3"
+#define MyAppVersion       "1.3.4"
 #define MyAppPublisher     "BesiaCAD"
 #define MyAppURL           "https://seboticai.com"
 #define MyAddinName        "CanvasCovers"
