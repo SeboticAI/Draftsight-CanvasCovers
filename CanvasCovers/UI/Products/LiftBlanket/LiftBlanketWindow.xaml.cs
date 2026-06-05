@@ -19,11 +19,21 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         // open and the operator can fix inputs and try again.
         public event EventHandler<GenerateRequestedEventArgs> GenerateRequested;
 
+        // False until the constructor finishes. The Options TextBoxes carry
+        // TextChanged="SharedParam_Changed", which WPF fires WHILE parsing the
+        // XAML (as each Text="..." is applied) — before the later-declared
+        // named elements PushSharedParams reads (EdgeAllowanceInput,
+        // QuiltingSpacingInput, QuiltingOption) have been constructed. Guarding
+        // on this flag (set last, below) is order-independent: a XAML reorder
+        // cannot silently reintroduce the init-time NRE.
+        private bool _initialized;
+
         public LiftBlanketWindow()
         {
             InitializeComponent();
             Header.Subtitle = "Lift Blanket Generator";
             Loaded += LiftBlanketWindow_Loaded;
+            _initialized = true;
         }
 
         private void LiftBlanketWindow_Loaded(object sender, RoutedEventArgs e)
@@ -54,7 +64,11 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private void SharedParam_Changed(object sender, RoutedEventArgs e)
         {
-            if (LeftBlanket == null) return; // fires during XAML init
+            // Ignore the TextChanged/Checked events WPF raises while still
+            // parsing the XAML — see _initialized. The old guard checked
+            // LeftBlanket (declared BEFORE the Options inputs in XAML, so
+            // always non-null by the time they fire) and so never caught this.
+            if (!_initialized) return;
             PushSharedParams();
         }
 
@@ -183,7 +197,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                     Geometry.Products.LiftBlanket.FixingAllowance
                         .DefaultFor(parsed).ToString(CultureInfo.InvariantCulture);
             }
-            if (LeftBlanket != null) PushSharedParams();
+            if (_initialized) PushSharedParams();
         }
 
         private WallDimensions ReadBlanket(
