@@ -131,6 +131,9 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             }
             else
             {
+                // Re-enable the tab but deliberately do NOT re-tick the wall's
+                // "Include" box — the operator may have unticked it for an
+                // unrelated reason, so preserve their intent.
                 RearBlanket.SetWallEnabledInteractive(true);
                 RearTab.IsEnabled = true;
             }
@@ -143,8 +146,11 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             string tag = selected?.Tag as string;
             if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed)) fixing = parsed;
 
-            double allowance = 50;
-            double.TryParse(FixingAllowanceInput.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out allowance);
+            // ParseOr (not raw TryParse) so a non-numeric entry falls back to
+            // 50 — matching the preview + COP validation, which also use
+            // ParseOr(..., 50). Raw TryParse would zero it on bad input and
+            // make the generated job disagree with what the operator saw.
+            double allowance = ParseOr(FixingAllowanceInput.Text, 50);
 
             return new LiftBlanketOptions
             {
