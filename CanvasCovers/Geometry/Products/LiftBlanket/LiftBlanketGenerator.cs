@@ -27,15 +27,28 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         private readonly DsApplication _application;
         private LayerSettings _layerSettings;
 
+        // Counts SDK inserts that returned null (the entity silently failed to
+        // draw). After a Generate the caller reads this to warn the operator
+        // that some geometry may be missing, rather than shipping a silently
+        // incomplete drawing. Reset at the start of each Generate.
+        public int FailedInsertCount { get; private set; }
+
         public LiftBlanketGenerator(DsApplication application)
         {
             _application = application ?? throw new ArgumentNullException(nameof(application));
+        }
+
+        // Inserts a polyline and records a failure if the SDK returns null.
+        private void InsertPolyline(SketchManager sketch, double[] coords, bool closed)
+        {
+            if (sketch.InsertPolyline2D(coords, closed) == null) FailedInsertCount++;
         }
 
         public void Generate(LiftBlanketJob job)
         {
             if (job == null) throw new ArgumentNullException(nameof(job));
             _layerSettings = job.Layers ?? new LayerSettings();
+            FailedInsertCount = 0;
 
             Document document = _application.GetActiveDocument();
             if (document == null)
@@ -132,7 +145,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             // Cut rectangle on the cut/outline layer.
             layers.Activate(_layerSettings.Outline.Name);
-            sketch.InsertPolyline2D(
+            InsertPolyline(sketch,
                 new[] { r.X0, r.Y0, r.X1, r.Y0, r.X1, r.Y1, r.X0, r.Y1 }, true);
 
             // COP rectangle on the draw layer (5 Draw and Text), not the cut
@@ -141,7 +154,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             {
                 layers.Activate(_layerSettings.Cop.Name);
                 RectSpec c = layout.CopRect.Value;
-                sketch.InsertPolyline2D(
+                InsertPolyline(sketch,
                     new[] { c.X0, c.Y0, c.X1, c.Y0, c.X1, c.Y1, c.X0, c.Y1 }, true);
             }
 
@@ -152,8 +165,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 layers.Activate(_layerSettings.Cop.Name);
                 foreach (LineSpec q in layout.QuiltLines)
                 {
-                    sketch.InsertPolyline2D(
-                        new[] { q.X0, q.Y0, q.X1, q.Y1 }, false);
+                    InsertPolyline(sketch, new[] { q.X0, q.Y0, q.X1, q.Y1 }, false);
                 }
             }
 
@@ -164,6 +176,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 LabelSpec lab = layout.IdentifierLabel.Value;
                 SimpleNote note = sketch.InsertSimpleNote(lab.X, lab.Y, 0, lab.Height, 0.0, lab.Text);
                 if (note != null) note.Justify = dsTextJustification_e.dsTextJustification_Middle;
+                else FailedInsertCount++;
             }
 
             // Dimensions on the titleblock layer.

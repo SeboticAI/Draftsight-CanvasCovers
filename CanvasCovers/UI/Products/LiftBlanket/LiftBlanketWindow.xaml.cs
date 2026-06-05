@@ -91,9 +91,21 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             ProjectMetadata project = MetadataPanel.Read();
             LiftBlanketOptions options = ReadOptions();
 
-            WallDimensions left = ReadBlanket(LeftBlanket, "Left wall", errors);
-            WallDimensions right = ReadBlanket(RightBlanket, "Right wall", errors);
-            WallDimensions rear = ReadBlanket(RearBlanket, "Rear wall", errors);
+            WallDimensions left = ReadBlanket(LeftBlanket, "Left wall", options, errors);
+            WallDimensions right = ReadBlanket(RightBlanket, "Right wall", options, errors);
+            WallDimensions rear = ReadBlanket(RearBlanket, "Rear wall", options, errors);
+
+            // At least one wall must be generated, else Generate would draw an
+            // empty document with no feedback.
+            bool anyWall = left.Enabled || right.Enabled
+                || (rear.Enabled && !options.ThroughCar);
+            if (!anyWall)
+                errors.Add("Enable at least one wall (tick \"Include this wall\").");
+
+            // Guard quilting spacing so a tiny value can't emit thousands of
+            // lines and freeze the host.
+            if (options.QuiltingEnabled && options.VerticalQuiltingSpacingMm < 50)
+                errors.Add("Quilting spacing must be at least 50mm (a smaller value would draw an excessive number of lines).");
 
             LayerSettings layers = LayersControl.Read(errors);
 
@@ -204,20 +216,37 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         }
 
         private WallDimensions ReadBlanket(
-            CanvasCovers.UI.Controls.WallBlanket blanket, string wallLabel, List<string> errors)
+            CanvasCovers.UI.Controls.WallBlanket blanket, string wallLabel,
+            LiftBlanketOptions options, List<string> errors)
         {
             var wall = new WallDimensions { Enabled = blanket.WallEnabled };
             if (!wall.Enabled) return wall;
 
+            // The rear wall has a single "Width" field (stored as Seg1); the
+            // L/R walls have the five segment boxes. Use the right noun.
+            bool isRear = blanket == RearBlanket;
+            string widthLabel = isRear ? wallLabel + " width" : wallLabel + " segment 1";
+
             wall.Segments.DoorReturnLeft  = ReadNonNegative(blanket.DrLeftText,  wallLabel + " door return (left)",  errors);
-            wall.Segments.Seg1            = ReadNonNegative(blanket.Seg1Text,    wallLabel + " segment 1",            errors);
+            wall.Segments.Seg1            = ReadNonNegative(blanket.Seg1Text,    widthLabel,                          errors);
             wall.Segments.Seg2            = ReadNonNegative(blanket.Seg2Text,    wallLabel + " segment 2 (COP width)", errors);
             wall.Segments.Seg3            = ReadNonNegative(blanket.Seg3Text,    wallLabel + " segment 3",            errors);
             wall.Segments.DoorReturnRight = ReadNonNegative(blanket.DrRightText, wallLabel + " door return (right)", errors);
             wall.MeasuredHeight           = ReadPositive(blanket.MeasuredHeightText, wallLabel + " measured height", errors);
 
             if (wall.Segments.TotalWidth <= 0)
-                errors.Add(wallLabel + " needs at least one non-zero segment.");
+                errors.Add(isRear
+                    ? wallLabel + " needs a width."
+                    : wallLabel + " needs at least one non-zero segment.");
+
+            // The measured height must exceed the fixing allowance, else the
+            // doubled cut height ((measured − fixing) × 2) goes zero/negative
+            // and the cut rectangle inverts.
+            if (wall.MeasuredHeight > 0 && wall.MeasuredHeight <= options.FixingAllowanceMm)
+                errors.Add(wallLabel + " measured height (" +
+                    wall.MeasuredHeight.ToString(CultureInfo.InvariantCulture) +
+                    ") must be greater than the fixing allowance (" +
+                    options.FixingAllowanceMm.ToString(CultureInfo.InvariantCulture) + ").");
 
             wall.Cop.Enabled = blanket.CopEnabled;
             if (wall.Cop.Enabled)
@@ -228,10 +257,23 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 if (wall.Segments.Seg2 <= 0)
                     errors.Add(wallLabel + " COP width (segment 2) must be greater than zero when COP is enabled.");
 
-                double fixingForCop = ParseOr(FixingAllowanceInput.Text, 50);
+                // COP must fit horizontally within the cut piece: its left edge
+                // (half-allowance + DR-L + S1) plus its width (S2) must not pass
+                // the right cut edge.
+                if (wall.Segments.Seg2 > 0)
+                {
+                    double half = options.EdgeAllowanceMm / 2.0;
+                    double copRight = half + wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
+                    double cutWidth = wall.Segments.TotalWidth + options.EdgeAllowanceMm;
+                    if (copRight > cutWidth - half + 0.001)
+                        errors.Add(wallLabel +
+                            " COP extends past the right edge — reduce segment 1 or the COP width (segment 2).");
+                }
+
+                // Vertical: the COP must not cross the fold line.
                 if (wall.MeasuredHeight > 0 && wall.Cop.Height > 0 &&
                     Geometry.Products.LiftBlanket.LiftBlanketCalculator.AutoTopGap(
-                        wall.MeasuredHeight, fixingForCop, wall.Cop.GapFromBottom, wall.Cop.Height) < 0)
+                        wall.MeasuredHeight, options.FixingAllowanceMm, wall.Cop.GapFromBottom, wall.Cop.Height) < 0)
                 {
                     errors.Add(wallLabel +
                         " COP gap-from-bottom + height crosses the fold line (must fit within the measured half = measured height − fixing allowance).");
@@ -242,7 +284,11 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private static double ReadPositive(string text, string label, List<string> errors)
         {
-            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || value <= 0)
+            // double.TryParse accepts "NaN"/"Infinity" (and NaN<=0 is false), so
+            // guard them explicitly — otherwise a non-finite value would slip
+            // past into the generated geometry.
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
             {
                 errors.Add(label + " must be a number greater than zero.");
                 return 0;
@@ -252,7 +298,8 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private static double ReadNonNegative(string text, string label, List<string> errors)
         {
-            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || value < 0)
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || double.IsNaN(value) || double.IsInfinity(value) || value < 0)
             {
                 errors.Add(label + " must be zero or a positive number.");
                 return 0;

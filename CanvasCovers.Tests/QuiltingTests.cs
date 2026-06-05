@@ -43,6 +43,18 @@ namespace CanvasCovers.Tests
             Assert.AreEqual(0, LiftBlanketCalculator.EvenlySpaced(500, 100, 700).Count);
         }
 
+        [TestMethod]
+        public void EvenlySpaced_Caps_The_Line_Count_For_Tiny_Spacing()
+        {
+            // A tiny spacing (e.g. 1mm over a 2100mm span) would otherwise yield
+            // ~2099 interior lines. The MaxGaps cap (200) limits it so a typo
+            // can't emit thousands of polylines and freeze the host.
+            List<double> lines = LiftBlanketCalculator.EvenlySpaced(0, 2100, 1);
+            Assert.IsTrue(lines.Count <= 200,
+                $"expected the count to be capped, got {lines.Count}");
+            Assert.AreEqual(199, lines.Count);   // 200 gaps → 199 interior lines
+        }
+
         private static WallDimensions Job12346LeftWall()
         {
             var wall = new WallDimensions();

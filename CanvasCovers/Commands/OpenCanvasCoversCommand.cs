@@ -111,26 +111,54 @@ namespace CanvasCovers.Commands
             // Runs on the dialog's UI thread (= the add-in's COM callback
             // thread = DraftSight's main UI thread, since WPF dialog and
             // host live on the same STA). Safe to call into the SDK.
+            LiftBlanketGenerator generator = new LiftBlanketGenerator(Application);
             try
             {
-                LiftBlanketGenerator generator = new LiftBlanketGenerator(Application);
                 generator.Generate(e.Job);
-
-                LiftBlanketWindow window = sender as LiftBlanketWindow;
-                if (window != null && window.ExportDxfRequested)
-                {
-                    new CanvasCovers.IO.DxfExporter(Application).Export(e.Job.Project);
-                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     "CanvasCovers failed to generate the drawing: " + ex.Message
+                        + "\n\nIf any geometry was drawn before the error, press "
+                        + "Ctrl+Z (Undo) before retrying."
                         + "\n\n" + ex.StackTrace,
                     "CanvasCovers Error");
                 // Leave the dialog open so the operator can adjust inputs
                 // (e.g. open a drawing first) and click Generate again.
                 e.Cancel = true;
+                return;
+            }
+
+            // The drawing generated; warn if any entities silently failed to
+            // draw (an SDK insert returned null) so the operator can check.
+            if (generator.FailedInsertCount > 0)
+            {
+                MessageBox.Show(
+                    generator.FailedInsertCount + " entit"
+                        + (generator.FailedInsertCount == 1 ? "y" : "ies")
+                        + " could not be drawn (COP / quilt / dimension / label). "
+                        + "Please review the drawing — some lines may be missing.",
+                    "CanvasCovers — drawing may be incomplete");
+            }
+
+            // Export is a SEPARATE step: a failure here must not be reported as
+            // a generate failure (the drawing already succeeded).
+            LiftBlanketWindow window = sender as LiftBlanketWindow;
+            if (window != null && window.ExportDxfRequested)
+            {
+                try
+                {
+                    new CanvasCovers.IO.DxfExporter(Application).Export(e.Job.Project);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "The drawing was generated successfully, but the DXF "
+                            + "export failed: " + ex.Message,
+                        "CanvasCovers — export failed");
+                    // Don't cancel — the generate succeeded; let the dialog close.
+                }
             }
         }
 

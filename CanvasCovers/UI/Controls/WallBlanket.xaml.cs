@@ -244,14 +244,22 @@ namespace CanvasCovers.UI.Controls
 
             // Five segment dimension spans + fields below the wall (labels keep
             // DR-L | S1 | S2 | S3 | DR-R order; the spans already mirror via bx).
+            // Fields are centred on their span, but a narrow span can be less
+            // than FieldW wide, so clamp each field's left edge to not overlap
+            // the previous field — guarantees a clean, clickable row at any
+            // window width.
             var fields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
             double dimY = bottom + 14;
             double fieldY = bottom + 26;
+            double prevRight = double.NegativeInfinity;
             for (int i = 0; i < 5; i++)
             {
                 AddHDim(bx[i], bx[i + 1], dimY);
                 double cx = (bx[i] + bx[i + 1]) / 2;
-                PlaceLabeledFieldBelow(fields[i], cx - FieldW / 2, fieldY);
+                double fx = cx - FieldW / 2;
+                if (fx < prevRight + 2) fx = prevRight + 2;   // no overlap
+                PlaceLabeledFieldBelow(fields[i], fx, fieldY);
+                prevRight = fx + FieldW;
             }
         }
 

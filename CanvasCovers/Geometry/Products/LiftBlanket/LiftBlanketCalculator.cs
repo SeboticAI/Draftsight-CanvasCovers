@@ -61,6 +61,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         // targetGap), clamped to at least 1; the returned list is the
         // interior boundaries (count = gaps − 1). Returns empty for a
         // nonpositive span or spacing. Even division means no remainder gap.
+        // Hard cap on the number of gaps, so a tiny spacing value can never
+        // produce thousands of lines and freeze the host. The UI validates a
+        // sane minimum spacing; this is the last line of defence.
+        private const int MaxGaps = 200;
+
         public static List<double> EvenlySpaced(double start, double end, double targetGap)
         {
             var result = new List<double>();
@@ -69,6 +74,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             int gaps = (int)System.Math.Round(span / targetGap, System.MidpointRounding.AwayFromZero);
             if (gaps < 1) gaps = 1;
+            if (gaps > MaxGaps) gaps = MaxGaps;
             double step = span / gaps;
             for (int i = 1; i < gaps; i++)
             {
