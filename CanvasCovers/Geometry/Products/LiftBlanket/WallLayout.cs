@@ -47,8 +47,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         // The cut rectangle (full doubled height) on the cut layer.
         public RectSpec CutRect;
 
-        // The fold midline Y (where the bottom panel mirrors). Informational
-        // for now; quilting will use it later.
+        // The fold midline Y (where the bottom panel mirrors). The quilt
+        // layout uses it as the top bound — lines fill only the bottom half.
         public double FoldMidlineY;
 
         // The COP rectangle in the bottom half, or null when no COP.
