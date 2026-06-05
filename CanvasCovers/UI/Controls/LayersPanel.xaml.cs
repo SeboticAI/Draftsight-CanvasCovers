@@ -8,25 +8,23 @@ using CanvasCovers.Models;
 namespace CanvasCovers.UI.Controls
 {
     // The cutter's full layer set as editable rows: each layer has a name, an
-    // ACI colour (swatch dropdown) and a "used for" role dropdown. The four
-    // roles the generator draws (outline / COP / annotation / title block) are
-    // assigned to layers here; a role maps to exactly one layer, so selecting
-    // it on one row clears it from any other.
+    // ACI colour (swatch dropdown), and four role CHECKBOXES (Cut outline /
+    // COP / Annotation / Title block) marking which entity kinds draw on it.
+    // A layer may carry several roles (e.g. "5 Draw and Text" is both COP and
+    // Annotation by default); a role belongs to exactly one layer, so ticking
+    // it on one row unticks it on any other.
     public partial class LayersPanel : UserControl
     {
-        // Role identity for the "used for" dropdown.
-        private enum Role { None, Outline, Cop, Annotation, Titleblock }
+        private enum Role { Outline, Cop, Annotation, Titleblock }
 
-        private static readonly (Role Role, string Label)[] RoleOptions =
+        private static readonly (Role Role, string Label)[] RoleColumns =
         {
-            (Role.None,       "—"),
-            (Role.Outline,    "Cut outline"),
-            (Role.Cop,        "COP (draw)"),
-            (Role.Annotation, "Annotation"),
-            (Role.Titleblock, "Title block"),
+            (Role.Outline,    "Cut"),
+            (Role.Cop,        "COP"),
+            (Role.Annotation, "Annot."),
+            (Role.Titleblock, "Title"),
         };
 
-        // Standard ACI palette offered in the colour dropdown.
         private static readonly (int Aci, string Label)[] AciOptions =
         {
             (7, "White"), (1, "Red"), (2, "Yellow"), (3, "Green"),
@@ -42,43 +40,34 @@ namespace CanvasCovers.UI.Controls
             ResetToDefaults();
         }
 
-        // Builds whatever rows are needed for the given settings, then fills
-        // colours + role selections from them.
         public void Apply(LayerSettings settings)
         {
             if (settings == null) settings = new LayerSettings();
             BuildRows(settings.Layers ?? LayerSettings.DefaultLayers());
 
-            SetRoleOnLayer(settings.OutlineLayer, Role.Outline);
-            SetRoleOnLayer(settings.CopLayer, Role.Cop);
-            SetRoleOnLayer(settings.AnnotationLayer, Role.Annotation);
-            SetRoleOnLayer(settings.TitleblockLayer, Role.Titleblock);
+            SetRoleLayer(Role.Outline, settings.OutlineLayer);
+            SetRoleLayer(Role.Cop, settings.CopLayer);
+            SetRoleLayer(Role.Annotation, settings.AnnotationLayer);
+            SetRoleLayer(Role.Titleblock, settings.TitleblockLayer);
         }
 
-        public void ResetToDefaults()
-        {
-            Apply(new LayerSettings());
-        }
+        public void ResetToDefaults() => Apply(new LayerSettings());
 
-        // Reads the rows back into a LayerSettings. Every role must be assigned
-        // to exactly one layer; a missing assignment is an error (the generator
-        // needs a destination for each role).
         public LayerSettings Read(List<string> errors)
         {
             var settings = new LayerSettings
             {
                 Layers = _rows.Select(r => new LayerSetting(r.LayerName, r.SelectedAci())).ToList(),
+                OutlineLayer = LayerForRole(Role.Outline),
+                CopLayer = LayerForRole(Role.Cop),
+                AnnotationLayer = LayerForRole(Role.Annotation),
+                TitleblockLayer = LayerForRole(Role.Titleblock),
             };
 
-            settings.OutlineLayer = LayerForRole(Role.Outline);
-            settings.CopLayer = LayerForRole(Role.Cop);
-            settings.AnnotationLayer = LayerForRole(Role.Annotation);
-            settings.TitleblockLayer = LayerForRole(Role.Titleblock);
-
-            if (settings.OutlineLayer == null) errors.Add("Assign a layer to 'Cut outline'.");
-            if (settings.CopLayer == null) errors.Add("Assign a layer to 'COP (draw)'.");
-            if (settings.AnnotationLayer == null) errors.Add("Assign a layer to 'Annotation'.");
-            if (settings.TitleblockLayer == null) errors.Add("Assign a layer to 'Title block'.");
+            if (settings.OutlineLayer == null) errors.Add("Tick a layer's 'Cut' box (the cut outline needs a layer).");
+            if (settings.CopLayer == null) errors.Add("Tick a layer's 'COP' box.");
+            if (settings.AnnotationLayer == null) errors.Add("Tick a layer's 'Annot.' box.");
+            if (settings.TitleblockLayer == null) errors.Add("Tick a layer's 'Title' box.");
 
             return settings;
         }
@@ -97,9 +86,10 @@ namespace CanvasCovers.UI.Controls
                 var row = new LayerRow(layer.Name);
 
                 var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) }); // name
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) }); // colour
+                for (int c = 0; c < RoleColumns.Length; c++)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
 
                 var name = new TextBlock
                 {
@@ -115,10 +105,20 @@ namespace CanvasCovers.UI.Controls
                 Grid.SetColumn(row.ColorCombo, 1);
                 grid.Children.Add(row.ColorCombo);
 
-                row.RoleCombo = BuildRoleCombo();
-                row.RoleCombo.SelectionChanged += RoleCombo_SelectionChanged;
-                Grid.SetColumn(row.RoleCombo, 2);
-                grid.Children.Add(row.RoleCombo);
+                for (int c = 0; c < RoleColumns.Length; c++)
+                {
+                    Role role = RoleColumns[c].Role;
+                    var cb = new CheckBox
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Tag = role,
+                    };
+                    cb.Checked += RoleCheck_Changed;
+                    row.RoleChecks[role] = cb;
+                    Grid.SetColumn(cb, 2 + c);
+                    grid.Children.Add(cb);
+                }
 
                 RowsPanel.Children.Add(grid);
                 _rows.Add(row);
@@ -128,15 +128,11 @@ namespace CanvasCovers.UI.Controls
         private static ComboBox BuildColorCombo(int aci)
         {
             var combo = new ComboBox { Height = 24, Margin = new Thickness(0, 0, 8, 0), VerticalContentAlignment = VerticalAlignment.Center };
-            foreach (var opt in AciOptions)
-            {
-                combo.Items.Add(MakeColorItem(opt.Aci, opt.Label));
-            }
+            foreach (var opt in AciOptions) combo.Items.Add(MakeColorItem(opt.Aci, opt.Label));
             SelectAci(combo, aci);
             return combo;
         }
 
-        // A colour combo item: a swatch + the colour name, tagged with the ACI.
         private static ComboBoxItem MakeColorItem(int aci, string label)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
@@ -153,66 +149,40 @@ namespace CanvasCovers.UI.Controls
             return new ComboBoxItem { Content = panel, Tag = aci };
         }
 
-        private ComboBox BuildRoleCombo()
-        {
-            var combo = new ComboBox { Height = 24, VerticalContentAlignment = VerticalAlignment.Center };
-            foreach (var opt in RoleOptions)
-            {
-                combo.Items.Add(new ComboBoxItem { Content = opt.Label, Tag = opt.Role });
-            }
-            combo.SelectedIndex = 0; // None
-            return combo;
-        }
-
         // ---- role syncing (a role belongs to exactly one layer) ----
 
-        private void RoleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void RoleCheck_Changed(object sender, RoutedEventArgs e)
         {
             if (_suppressRoleSync) return;
-            var changed = sender as ComboBox;
-            Role role = RoleOf(changed);
-            if (role == Role.None) return;
+            var changed = sender as CheckBox;
+            if (changed?.Tag is not Role role) return;
 
-            // Clear that role from every OTHER row so it's assigned once only.
+            // Untick that role on every OTHER row.
             _suppressRoleSync = true;
             foreach (LayerRow row in _rows)
             {
-                if (row.RoleCombo != changed && RoleOf(row.RoleCombo) == role)
-                    SelectRole(row.RoleCombo, Role.None);
+                if (row.RoleChecks.TryGetValue(role, out CheckBox cb) && cb != changed)
+                    cb.IsChecked = false;
             }
             _suppressRoleSync = false;
         }
 
-        private void SetRoleOnLayer(string layerName, Role role)
+        private void SetRoleLayer(Role role, string layerName)
         {
-            LayerRow row = _rows.FirstOrDefault(r => r.LayerName == layerName);
-            if (row == null) return;
             _suppressRoleSync = true;
-            SelectRole(row.RoleCombo, role);
+            foreach (LayerRow row in _rows)
+            {
+                if (row.RoleChecks.TryGetValue(role, out CheckBox cb))
+                    cb.IsChecked = row.LayerName == layerName;
+            }
             _suppressRoleSync = false;
         }
 
         private string LayerForRole(Role role)
         {
-            LayerRow row = _rows.FirstOrDefault(r => RoleOf(r.RoleCombo) == role);
+            LayerRow row = _rows.FirstOrDefault(r =>
+                r.RoleChecks.TryGetValue(role, out CheckBox cb) && cb.IsChecked == true);
             return row?.LayerName;
-        }
-
-        private static Role RoleOf(ComboBox combo)
-        {
-            return (combo?.SelectedItem as ComboBoxItem)?.Tag is Role r ? r : Role.None;
-        }
-
-        private static void SelectRole(ComboBox combo, Role role)
-        {
-            foreach (object item in combo.Items)
-            {
-                if (item is ComboBoxItem ci && ci.Tag is Role r && r == role)
-                {
-                    combo.SelectedItem = ci;
-                    return;
-                }
-            }
         }
 
         private static void SelectAci(ComboBox combo, int aci)
@@ -243,13 +213,12 @@ namespace CanvasCovers.UI.Controls
             }
         }
 
-        // Holds the controls for one layer row.
         private sealed class LayerRow
         {
             public LayerRow(string layerName) { LayerName = layerName; }
             public string LayerName { get; }
             public ComboBox ColorCombo { get; set; }
-            public ComboBox RoleCombo { get; set; }
+            public readonly Dictionary<Role, CheckBox> RoleChecks = new Dictionary<Role, CheckBox>();
 
             public int SelectedAci()
             {

@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:CanvasCovers.UI.Controls"
         Title="Adelaide Annexes &amp; Canvas — Lift Blanket Generator"
-        Width="1080"
-        Height="820"
+        Width="940"
+        Height="900"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="920"
-        MinHeight="560"
+        MinWidth="820"
+        MinHeight="620"
         ShowInTaskbar="True">
     <Window.InputBindings>
         <!-- Esc closes the dialog. Can't use IsCancel="True" on the button

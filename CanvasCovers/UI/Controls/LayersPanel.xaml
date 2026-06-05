@@ -17,13 +17,20 @@
 
         <Grid Margin="0,0,0,4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="56" />
+                <ColumnDefinition Width="56" />
+                <ColumnDefinition Width="56" />
+                <ColumnDefinition Width="56" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="Layer" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" />
             <TextBlock Grid.Column="1" Text="Colour" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" />
-            <TextBlock Grid.Column="2" Text="Used for" FontWeight="SemiBold" Foreground="#333333" />
+            <TextBlock Grid.Column="2" Text="Cut" FontWeight="SemiBold" Foreground="#333333" HorizontalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="COP" FontWeight="SemiBold" Foreground="#333333" HorizontalAlignment="Center" />
+            <TextBlock Grid.Column="4" Text="Annot." FontWeight="SemiBold" Foreground="#333333" HorizontalAlignment="Center" />
+            <TextBlock Grid.Column="5" Text="Title" FontWeight="SemiBold" Foreground="#333333" HorizontalAlignment="Center" />
         </Grid>
 
         <!-- The seven layer rows are built in code-behind into this panel. -->

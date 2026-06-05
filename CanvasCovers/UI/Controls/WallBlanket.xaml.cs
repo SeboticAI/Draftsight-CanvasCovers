@@ -150,11 +150,12 @@ namespace CanvasCovers.UI.Controls
         // ---- Left / Right: the full measurement-sheet schematic ----
         private void DrawWallSheet(double cw, double ch)
         {
-            // Fixed wall rectangle: portrait-ish (taller than wide), centred,
-            // leaving margins for the left COP-field column, the right height
-            // field, and the bottom segment fields. The shape NEVER changes
-            // with typed values.
-            double left = 160, right = cw - 140;
+            // Fixed wall rectangle, centred in a band that leaves room for the
+            // right-side height dim + field and the bottom segment fields. The
+            // COP fields now sit INSIDE the wall band (beside the COP dim
+            // lines), so the left margin no longer reserves a field column.
+            // The shape NEVER changes with typed values.
+            double left = 90, right = cw - 110;
             double top = 56, bottom = ch - 96;
             if (right - left < 120 || bottom - top < 120) return;
 
@@ -203,22 +204,22 @@ namespace CanvasCovers.UI.Controls
                 AddCenteredText("COP", (copLeft + copRight) / 2, (copTop + copBottom) / 2, 12, CopStroke);
 
                 // Vertical COP-stack dimension lines just left of the COP.
-                double stackX = copLeft - 16;
+                double stackX = copLeft - 20;
                 AddVDim(stackX, top, copTop);        // top gap (auto)
                 AddVDim(stackX, copTop, copBottom);  // COP height
                 AddVDim(stackX, copBottom, bottom);  // from bottom
 
-                // COP fields in a fixed LEFT column with STRAIGHT horizontal
-                // leader lines to the matching stack midpoints.
-                double colX = 14;
-                double copHFieldY = copTop + (copBottom - copTop) / 2 - FieldH / 2;
-                double gapFieldY = copBottom + (bottom - copBottom) / 2 - FieldH / 2;
-                PlaceLabeledField(_copHeight, colX, copHFieldY);
-                AddStraightLeader(colX + FieldW, copHFieldY + FieldH / 2, stackX);
-                PlaceLabeledField(_copGapBottom, colX, gapFieldY);
-                AddStraightLeader(colX + FieldW, gapFieldY + FieldH / 2, stackX);
+                // COP fields sit RIGHT NEXT TO their dimension line (no leader
+                // lines): each field just left of stackX, vertically centred on
+                // the dim segment it drives, with its label directly above.
+                double fieldX = stackX - FieldW - 8;
+                double copHFieldY = (copTop + copBottom) / 2 - FieldH / 2;
+                double gapFieldY = (copBottom + bottom) / 2 - FieldH / 2;
+                PlaceLabeledField(_copHeight, fieldX, copHFieldY);
+                PlaceLabeledField(_copGapBottom, fieldX, gapFieldY);
 
-                AddTopGapReadout(stackX - 4, (top + copTop) / 2);
+                // Auto top-gap readout centred on the top-gap dim segment.
+                AddTopGapReadout(stackX - 6, (top + copTop) / 2);
             }
             else
             {
@@ -268,19 +269,6 @@ namespace CanvasCovers.UI.Controls
             return string.IsNullOrWhiteSpace(s) || ParseOr(s) == 0;
         }
 
-        // A straight horizontal leader from a field edge to a dim line at the
-        // same Y (a small dashed connector — no angle).
-        private void AddStraightLeader(double fromX, double y, double toX)
-        {
-            var dash = new Line
-            {
-                X1 = fromX, Y1 = y, X2 = toX, Y2 = y,
-                Stroke = GuideStroke, StrokeThickness = 0.7,
-                StrokeDashArray = new DoubleCollection { 2, 2 },
-            };
-            DrawCanvas.Children.Add(dash); _shapes.Add(dash);
-        }
-
         private void AddDashedV(double x, double y0, double y1, Brush stroke)
         {
             var line = new Line
@@ -299,7 +287,7 @@ namespace CanvasCovers.UI.Controls
             HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
             HideField(_copHeight); HideField(_copGapBottom);
 
-            double left = 160, right = cw - 140;
+            double left = 90, right = cw - 110;
             double top = 56, bottom = ch - 96;
             if (right - left < 120 || bottom - top < 120) return;
 
