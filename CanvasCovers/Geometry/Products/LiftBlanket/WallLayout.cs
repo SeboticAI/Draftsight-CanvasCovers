@@ -30,6 +30,17 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         public string Text;
     }
 
+    // A single straight line segment to emit (used for quilt lines).
+    public struct LineSpec
+    {
+        public double X0, Y0, X1, Y1;
+
+        public LineSpec(double x0, double y0, double x1, double y1)
+        {
+            X0 = x0; Y0 = y0; X1 = x1; Y1 = y1;
+        }
+    }
+
     // Everything the generator needs to draw one wall.
     public class WallLayout
     {
@@ -48,5 +59,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
         // Width + height dimensions for this wall.
         public List<DimSpec> Dimensions = new List<DimSpec>();
+
+        // Vertical + horizontal quilt lines (draw/score layer), bottom half
+        // only. Empty when quilting is disabled.
+        public List<LineSpec> QuiltLines = new List<LineSpec>();
     }
 }
