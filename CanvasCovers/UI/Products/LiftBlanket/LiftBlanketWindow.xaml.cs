@@ -72,8 +72,13 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private static double ParseOr(string s, double fallback)
         {
+            // Reject non-finite parses ("NaN"/"Infinity" parse as true) so a
+            // typo in Edge/Quilting/Fixing can't push a non-finite value into
+            // the previews — consistent with WallBlanket.ParseOr.
             return double.TryParse(s, System.Globalization.NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double v) ? v : fallback;
+                       CultureInfo.InvariantCulture, out double v)
+                   && !double.IsNaN(v) && !double.IsInfinity(v)
+                ? v : fallback;
         }
 
         public LiftBlanketJob Job { get; private set; }
