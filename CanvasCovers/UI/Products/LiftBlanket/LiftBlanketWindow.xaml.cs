@@ -38,14 +38,12 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private void LiftBlanketWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Seed the three blankets. Left/Right default with Seg3 1400 (a
-            // meaningful default); Rear is COP-less.
+            // Fields start EMPTY (greyed in-box placeholders prompt for input);
+            // no values are pre-seeded. Configure sets each tab's mode: Left/
+            // Right get the 5-segment + COP layout, Rear gets width + height.
             LeftBlanket.Configure(isRear: false);
-            LeftBlanket.Seed("0", "0", "240", "1400", "0", "2200");
             RightBlanket.Configure(isRear: false);
-            RightBlanket.Seed("0", "0", "240", "1400", "0", "2200");
             RearBlanket.Configure(isRear: true);
-            RearBlanket.Seed("0", "0", "0", "1400", "0", "2200");
             PushSharedParams();
         }
 

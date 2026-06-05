@@ -10,16 +10,31 @@ using CanvasCovers.Models.Products.LiftBlanket;
 
 namespace CanvasCovers.UI.Controls
 {
-    // Interactive per-wall input surface: a blanket drawn to true proportion
-    // (clamped) with embedded measurement fields. Redraws live on edit. The
-    // hosting window reads values via the public accessors and the embedded
-    // TextBoxes. Rear-wall mode hides the COP fields.
+    // Interactive per-wall input surface: a blanket drawn with embedded
+    // measurement fields. Redraws live on edit. The hosting window reads
+    // values via the public accessors and the embedded TextBoxes.
     //
-    // Redraw discipline: the embedded TextBoxes (and the auto top-gap label)
-    // are persistent children of the canvas — they are added ONCE and only
-    // repositioned on each redraw. Only the drawn shapes (rectangles, lines)
-    // are torn down and rebuilt each pass. Clearing the whole canvas on every
-    // keystroke would yank a TextBox out of the visual tree mid-edit and
+    // Two modes (set via Configure):
+    //   - Left/Right: five bottom-row segment fields (DR-L / S1 / S2 / S3 /
+    //     DR-R) plus measured height plus an optional COP (height +
+    //     from-bottom). The five segments are placed in five EQUAL columns by
+    //     slot index — never by their mm value — so empty/zero fields can't
+    //     stack on top of one another.
+    //   - Rear: a single Width field + Height field, no segments, no COP.
+    //     The width is stored internally into one segment so the calculator
+    //     and generator need no rear-specific branch.
+    //
+    // Empty-state: all fields start blank with a greyed in-box placeholder.
+    // The preview still draws a roughly-square default schematic (with the
+    // segment slots + COP slot as a guide) so the operator sees the layout
+    // before typing. Once real values are entered the blanket morphs to the
+    // true height:width proportion (clamped).
+    //
+    // Redraw discipline: the embedded TextBoxes (and their placeholder labels
+    // + the auto top-gap label) are PERSISTENT children of the canvas — added
+    // once and only repositioned/toggled each redraw. Only the drawn shapes
+    // (rectangles, lines) are torn down and rebuilt. Clearing the whole canvas
+    // each keystroke would yank a TextBox out of the visual tree mid-edit and
     // destroy keyboard focus, so we never do that.
     public partial class WallBlanket : UserControl
     {
@@ -27,10 +42,23 @@ namespace CanvasCovers.UI.Controls
         private readonly TextBox _measuredHeight, _copHeight, _copGapBottom;
         private readonly TextBlock _topGapAuto;
 
-        // Only the transient drawn shapes go in here. Persistent TextBoxes and
-        // the _topGapAuto label are deliberately excluded so they survive a
-        // redraw (and keep focus).
+        // One greyed placeholder label per field, shown only while the field
+        // is empty (WPF TextBox has no native placeholder).
+        private readonly Dictionary<TextBox, TextBlock> _placeholders =
+            new Dictionary<TextBox, TextBlock>();
+
+        // Only the transient drawn shapes go in here. Persistent TextBoxes,
+        // their placeholders and the _topGapAuto label are excluded so they
+        // survive a redraw (and keep focus).
         private readonly List<UIElement> _shapes = new List<UIElement>();
+
+        // Nominal mm used to draw the default schematic when a field is blank.
+        // Chosen so Left/Right default to a roughly-square, wide blanket.
+        private const double DefaultWidthMm = 2200;
+        private const double DefaultHeightMm = 2200;
+        private const double DefaultCopWidthMm = 240;
+        private const double DefaultCopHeightMm = 1300;
+        private const double DefaultCopGapMm = 600;
 
         private double _fixingAllowance = 50;
         private double _edgeAllowance = 10;
@@ -41,28 +69,51 @@ namespace CanvasCovers.UI.Controls
         public WallBlanket()
         {
             InitializeComponent();
-            _drLeft = MakeField("0");
-            _seg1 = MakeField("0");
-            _seg2 = MakeField("240");
-            _seg3 = MakeField("1400");
-            _drRight = MakeField("0");
-            _measuredHeight = MakeField("2200");
-            _copHeight = MakeField("1300");
-            _copGapBottom = MakeField("600");
+            // All fields start EMPTY; the hint argument is the greyed
+            // placeholder shown inside the box until the operator types.
+            _drLeft = MakeField("DR-L");
+            _seg1 = MakeField("S1");
+            _seg2 = MakeField("COP W");
+            _seg3 = MakeField("S3");
+            _drRight = MakeField("DR-R");
+            _measuredHeight = MakeField("height");
+            _copHeight = MakeField("COP H");
+            _copGapBottom = MakeField("from btm");
             _topGapAuto = new TextBlock { Foreground = Brushes.Gray, FontSize = 11 };
         }
 
-        private TextBox MakeField(string value)
+        private TextBox MakeField(string hint)
         {
-            var tb = new TextBox { Text = value, Width = 56, TextAlignment = TextAlignment.Center };
+            var tb = new TextBox
+            {
+                Text = string.Empty,
+                Width = 56,
+                TextAlignment = TextAlignment.Center,
+            };
             tb.TextChanged += Input_Changed;
+            tb.GotFocus += Field_FocusChanged;
+            tb.LostFocus += Field_FocusChanged;
+            _placeholders[tb] = new TextBlock
+            {
+                Text = hint,
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xA8)),
+                IsHitTestVisible = false,   // clicks pass through to the TextBox
+                TextAlignment = TextAlignment.Center,
+                Width = 56,
+            };
             return tb;
         }
+
+        private void Field_FocusChanged(object sender, RoutedEventArgs e) => Redraw();
 
         public void Configure(bool isRear)
         {
             _isRear = isRear;
             IncludeCop.Visibility = isRear ? Visibility.Collapsed : Visibility.Visible;
+            // In rear mode the single "width" field reuses the _seg1 TextBox;
+            // relabel its placeholder so it reads "width", not "S1".
+            _placeholders[_seg1].Text = isRear ? "width" : "S1";
             Redraw();
         }
 
@@ -81,20 +132,16 @@ namespace CanvasCovers.UI.Controls
         public void SetWallEnabled(bool v) => IncludeWall.IsChecked = v;
         public void SetWallEnabledInteractive(bool enabled) => IncludeWall.IsEnabled = enabled;
 
-        public string DrLeftText => _drLeft.Text;
+        // Segment accessors. In rear mode only Seg1 (= the single Width field)
+        // carries a value; DR-L/S2/S3/DR-R stay empty and read as 0 upstream.
+        public string DrLeftText => _isRear ? "0" : _drLeft.Text;
         public string Seg1Text => _seg1.Text;
-        public string Seg2Text => _seg2.Text;
-        public string Seg3Text => _seg3.Text;
-        public string DrRightText => _drRight.Text;
+        public string Seg2Text => _isRear ? "0" : _seg2.Text;
+        public string Seg3Text => _isRear ? "0" : _seg3.Text;
+        public string DrRightText => _isRear ? "0" : _drRight.Text;
         public string MeasuredHeightText => _measuredHeight.Text;
         public string CopHeightText => _copHeight.Text;
         public string CopGapBottomText => _copGapBottom.Text;
-
-        public void Seed(string drL, string s1, string s2, string s3, string drR, string measuredH)
-        {
-            _drLeft.Text = drL; _seg1.Text = s1; _seg2.Text = s2;
-            _seg3.Text = s3; _drRight.Text = drR; _measuredHeight.Text = measuredH;
-        }
 
         private void Input_Changed(object sender, RoutedEventArgs e) => Redraw();
         private void DrawCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => Redraw();
@@ -134,87 +181,157 @@ namespace CanvasCovers.UI.Controls
             // independent of XAML element-declaration order.
             if (DrawCanvas == null || _drLeft == null) return;
 
-            // Tear down ONLY the transient drawn shapes. The TextBoxes and the
-            // auto top-gap label stay in the visual tree so editing keeps focus.
+            // Tear down ONLY the transient drawn shapes. The TextBoxes,
+            // placeholders and the auto top-gap label stay in the visual tree.
             foreach (var s in _shapes) DrawCanvas.Children.Remove(s);
             _shapes.Clear();
 
             double cw = DrawCanvas.ActualWidth;
             double ch = DrawCanvas.ActualHeight;
-            // Need enough room for the box plus the field padding (padX=90),
-            // else boxW/availW goes negative and a Rectangle size throws.
+            // Need room for the box plus the field padding, else boxW/availW
+            // goes negative and a Rectangle size throws.
             if (cw < 2 * 90 + 1 || ch < 2 * 50 + 1) return;
 
-            double segSum = ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0)
-                + ParseOr(_seg2.Text, 0) + ParseOr(_seg3.Text, 0) + ParseOr(_drRight.Text, 0);
-            double cutWidth = segSum + _edgeAllowance;
-            double measuredH = ParseOr(_measuredHeight.Text, 2200);
-            double cutHeight = LiftBlanketCalculator.CutHeight(measuredH, _fixingAllowance);
-            // NaN-safe: NaN <= 0 is false, so the old "<= 0" guard let non-finite
-            // geometry through to the WPF setters (which throw). IsFinitePositive
-            // rejects NaN/Infinity/zero/negative.
-            if (!IsFinitePositive(cutWidth) || !IsFinitePositive(cutHeight)) return;
+            // The DRAWN shape uses values when present, else the nominal default
+            // schematic (so a blank form still shows a sensible layout).
+            double drawWidth, drawHeight;
+            if (_isRear)
+            {
+                drawWidth = PositiveOr(ParseOr(_seg1.Text, 0), DefaultWidthMm) + _edgeAllowance;
+                drawHeight = LiftBlanketCalculator.CutHeight(
+                    PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm), _fixingAllowance);
+            }
+            else
+            {
+                double segSum = ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0)
+                    + ParseOr(_seg2.Text, 0) + ParseOr(_seg3.Text, 0) + ParseOr(_drRight.Text, 0);
+                drawWidth = PositiveOr(segSum, DefaultWidthMm) + _edgeAllowance;
+                drawHeight = LiftBlanketCalculator.CutHeight(
+                    PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm), _fixingAllowance);
+            }
+            if (!IsFinitePositive(drawWidth) || !IsFinitePositive(drawHeight)) return;
 
-            double aspect = cutHeight / cutWidth;
-            aspect = Math.Max(0.33, Math.Min(3.0, aspect));
+            double aspect = drawHeight / drawWidth;
+            aspect = Math.Max(0.5, Math.Min(2.0, aspect));   // bias toward square-ish
 
-            double padX = 90, padY = 50;
+            // Fill more of the horizontal space than before (smaller side pad).
+            double padX = 70, padY = 50;
             double availW = cw - 2 * padX, availH = ch - 2 * padY;
             double boxW = availW, boxH = availW * aspect;
             if (boxH > availH) { boxH = availH; boxW = availH / aspect; }
             double boxLeft = (cw - boxW) / 2;
             double boxTop = (ch - boxH) / 2;
 
-            Func<double, double> px = mmX => boxLeft + (mmX / cutWidth) * boxW;
-            Func<double, double> py = mmY => boxTop + boxH - (mmY / cutHeight) * boxH;
+            double measuredForFold = PositiveOr(ParseOr(_measuredHeight.Text, 0), DefaultHeightMm);
+            double foldYmm = LiftBlanketCalculator.HalfHeight(measuredForFold, _fixingAllowance);
+
+            // Map mm (0..drawWidth / 0..drawHeight) to canvas px within the box.
+            Func<double, double> px = mmX => boxLeft + (mmX / drawWidth) * boxW;
+            Func<double, double> py = mmY => boxTop + boxH - (mmY / drawHeight) * boxH;
 
             AddRect(boxLeft, boxTop, boxW, boxH, Brushes.SteelBlue, 2);
+            AddDashed(boxLeft, py(foldYmm), boxLeft + boxW, py(foldYmm), Brushes.HotPink);
 
-            double foldY = LiftBlanketCalculator.HalfHeight(measuredH, _fixingAllowance);
-            AddDashed(boxLeft, py(foldY), boxLeft + boxW, py(foldY), Brushes.HotPink);
+            if (_isRear)
+            {
+                DrawRearFields(boxLeft, boxTop, boxW, boxH);
+            }
+            else
+            {
+                DrawSegmentFields(boxLeft, boxTop, boxW, boxH);
+                DrawCop(px, py, boxLeft, boxTop, boxW, boxH, drawWidth, drawHeight, measuredForFold);
+            }
 
-            double half = _edgeAllowance / 2.0;
+            // Measured-height field on the outer left, both modes.
+            PlaceField(_measuredHeight, boxLeft - 70, boxTop + boxH / 2 - 12);
+        }
 
+        // Left/Right: five segment fields in five EQUAL columns by index, so
+        // they never overlap even when blank/zero. The drawn divider lines use
+        // the real cumulative widths when values exist, else split evenly.
+        private void DrawSegmentFields(double boxLeft, double boxTop, double boxW, double boxH)
+        {
+            var segFields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
+            double colW = boxW / 5.0;
+            for (int i = 0; i < 5; i++)
+            {
+                if (i > 0)
+                {
+                    double xDiv = boxLeft + i * colW;
+                    AddLine(xDiv, boxTop, xDiv, boxTop + boxH, Brushes.LightGray, 0.6);
+                }
+                double colCenter = boxLeft + (i + 0.5) * colW;
+                PlaceField(segFields[i], colCenter - 28, boxTop + boxH + 8);
+            }
+        }
+
+        // Rear: a single Width field centred under the rectangle (reuses the
+        // _seg1 TextBox) + the height field (placed by the caller).
+        private void DrawRearFields(double boxLeft, double boxTop, double boxW, double boxH)
+        {
+            // Park the unused L/R-only fields off-canvas so stale positions
+            // from a previous (non-rear) layout don't linger.
+            HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
+            HideField(_copHeight); HideField(_copGapBottom);
+            _topGapAuto.Visibility = Visibility.Collapsed;
+
+            PlaceField(_seg1, boxLeft + boxW / 2.0 - 28, boxTop + boxH + 8);
+        }
+
+        private void DrawCop(Func<double, double> px, Func<double, double> py,
+            double boxLeft, double boxTop, double boxW, double boxH,
+            double drawWidth, double drawHeight, double measuredForFold)
+        {
             bool copOn = CopEnabled;
-            // Persistent COP fields + auto label: toggle visibility rather than
-            // add/remove so they never float over a COP-less blanket and never
-            // get duplicated.
             _copHeight.Visibility = copOn ? Visibility.Visible : Visibility.Collapsed;
             _copGapBottom.Visibility = copOn ? Visibility.Visible : Visibility.Collapsed;
             _topGapAuto.Visibility = copOn ? Visibility.Visible : Visibility.Collapsed;
+            if (!copOn) return;
 
-            if (copOn)
+            // COP geometry uses values when present, else the default schematic
+            // slot, so the COP shows as a guide even on a blank form.
+            double half = _edgeAllowance / 2.0;
+            double copW = PositiveOr(ParseOr(_seg2.Text, 0), DefaultCopWidthMm);
+            double copH = PositiveOr(ParseOr(_copHeight.Text, 0), DefaultCopHeightMm);
+            double gap = NonNegOr(ParseOr(_copGapBottom.Text, -1), DefaultCopGapMm);
+            double copX0 = half + ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0);
+            // Keep the default COP horizontally centred-ish when no offset typed.
+            if (ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0) <= 0)
+                copX0 = half + (drawWidth - copW) / 2.0;
+
+            double copPxW = (copW / drawWidth) * boxW;
+            double copPxH = (copH / drawHeight) * boxH;
+            if (copPxW > 0 && copPxH > 0)
             {
-                double copH = ParseOr(_copHeight.Text, 1300);
-                double gap = ParseOr(_copGapBottom.Text, 600);
-                double copX0 = half + ParseOr(_drLeft.Text, 0) + ParseOr(_seg1.Text, 0);
-                double copW = ParseOr(_seg2.Text, 0);
-                double copPxW = (copW / cutWidth) * boxW;
-                double copPxH = (copH / cutHeight) * boxH;
-                // A negative/zero COP width or height (mid-type "-", an empty
-                // Seg2, etc.) would make Rectangle.Width/Height throw — skip the
-                // COP rect for this frame but keep drawing the rest of the wall.
-                if (copPxW > 0 && copPxH > 0)
-                {
-                    AddRect(px(copX0), py(gap + copH), copPxW, copPxH, Brushes.Purple, 1.5);
-                }
+                AddRect(px(copX0), py(gap + copH), copPxW, copPxH, Brushes.Purple, 1.5);
+            }
 
-                double topGap = LiftBlanketCalculator.AutoTopGap(measuredH, _fixingAllowance, gap, copH);
+            double measuredTopGap = ParseOr(_measuredHeight.Text, 0);
+            if (measuredTopGap > 0 && IsFinitePositive(copH))
+            {
+                double topGap = LiftBlanketCalculator.AutoTopGap(measuredTopGap, _fixingAllowance, gap, copH);
                 _topGapAuto.Text = "top gap (auto): " +
                     topGap.ToString("0", CultureInfo.InvariantCulture) +
                     (topGap < 0 ? "  crosses fold" : "");
                 _topGapAuto.Foreground = topGap < 0 ? Brushes.Red : Brushes.Gray;
+            }
+            else
+            {
+                _topGapAuto.Text = "top gap (auto)";
+                _topGapAuto.Foreground = Brushes.Gray;
+            }
 
-                PlaceField(_copHeight, px(copX0 + copW) + 6, py(gap + copH));
-                PlaceField(_copGapBottom, px(copX0 + copW) + 6, py(gap) - 12);
-                Place(_topGapAuto, px(copX0 + copW) + 6, py(gap + copH) - 26);
+            PlaceField(_copHeight, px(copX0 + copW) + 6, py(gap + copH));
+            PlaceField(_copGapBottom, px(copX0 + copW) + 6, py(gap) - 12);
+            Place(_topGapAuto, px(copX0 + copW) + 6, py(gap + copH) - 26);
 
-                if (_quiltEnabled)
+            if (_quiltEnabled)
+            {
+                var calc = new LiftBlanketCalculator(_fixingAllowance, _edgeAllowance);
+                var wall = ReadWallModel();
+                if (wall.Width > 0 && wall.MeasuredHeight > 0)
                 {
-                    var calc = new LiftBlanketCalculator(_fixingAllowance, _edgeAllowance);
-                    var wall = ReadWallModel();
-                    WallLayout layout = calc.LayoutWall(wall, 0, "", "",
-                        _quiltEnabled, _quiltSpacing);
+                    WallLayout layout = calc.LayoutWall(wall, 0, "", "", _quiltEnabled, _quiltSpacing);
                     foreach (LineSpec q in layout.QuiltLines)
                     {
                         AddLine(px(q.X0), py(q.Y0), px(q.X1), py(q.Y1),
@@ -222,39 +339,23 @@ namespace CanvasCovers.UI.Controls
                     }
                 }
             }
-            else
-            {
-                _topGapAuto.Text = "";
-            }
-
-            double accum = 0;
-            var segVals = new[] { ParseOr(_drLeft.Text, 0), ParseOr(_seg1.Text, 0),
-                ParseOr(_seg2.Text, 0), ParseOr(_seg3.Text, 0), ParseOr(_drRight.Text, 0) };
-            var segFields = new[] { _drLeft, _seg1, _seg2, _seg3, _drRight };
-            for (int i = 0; i < 5; i++)
-            {
-                double startMm = half + accum;
-                if (i > 0 && startMm > half + 0.001)
-                    AddLine(px(startMm), boxTop, px(startMm), boxTop + boxH, Brushes.LightGray, 0.6);
-                PlaceField(segFields[i], px(startMm + segVals[i] / 2.0) - 28, boxTop + boxH + 8);
-                accum += segVals[i];
-            }
-
-            PlaceField(_measuredHeight, boxLeft - 78, boxTop + boxH / 2 - 12);
         }
+
+        private static double PositiveOr(double v, double fallback) => v > 0 ? v : fallback;
+        private static double NonNegOr(double v, double fallback) => v >= 0 ? v : fallback;
 
         private WallDimensions ReadWallModel()
         {
             var w = new WallDimensions();
-            w.Segments.DoorReturnLeft = ParseOr(_drLeft.Text, 0);
-            w.Segments.Seg1 = ParseOr(_seg1.Text, 0);
-            w.Segments.Seg2 = ParseOr(_seg2.Text, 0);
-            w.Segments.Seg3 = ParseOr(_seg3.Text, 0);
-            w.Segments.DoorReturnRight = ParseOr(_drRight.Text, 0);
-            w.MeasuredHeight = ParseOr(_measuredHeight.Text, 2200);
+            w.Segments.DoorReturnLeft = ParseOr(DrLeftText, 0);
+            w.Segments.Seg1 = ParseOr(Seg1Text, 0);
+            w.Segments.Seg2 = ParseOr(Seg2Text, 0);
+            w.Segments.Seg3 = ParseOr(Seg3Text, 0);
+            w.Segments.DoorReturnRight = ParseOr(DrRightText, 0);
+            w.MeasuredHeight = ParseOr(_measuredHeight.Text, 0);
             w.Cop.Enabled = CopEnabled;
-            w.Cop.Height = ParseOr(_copHeight.Text, 1300);
-            w.Cop.GapFromBottom = ParseOr(_copGapBottom.Text, 600);
+            w.Cop.Height = ParseOr(_copHeight.Text, 0);
+            w.Cop.GapFromBottom = ParseOr(_copGapBottom.Text, 0);
             return w;
         }
 
@@ -277,11 +378,32 @@ namespace CanvasCovers.UI.Controls
             DrawCanvas.Children.Add(line);
             _shapes.Add(line);
         }
+
+        // Adds the field (and its placeholder) to the canvas once, then
+        // repositions. The placeholder sits at the same spot and shows only
+        // while the field is empty (and the field isn't focused).
         private void PlaceField(TextBox tb, double x, double y)
         {
+            tb.Visibility = Visibility.Visible;
             if (!DrawCanvas.Children.Contains(tb)) DrawCanvas.Children.Add(tb);
             Canvas.SetLeft(tb, x); Canvas.SetTop(tb, y);
+
+            TextBlock ph = _placeholders[tb];
+            if (!DrawCanvas.Children.Contains(ph)) DrawCanvas.Children.Add(ph);
+            bool showHint = string.IsNullOrEmpty(tb.Text) && !tb.IsFocused;
+            ph.Visibility = showHint ? Visibility.Visible : Visibility.Collapsed;
+            // Sit the hint over the field (TextBox content padding ~3px).
+            Canvas.SetLeft(ph, x);
+            Canvas.SetTop(ph, y + 3);
+            Panel.SetZIndex(ph, 10);
         }
+
+        private void HideField(TextBox tb)
+        {
+            tb.Visibility = Visibility.Collapsed;
+            if (_placeholders.TryGetValue(tb, out TextBlock ph)) ph.Visibility = Visibility.Collapsed;
+        }
+
         private void Place(UIElement el, double x, double y)
         {
             if (!DrawCanvas.Children.Contains(el)) DrawCanvas.Children.Add(el);
