@@ -113,11 +113,11 @@ namespace CanvasCovers.UI.Controls
         public void SetWallEnabled(bool v) => IncludeWall.IsChecked = v;
         public void SetWallEnabledInteractive(bool enabled) => IncludeWall.IsEnabled = enabled;
 
-        public string DrLeftText => _isRear ? "0" : _drLeft.Text;
+        public string DrLeftText => (_isRear || !CopEnabled) ? "0" : _drLeft.Text;
         public string Seg1Text => _seg1.Text;
-        public string Seg2Text => _isRear ? "0" : _seg2.Text;
-        public string Seg3Text => _isRear ? "0" : _seg3.Text;
-        public string DrRightText => _isRear ? "0" : _drRight.Text;
+        public string Seg2Text => (_isRear || !CopEnabled) ? "0" : _seg2.Text;
+        public string Seg3Text => (_isRear || !CopEnabled) ? "0" : _seg3.Text;
+        public string DrRightText => (_isRear || !CopEnabled) ? "0" : _drRight.Text;
         public string MeasuredHeightText => _measuredHeight.Text;
         public string CopHeightText => _copHeight.Text;
         public string CopGapBottomText => _copGapBottom.Text;
@@ -145,7 +145,12 @@ namespace CanvasCovers.UI.Controls
             double ch = DrawCanvas.ActualHeight;
             if (cw < 360 || ch < 300) return;   // need room for the fixed sheet
 
+            // Seg1 is the single Width box for the rear wall AND for an L/R wall
+            // with the COP turned off.
+            _labels[_seg1].Text = (_isRear || !CopEnabled) ? "Width" : "S1";
+
             if (_isRear) DrawRearSheet(cw, ch);
+            else if (!CopEnabled) DrawSingleWidthSheet(cw, ch);
             else DrawWallSheet(cw, ch);
         }
 
@@ -272,6 +277,37 @@ namespace CanvasCovers.UI.Controls
                 StrokeDashArray = new DoubleCollection { 4, 3 },
             };
             DrawCanvas.Children.Add(line); _shapes.Add(line);
+        }
+
+        // Left/Right wall with COP OFF: a plain rectangle with a single Width +
+        // Height, identical handling to the rear wall. The total width is stored
+        // in Seg1 (the other segment getters return "0"), so the calculator sees
+        // a plain rectangle of the entered width.
+        private void DrawSingleWidthSheet(double cw, double ch)
+        {
+            HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
+            HideField(_copHeight); HideField(_copGapBottom);
+
+            double left = 90, right = cw - 110;
+            double top = 56, bottom = ch - 96;
+            if (right - left < 120 || bottom - top < 120) return;
+
+            double availH = bottom - top;
+            double maxW = availH * 1.20;
+            double wWall = Math.Min(right - left, maxW);
+            double cx0 = (left + right) / 2;
+            left = cx0 - wWall / 2;
+            right = cx0 + wWall / 2;
+            double w = right - left, h = bottom - top;
+
+            AddRect(left, top, w, h, WallStroke, 2);
+
+            double dimY = bottom + 14;
+            AddHDim(left, right, dimY);
+            PlaceLabeledFieldBelow(_seg1, (left + right) / 2 - FieldW / 2, bottom + 26);
+
+            AddVDim(right + 18, top, bottom);
+            PlaceLabeledField(_measuredHeight, right + 30, top + h / 2 - FieldH / 2);
         }
 
         // ---- Rear: a plain rectangle with Width + Height ----
