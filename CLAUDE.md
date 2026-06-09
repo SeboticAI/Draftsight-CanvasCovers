@@ -531,6 +531,15 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   bounding-box variant only if you need genuine wrap behaviour — for
   per-line text in a layout, stack individual `InsertSimpleNote`
   calls instead.
+- **`InsertSimpleNote`'s `Angle` argument is in RADIANS, not degrees.**
+  The DraftSight *command-line* NOTE prompt takes degrees (typing 180
+  gives upside-down text), so it is natural to assume the API does too —
+  it does not. Passing `180` rotates the text by 180 *radians* (≈ 233°),
+  which renders it tilted at a wild angle (this bit us on the inverted
+  blanket text and the vertical COP reminders). Keep label angles in
+  degrees in your own model/specs (clearer, unit-testable) and convert
+  at the SDK boundary: `InsertSimpleNote(..., degrees * Math.PI / 180.0,
+  ...)`. 180° → π (upside-down), 90° → π/2 (vertical).
 - **Default DIMSTYLE text is millimetre-scale.** With drawing units
   in mm and walls measured in thousands, the out-of-the-box dim text
   + arrowheads are invisibly small. There is no `IDimensionStyle.

@@ -10,16 +10,30 @@ below. The build-now batch is unblocked. A handful of **small open questions**
 remain (marked "Open Q" inline) — none block starting; they can be confirmed as
 each item is built.
 
-**IMPLEMENTATION STATUS (2026-06-09, branch `feat/beta-review-changes`):** the
-build-now batch is **IMPLEMENTED and committed** — items 1, 2, 3, 4, 5, 6, 7, 8,
-10+11, 12, 13, 14, 15, 16, 18, 19, 20. 41 headless tests pass; both projects
-build clean. Installer bumped to **1.5.0**. **Not yet live-tested in DraftSight**
-— awaiting an install + smoke test (esp. inverted text rendering, COP-reminder
-fit, no host crash). Item 18 = no code change (current width+height dims kept;
-confirm against the template). Plan + per-phase commits in
+**IMPLEMENTATION STATUS (2026-06-10, merged to `main`, v1.5.0):** the build-now
+batch is **IMPLEMENTED, LIVE-TESTED, and merged** — items 1, 2, 3, 4, 5, 6, 7,
+8, 10+11, 12, 13, 14, 15, 16, 18, 19, 20. 42 headless tests pass; add-in +
+installer build clean. Plan + per-phase commits in
 `docs/superpowers/plans/2026-06-09-beta-review-changes.md`.
-Still deferred: 9 (optional, manual for now), 17 (needs explaining), 21
-(parked); not-add-in: 22-25; future: 27-28.
+
+Two live-test fix rounds were applied after the first install:
+- **Height seeding** had copied only the first keystroke (seed-when-empty fired
+  per character) → now mirrors the full left height via a dirty-flag that stops
+  once the operator types their own value.
+- **COP-off reshaped the wall** → reverted; unticking COP now only hides the COP
+  rectangle + its fields. **Total width** is a separate optional override field
+  (segments stay usable). **Width-mismatch warning** is now a LIVE banner.
+- **Blanket text / COP reminders were tilted** → `InsertSimpleNote` angle is
+  RADIANS, not degrees; convert at the SDK boundary (CLAUDE.md §9). Blanket text
+  is now proper upside-down (180°), reminders proper vertical (90°), text 25mm.
+
+Item 18 = no code change (current width+height dims kept; confirm against the
+template during review). Still deferred: 9 (optional, manual for now), 17 (needs
+explaining), 21 (parked); not-add-in: 22-25; future: 27-28.
+
+**Open for the review/optimisation sessions:** confirm exact blanket-text height
+(25 vs 30mm), total-width field placement, COP-reminder spacing, and the five
+small open questions below.
 
 **Release note:** outlines are now drawn at the entered width (the old +10mm
 boost is gone), so generated outlines are ~10mm narrower than v1.4.5 — Martin
