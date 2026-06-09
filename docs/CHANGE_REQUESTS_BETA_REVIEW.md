@@ -4,243 +4,268 @@ Source: Adelaide Annexes & Canvas (Martin) review meeting following the v1.4.5
 beta. This document captures the agreed scope, effort, and status for each of
 the **28** requested changes, numbered to match the client's spreadsheet.
 
-**Status of this document:** the summary below was sent to Martin to confirm we
-understood each item correctly. **Awaiting his confirmation before any build
-starts.** No production code has been changed yet — this pass was scoping only.
+**Status: CLIENT CONFIRMED (2026-06-09).** Martin reviewed the scoping summary
+and responded item by item; his confirmations and refinements are folded in
+below. The build-now batch is unblocked. A handful of **small open questions**
+remain (marked "Open Q" inline) — none block starting; they can be confirmed as
+each item is built.
 
 **Effort scale:** Trivial / Small / Medium / Large.
-
-**Two small assumptions flagged to Martin** (noted inline): item 5 (total-width
-and "Include COP" are mutually exclusive) and item 14 (BAG via a checkbox;
-fixing-type text automatic). Plus the final tab name (item 26).
 
 **Coordination note:** items **5, 10+11, 13** all touch width/quilting logic in
 `LiftBlanketCalculator`. They share a blast radius and should be built in one
 coordinated pass (with the test suite as the safety net), not scattered across
 separate installers.
 
+**Open questions still to confirm with Martin (all minor):**
+- Keep or drop the **Date** field? (not in his confirmed field list — item 1)
+- Does the **blanket text** keep the L/R/B wall suffix to distinguish walls?
+  (item 3/12)
+- Is **self-adhesive Velcro** a distinct dropdown entry, or does the existing
+  Velcro (also 0) cover it? (item 7)
+- Which exact **return boxes** does the velcro-corners tickbox fill? (item 9)
+- **Item 17** needs explaining to Martin (he didn't understand it) — or drop it.
+
 ---
 
 ## Form & input fields
 
-### 1 — Remove unused fields · Trivial · Build
-Remove the textboxes for Sales contact, Measured by, Order number, Mobile, and
-Notes (all on the client's paperwork already). Also strip the matching
-properties in `ProjectMetadata.cs` and the lines that print them in
-`LiftBlanketGenerator.cs`, so the form and the generated drawing stay
-consistent.
+### 1 — Field set (confirmed) · Small · Build
+Martin's confirmed field list — **NOTE the reversal: Order number is KEPT**, not
+removed as originally planned. Final fields:
 
-### 2 — Keep Company / Network / Project; add Canvas/Production number · Trivial · Build
-Keep the three existing fields. Add one new "Canvas/Production number" property,
-one XAML row, and a Read/Apply line — mirroring the existing fields.
+- **Company name** — the customer's company name.
+- **Company Initials** — NEW free-text field. AAC's code identifying the
+  customer + depot (e.g. Kone Melbourne = KM, Otis Perth = OP). Becomes the
+  MIDDLE section of the blanket text.
+- **Network number** — provided by the customer. THIRD section of the blanket
+  text.
+- **AAC Order number** — from AAC's MYOB program. FIRST section of the blanket
+  text. (This is the existing OrderNumber field, kept and relabelled — it was
+  originally slated for removal.)
+- **Project name** — job description; not used in the blanket text, just sits in
+  the diagram so the job can be double-checked later (easier than re-reading a
+  long network number).
 
-### 3 — File naming (print string) · Small · Parked
-Save using the concatenated print string = production note no. + customer code
-(KS/SP/OT/OCT) + network no. The same string is used for both the print label
-and the saved filename. Logic is isolated and unit-tested in
-`DxfExporter.Filename.cs`, so it's safe to change.
-**Parked** pending the meeting detail: where the **customer code** comes from
-(a new field the user selects/types, vs derived from existing data). That is the
-swing factor on effort.
+REMOVE: Sales contact, Measured by, Mobile, Notes. Strip their textboxes, the
+matching properties in `ProjectMetadata.cs`, and the lines that print them in
+`LiftBlanketGenerator.cs`.
+*Open Q:* the **Date** field isn't in Martin's list — keep (harmless, on the
+template) or drop?
+
+### 2 — Canvas/Production number · Superseded by item 1
+Martin: "covered in item one." The original "Canvas/Production number" idea is
+replaced by the new **Company Initials** + **AAC Order number** fields. No
+separate Canvas/Production field.
+
+### 3 — Blanket text + file naming (confirmed, fully specified) · Small · Build
+The text printed on the blanket is the **"blanket text"**, a concatenation with
+a space between three sections:
+
+```
+<AAC order number> <company initials> <network number>
+```
+
+- The **same string** is used for the printed blanket text AND the saved
+  filename.
+- Printed on **all** blankets, **upside down** (180°), **~25mm down from the
+  top** (becomes the bottom when folded — see item 12 for placement).
+- Text height: 20 is fine if everything is otherwise unchanged; target is
+  ~25–30mm high. (Martin finds the 20 number confusing across drawings but
+  accepts it if behaviour is unchanged.)
+
+This unblocks the previously-parked file-naming work — the customer code is the
+new Company Initials field. Logic is isolated and unit-tested in
+`DxfExporter.Filename.cs`. The blanket-text content also changes the per-wall
+identifier label currently built by `BuildProjectTag` in the generator.
+*Open Q:* does the blanket text keep the L/R/B wall suffix to distinguish walls?
 
 ---
 
 ## Calculation & input behaviour
 
-### 4 — Auto-populate right + rear height from left · Small · Build
-When the left-wall height is entered, copy it into the right and rear walls **as
-a placeholder only**. The fields are independent thereafter — editing the right
-or rear height never changes the left. One-way seed, no two-way binding.
-(Note: the right wall is **not** gaining three separate height inputs — it
-receives the single copied value.)
+### 4 — Auto-populate height only (confirmed) · Small · Build
+Pre-populate the **height** of the right wall and rear wall from the left wall
+height, as a placeholder. **Nothing else** is pre-populated — Martin wants all
+other boxes entered manually because "weird things" occasionally occur and
+forcing manual entry is safer. One-way seed; fields independent thereafter.
 
-### 5 — Optional total-width input · Small–Medium · Build
-The five-segment system stays unchanged. Add a **separate total-width box** that
-is only usable when "Include COP" is **off**; it feeds the cut width directly,
-bypassing the segment sum. Because COP placement only exists when COP is on, the
-COP/segment maths is never involved, so there's no risk to the working COP
-logic.
-*Assumption (confirm):* total-width and "Include COP" are mutually exclusive in
-the UI.
+### 5 — Optional total-width input (confirmed) · Small · Build
+Confirmed mutually exclusive: when "Include COP" is **unticked**, the segment
+boxes collapse so the operator enters a **single total width**. The five-segment
+system is otherwise unchanged. Total width feeds the cut width directly; the
+COP/segment maths is never involved (no COP when COP is off).
 
 ### 6 — Fixing allowance auto-populates from fastener · Small · Build (with 7)
-The auto-populate-with-override mechanism already exists. The real work is adding
-the missing **Eyelet** fixing type: a new `FixingType.Eyelet` enum member, a
-dropdown entry, and a `30` case in `FixingAllowance.cs`. This also closes a
-latent bug where a fixing type with no explicit case silently returns 0.
+The auto-populate-with-override mechanism already exists. Real work is adding the
+missing **Eyelet** fixing type — see item 7.
 
-### 7 — Confirm fixing values (Hooks 50 / Press studs 40 / Eyelets 30) · Trivial · Build (with 6)
-Confirmed values, auto-populated from the fixing selection, user-overridable for
-special cases. TG9/TG7 are **display text only** and share the same value (30) —
-so one allowance, optionally two dropdown labels pointing at it. Built together
-with item 6.
+### 7 — Fixing types & values (confirmed) · Small · Build (with 6)
+Confirmed allowances, auto-populated from the fixing selection, user-overridable:
+
+- Hooks (facing in / out): **−50**
+- Press studs: **−40**
+- Eyelet (TG9 / TG7): **−30** (TG9/TG7 are display labels only; same value)
+- Velcro: **0**
+- Self-adhesive Velcro: **0** — Martin noted this type (stick-on Velcro the
+  blanket adheres to, no added height).
+
+Work: add an **Eyelet** member to `FixingType` (value 30 in `FixingAllowance.cs`)
+— this also closes a latent bug where a fixing with no explicit case silently
+returns 0.
+*Open Q:* is self-adhesive Velcro a SEPARATE dropdown entry, or does the existing
+Velcro (also 0) already cover it? Both are 0, so functionally identical — only a
+label difference.
 
 ### 8 — Show allowance in dropdown text · Trivial · Build (with 6/7)
-Show the allowance in the fastener dropdown, e.g. "Hooks facing in (−50)". Edit
-the dropdown item labels. Source the label text and the value from the same
-place as items 6/7 so they cannot drift apart.
+e.g. "Hooks facing in (−50)". Source the label text and value from the same
+place as items 6/7 so they can't drift.
 
-### 9 — Velcro corners (optional 50mm return on L & R) · Medium · Parked (future)
-Optionally auto-add a 50mm return on the left and right side walls (back wall
-stays standard). This is real new geometry — it changes cut width / COP offset /
-quilting bounds. Flagged by the client as a **future** feature; parked.
+### 9 — Velcro corners tickbox (reframed — much simpler) · Small · Build (low priority)
+Martin reframed this: it does **NOT** alter width / COP / quilting as new
+geometry. It's simply a **tickbox that auto-populates the return boxes** on the
+left and right walls with the 50mm return (back wall unchanged). It reuses the
+existing door-return mechanism — the operator can already enter these manually.
+Effort drops from Medium to Small; Martin is happy to enter manually for now, so
+low priority.
+*Open Q:* which return boxes exactly — the rear return on each side wall (two
+total)?
 
 ---
 
 ## Edge & quilting allowances
 
 ### 10 + 11 — Outline = true width; quilt inset its own value · Small · Build (one unit)
-Currently a single value (`EdgeAllowanceMm`) does two jobs: it boosts the
-outline width **and** sets the quilting inset. Per the client:
-
-- **Outline is always the true width** — the overall total or the sum of the
-  five segments. No automatic boost. The operator adds the 10mm shrinkage
-  themselves when entering sizes.
-- **Quilt inset becomes its own user-inputable field** ("Quilt Inset (mm)"),
-  default **5mm**, may be set lower. It only pulls the quilting lines inward from
-  the outline by that amount.
-
-So: remove the width-boost job entirely, remove the old "Edge Allowance" field,
-and add the new "Quilt Inset" field feeding the quilt-line clearance.
-*Note:* generated outlines become ~10mm narrower than v1.4.5 (intended) — worth
-a release-note line. The COP horizontal-offset math simplifies accordingly; the
-test suite covers the knock-on.
+No input required from Martin (confirmed earlier). A single value
+(`EdgeAllowanceMm`) currently does two jobs. **Delete the width-boost** (outline
+= exactly the entered size — overall total or sum of segments; the operator adds
+their own 10mm shrinkage manually) and **promote the inset to a new user field**
+"Quilt Inset (mm)", default **5mm**, can go lower. Remove the old "Edge
+Allowance" field. *Note:* generated outlines become ~10mm narrower than v1.4.5
+(intended — release-note it). COP horizontal-offset math simplifies; tests cover
+the knock-on.
 
 ---
 
 ## Drawing output
 
-### 12 — Move printed blanket text to bottom-centre, inverted, fixed · Small–Medium · Build
-Move the printed blanket text to the bottom-centre of each panel, inverted at the
-very top of the boxes (which becomes the bottom when folded), ~25mm up from the
-edge to clear the binding. Fixed position so it does not shift as the blanket
-width changes. Coordinate change in the calculator (testable). "Inverted" = 180°
-rotation; one on-host check needed to confirm `InsertSimpleNote`'s angle
-parameter renders rotated text.
+### 12 — Move blanket text to bottom-centre, inverted, fixed (confirmed) · Small · Build
+Move the blanket text (item 3) to the bottom-centre of each panel, inverted at
+the very top of the boxes (becomes the bottom when folded), ~25mm down from the
+top to clear the binding. Fixed position so it doesn't shift with width.
+Martin confirmed the `InsertSimpleNote` flow: set text height first, then the
+angle — **180 gives upside-down** (he does the equivalent manually by drawing the
+line). The on-host rotation risk is resolved.
 
 ### 13 — Refine quilting line spacing · Small · Build
-Refine the internal spacing distribution only. The **first line at the returns
-and the return behaviour stay exactly as they are today** — this is a tweak to
-the even-spacing logic, not a re-specification. Existing quilting tests continue
-to protect the kept behaviour. (Precise "what's off about current spacing" to be
-provided at build time.)
+No input required. Internal spacing distribution only — the **first line at the
+returns and the return behaviour stay exactly as today**. A tweak to the
+even-spacing logic, not a re-spec. Existing quilting tests protect the kept
+behaviour.
 
-### 14 — Reminders inside the COP cutout · Small · Build
-Print reminders onto the draw layer **inside the COP cutout** (the panel that
-gets cut out and binned) so the operator can't miss them — e.g. "BAG" when a
-storage bag is required, plus the fixing type. A checkbox toggles the reminder;
-the text is placed inside the COP rectangle and sized to fit.
-*Assumption (confirm):* BAG is driven by a checkbox; the fixing-type text is
-automatic (already on the job).
+### 14 — Reminders inside the COP cutout — VERTICAL (confirmed) · Small · Build
+Print reminders onto the draw layer inside the COP cutout (the panel that gets
+cut out and binned) so the operator can't miss them — e.g. "BAG" when a storage
+bag is required, plus the fixing type. Martin: make the reminder text
+**vertical** so it fits the cutout more easily. Checkbox toggles the reminder;
+fixing-type text is automatic.
 
 ### 15 — Glass-behind label checkbox · Trivial · Build
-Add an optional checkbox for a glass-behind label (from the rectangle template).
-New checkbox + one conditional text insert — same shape as the existing plastic-
-cover option.
+No input required. New checkbox + one conditional text insert — same shape as the
+existing plastic-cover option.
 
 ---
 
 ## Validation & user feedback
 
-### 16 — Warn when L & R wall total widths don't match · Trivial · Build
-Cars are square, so a left/right mismatch is a data error (often leftover from a
-previous order). Live, **non-blocking** warning shown as the operator enters
-values — a caution, not a hard block.
+### 16 — Warn on L/R width mismatch — WARNING ONLY (confirmed) · Trivial · Build
+Live, **non-blocking** warning. Martin stressed it must be **just a
+warning/reminder**, because lifts with one angled COP will legitimately have a
+left/right mismatch — it must never block.
 
-### 17 — General sanity-check warnings · Small (per rule) · Parked
-General warnings for values that don't make sense. The validation framework
-already exists, so each defined rule is cheap. **Parked** until the client
-provides the actual list of checks — "values that don't make sense" is not
-estimable as stated.
+### 17 — General sanity-check warnings · Unclear · Needs clarification / candidate to drop
+Martin didn't understand this item ("I'm not sure what this one means"). It
+originated as our suggested category. **Action:** explain it to Martin with
+concrete examples (e.g. "COP wider than the wall", "height below a sane minimum",
+"spacing larger than the wall") so he can decide which rules he wants — or drop
+the item. Not estimable until then.
 
-### 18 — Auto-dimension key measurements · Small–Medium (lean Small) · Build
-Auto-dimension the **key** measurements (width / height / COP — not exhaustive)
-so drawings can be checked visually rather than re-measured. Partly built already
-(width + height dimensions exist). Known SDK gotchas are already handled (aligned
-dimensions; `DIMSCALE` for visible text).
+### 18 — Auto-dimension — template dimensions only (confirmed) · Small · Mostly built
+Martin: don't add lots of dimensions — they're only for peace of mind until the
+add-in is fully trusted. **Use only the dimensions that already appear on the
+template drawings.** The generator already emits width + height dims, so this is
+near-complete; verify it matches the template and stop there.
 
 ---
 
 ## Layers
 
 ### 19 — Remove the Defpoints layer · Trivial · Build
-Delete the Defpoints entry from `DefaultLayers()` in `LayerSettings.cs`. Rows
-rebuild automatically and no role points at it.
+No input required. Delete the Defpoints entry from `DefaultLayers()` in
+`LayerSettings.cs`.
 
 ### 20 — Keep other cutting-tool layers + tickboxes + colours · No-op · Already built
-Keep the other cutting-tool layers (rotary blade, drag blade, crease, draw/text)
-for future products; keep the tickbox to assign elements to layers and change
-colours. This already works in `LayersPanel` — the item is "don't remove it."
+No input required. Already works in `LayersPanel`.
 
 ---
 
 ## Duplicate / reuse
 
-### 21 — Clear-or-keep between blankets on the same job · Medium · Parked
-A clear-or-keep option between blankets on the same job, ideally a forced prompt
-so old data can't carry over accidentally. Net-new window lifecycle: the window
-currently closes on Generate, so this means keeping it open and selectively
-resetting fields (on the COM UI thread). **Parked** for now.
+### 21 — Clear-or-keep between blankets · Medium · Parked
+Martin: "over my head" — deferred. Net-new window lifecycle (the window currently
+closes on Generate). Parked.
 
 ---
 
 ## Settings & environment — handled outside the add-in
 
-These were resolved in the meeting as **DraftSight profile/settings** work, not
-add-in code.
-
-### 22 — Standardise model background to RGB 254, 250, 220 · Not add-in work
-DraftSight application setting, applied via the profile.
+### 22 — Standardise model background to RGB 254, 250, 220 · Done
+Martin: "already done." DraftSight profile setting.
 
 ### 23 — Fix dimension text size · Not add-in work
-Symptom of multi-machine settings drift; handled via the standardised profile.
+No input required. Handled via the standardised profile.
 
 ### 24 — Research/standardise the DraftSight settings profile (XML) · Not add-in work
-The proper fix for 22/23 across home, work, and dev machines. A settings/profile
-task outside the codebase.
+No input required. The proper fix for 22/23 across home/work/dev machines.
 
 ### 25 — Ribbon vs menu display · Resolved — fix Martin's setup, not code
-The add-in registers a ribbon tab correctly. Martin's instance was in classic-
-menu mode (File, Edit, …) with no full ribbon, so the add-in rendered as a
-separate ribbon-style menu. **Decision:** switch Martin to the ribbon workspace
-as part of the profile setup (items 22–24). Building menu/toolbar support was
-explicitly rejected — it is the SDK's documented crash zone (CLAUDE.md §9). The
-typed-command fallback `CANVASCOVERSOPEN` already exists as a safety net for any
-misconfigured machine.
+No input required. Switch Martin to the ribbon workspace via the profile setup.
+Menu/toolbar support was rejected (SDK crash zone, CLAUDE.md §9). The
+typed-command fallback `CANVASCOVERSOPEN` exists as a safety net.
 
-### 26 — Confirm the tab name · Trivial · Confirm
-One-string change wherever the name lands. Current window title:
-"Adelaide Annexes & Canvas — Lift Blanket Generator". Awaiting the final name
-from the client.
+### 26 — Tab name · Resolved
+Martin: "name is okay." Keep the current window title
+("Adelaide Annexes & Canvas — Lift Blanket Generator"). No change.
 
 ---
 
 ## Future / likely scope increase — quote separately
 
-### 27 — Split panels wider than 3m into two walls · Large · Future / separate quote
-Fundamentally changes the segment-driven calculator: one wall can become two cut
-pieces, which ripples through the calculator, the generator's wall layout, COP
-placement, quilting, dimensioning, and the per-wall-tab UI. Design-first;
-separate quote.
+### 27 — Split panels wider than 3m into two walls · Large · Future (manual for now)
+Martin: "we will do this manually for now." Deferred.
 
-### 28 — 45-degree COP wall variant · Large · Future / separate quote
-An angled wall with the COP in the 45° section, effectively moving the COP into
-the return. The geometry engine is axis-aligned (`RectSpec` has no rotation), so
-an angled wall breaks that assumption throughout. Effectively a new product
-variant. Design-first; separate quote.
+### 28 — 45-degree COP wall variant · Large · Future (manual for now)
+Martin: "we will do this manually for now." Deferred.
 
 ---
 
 ## Summary
 
-**Build now (next-installer batch):** 1, 2, 4, 5, 6, 7, 8, 10+11, 12, 13, 14,
-15, 16, 18, 19, 20, 26 — mostly Trivial/Small, on the tested calculator or
-isolated UI. The items with real substance: 5 (alternate input mode), 10+11 (the
-allowance refactor), 12 (text placement + rotation check), 18 (dimensions).
+**Build now (next-installer batch):** 1, 3, 4, 5, 6, 7, 8, 10+11, 12, 13, 14,
+15, 16, 18, 19, 20 — all confirmed. (2 is folded into 1; 9 is an optional
+low-priority Small; 26 is resolved.) The items with real substance: 5 (alternate
+input mode), 10+11 (the allowance refactor), 12 (text placement, rotation
+confirmed), 3 (blanket-text builder shared by print + filename + per-wall label).
 
-**Parked (need input or deferred):** 3 (customer-code source), 9 (future), 17
-(client's rule list), 21 (deferred lifecycle work).
+**Reuse the calculator pass:** build 5, 10+11, 13 together (shared blast radius).
 
-**Not add-in work (DraftSight profile/settings):** 22, 23, 24, 25.
+**Needs a quick word with Martin before/while building (minor):** Date field
+keep/drop (1), wall-suffix in blanket text (3), self-adhesive Velcro label (7),
+which return boxes (9), and explaining item 17 (or dropping it).
 
-**Future / separate quote:** 27, 28.
+**Parked / deferred:** 9 (optional, manual for now), 17 (needs explanation), 21
+(over Martin's head).
+
+**Not add-in work (DraftSight profile/settings):** 22 (done), 23, 24, 25.
+
+**Future / manual for now:** 27, 28.
