@@ -142,11 +142,13 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixings Required" />
-                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="2" SelectionChanged="FixingsInput_SelectionChanged">
-                                <ComboBoxItem Content="Velcro" Tag="Velcro" />
-                                <ComboBoxItem Content="Hooks Facing In" Tag="HooksFacingIn" />
-                                <ComboBoxItem Content="Hooks Facing Out" Tag="HooksFacingOut" />
-                                <ComboBoxItem Content="Press Studs" Tag="PressStuds" />
+                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="3" SelectionChanged="FixingsInput_SelectionChanged">
+                                <ComboBoxItem Content="Velcro (0)" Tag="Velcro" />
+                                <ComboBoxItem Content="Self-adhesive Velcro (0)" Tag="SelfAdhesiveVelcro" />
+                                <ComboBoxItem Content="Hooks Facing In (-50)" Tag="HooksFacingIn" />
+                                <ComboBoxItem Content="Hooks Facing Out (-50)" Tag="HooksFacingOut" />
+                                <ComboBoxItem Content="Press Studs (-40)" Tag="PressStuds" />
+                                <ComboBoxItem Content="Eyelet (-30)" Tag="Eyelet" />
                             </ComboBox>
                         </Grid>
                         <Grid Margin="0,8,0,0">

@@ -281,9 +281,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             switch (fixing)
             {
                 case FixingType.Velcro: return "Velcro";
+                case FixingType.SelfAdhesiveVelcro: return "Self-adhesive Velcro";
                 case FixingType.HooksFacingIn: return "Hooks Facing In";
                 case FixingType.HooksFacingOut: return "Hooks Facing Out";
                 case FixingType.PressStuds: return "Press Studs";
+                case FixingType.Eyelet: return "Eyelet";
                 default: return fixing.ToString();
             }
         }

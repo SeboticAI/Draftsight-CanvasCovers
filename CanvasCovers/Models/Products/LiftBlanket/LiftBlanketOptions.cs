@@ -6,6 +6,8 @@ namespace CanvasCovers.Models.Products.LiftBlanket
         HooksFacingIn,
         HooksFacingOut,
         PressStuds,
+        Eyelet,
+        SelfAdhesiveVelcro,
     }
 
     public class LiftBlanketOptions
