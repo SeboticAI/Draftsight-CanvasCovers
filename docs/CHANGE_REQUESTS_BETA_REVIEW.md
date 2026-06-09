@@ -10,6 +10,21 @@ below. The build-now batch is unblocked. A handful of **small open questions**
 remain (marked "Open Q" inline) — none block starting; they can be confirmed as
 each item is built.
 
+**IMPLEMENTATION STATUS (2026-06-09, branch `feat/beta-review-changes`):** the
+build-now batch is **IMPLEMENTED and committed** — items 1, 2, 3, 4, 5, 6, 7, 8,
+10+11, 12, 13, 14, 15, 16, 18, 19, 20. 41 headless tests pass; both projects
+build clean. Installer bumped to **1.5.0**. **Not yet live-tested in DraftSight**
+— awaiting an install + smoke test (esp. inverted text rendering, COP-reminder
+fit, no host crash). Item 18 = no code change (current width+height dims kept;
+confirm against the template). Plan + per-phase commits in
+`docs/superpowers/plans/2026-06-09-beta-review-changes.md`.
+Still deferred: 9 (optional, manual for now), 17 (needs explaining), 21
+(parked); not-add-in: 22-25; future: 27-28.
+
+**Release note:** outlines are now drawn at the entered width (the old +10mm
+boost is gone), so generated outlines are ~10mm narrower than v1.4.5 — Martin
+adds shrinkage manually when entering sizes (items 10+11).
+
 **Effort scale:** Trivial / Small / Medium / Large.
 
 **Coordination note:** items **5, 10+11, 13** all touch width/quilting logic in
