@@ -215,11 +215,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
         private static string BuildProjectTag(ProjectMetadata project)
         {
-            if (project == null) return string.Empty;
-            string net = (project.NetworkNumber ?? "").Trim();
-            string name = (project.ProjectName ?? "").Trim();
-            // Reference DXFs label walls "<net> <name>" e.g. "12346 TEST 12346".
-            return (net + " " + name).Trim();
+            // Per-wall label is the blanket text: "<order> <initials> <network>".
+            return CanvasCovers.Models.Products.LiftBlanket.BlanketText.Build(project);
         }
 
         // ---- Annotation/legend text (free-floating, layer 0), mirroring the
@@ -243,12 +240,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             List<string> lines = new List<string>
             {
                 "COMPANY - " + Display(job.Project.CompanyName),
-                "PROJECT NAME - " + Display(job.Project.ProjectName),
+                "COMPANY INITIALS - " + Display(job.Project.CompanyInitials),
+                "AAC ORDER NO - " + Display(job.Project.OrderNumber),
                 "NETWORK NO - " + Display(job.Project.NetworkNumber),
-                "O / NO - " + Display(job.Project.OrderNumber),
-                "SALES CONTACT - " + Display(job.Project.SalesContact),
-                "MOBILE - " + Display(job.Project.Mobile),
-                "MEASURED BY - " + Display(job.Project.MeasuredBy),
+                "PROJECT NAME - " + Display(job.Project.ProjectName),
                 "DATE - " + dateStr,
                 string.Empty,
                 "FIXINGS REQUIRED - " + FixingLabel(job.Options.Fixings).ToUpperInvariant(),
@@ -256,14 +251,6 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 "THROUGH CAR - " + YesNo(job.Options.ThroughCar),
                 "PLASTIC COVER ON COP - " + YesNo(job.Options.PlasticCoverOnCop),
             };
-
-            string notes = (job.Project.Notes ?? string.Empty).Trim();
-            if (notes.Length > 0)
-            {
-                lines.Add(string.Empty);
-                lines.Add("NOTES");
-                lines.Add(notes);
-            }
 
             lines.Add(string.Empty);
             lines.Add("FIXINGS");

@@ -6,23 +6,17 @@ namespace CanvasCovers.Models
     {
         public string CompanyName { get; set; }
 
+        // AAC's customer+depot code, e.g. Kone Melbourne = KM. The MIDDLE
+        // section of the blanket text (order + initials + network).
+        public string CompanyInitials { get; set; }
+
         public string NetworkNumber { get; set; }
+
+        // AAC order number from MYOB. The FIRST section of the blanket text.
+        public string OrderNumber { get; set; }
 
         public string ProjectName { get; set; }
 
-        public string SalesContact { get; set; }
-
-        public string MeasuredBy { get; set; }
-
-        public string OrderNumber { get; set; }
-
-        public string Mobile { get; set; }
-
         public DateTime? Date { get; set; }
-
-        // Free-form notes / delivery instructions — mirrors the NOTES block
-        // on the Adelaide Annexe measurement sheet. Rendered as a full-width
-        // row at the bottom of the title block when non-empty.
-        public string Notes { get; set; }
     }
 }
