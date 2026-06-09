@@ -17,9 +17,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
     // No DraftSight types here so it can be unit-tested headlessly.
     public class LiftBlanketCalculator
     {
-        // Wall identifier labels ("<net> <name> L/R/B") are text height 20
-        // in the client's reference DXFs — match that.
-        private const double IdentifierTextHeight = 20.0;
+        // Blanket-text height in mm. Martin wants ~25–30mm (20 was hard to
+        // read across drawings). 25 sits in his range; adjust if he wants
+        // larger. Also used for the COP-cutout reminder text.
+        private const double IdentifierTextHeight = 25.0;
 
         // Blanket text sits this far down from the top edge (which becomes the
         // bottom when the blanket is folded), fixed so it doesn't move with

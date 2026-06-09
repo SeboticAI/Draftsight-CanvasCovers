@@ -170,7 +170,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 layers.Activate(_layerSettings.Cop.Name);
                 foreach (LabelSpec rem in layout.CopReminders)
                 {
-                    SimpleNote n = sketch.InsertSimpleNote(rem.X, rem.Y, 0, rem.Height, rem.Angle, rem.Text);
+                    SimpleNote n = sketch.InsertSimpleNote(rem.X, rem.Y, 0, rem.Height, Rad(rem.Angle), rem.Text);
                     if (n != null) n.Justify = dsTextJustification_e.dsTextJustification_Middle;
                     else FailedInsertCount++;
                 }
@@ -192,7 +192,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             {
                 layers.Activate(_layerSettings.Annotation.Name);
                 LabelSpec lab = layout.IdentifierLabel.Value;
-                SimpleNote note = sketch.InsertSimpleNote(lab.X, lab.Y, 0, lab.Height, lab.Angle, lab.Text);
+                SimpleNote note = sketch.InsertSimpleNote(lab.X, lab.Y, 0, lab.Height, Rad(lab.Angle), lab.Text);
                 if (note != null) note.Justify = dsTextJustification_e.dsTextJustification_Middle;
                 else FailedInsertCount++;
             }
@@ -290,6 +290,12 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 sketch.InsertSimpleNote(originX, baseline, 0, ProjectTextHeight, 0.0, text);
             }
         }
+
+        // DraftSight's InsertSimpleNote takes its rotation angle in RADIANS.
+        // LabelSpec.Angle is kept in degrees (clean + testable), so convert here
+        // at the SDK boundary. (Passing degrees lands text at a wild tilt:
+        // 180 "degrees" read as radians ≈ 233°.)
+        private static double Rad(double degrees) => degrees * Math.PI / 180.0;
 
         private static string Display(string value) => string.IsNullOrEmpty(value) ? "—" : value;
         private static string YesNo(bool flag) => flag ? "YES" : "NO";
