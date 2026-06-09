@@ -33,7 +33,7 @@
             <TextBlock Grid.Column="5" Text="Title" FontWeight="SemiBold" Foreground="#333333" HorizontalAlignment="Center" />
         </Grid>
 
-        <!-- The seven layer rows are built in code-behind into this panel. -->
+        <!-- The six layer rows are built in code-behind into this panel. -->
         <StackPanel Name="RowsPanel" />
     </StackPanel>
 </UserControl>

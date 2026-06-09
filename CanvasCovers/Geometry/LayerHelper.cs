@@ -82,7 +82,10 @@ namespace CanvasCovers.Geometry
                 throw new InvalidOperationException("Layer '" + name + "' was not registered via EnsureLayer.");
             }
 
-            layer.Activate();
+            if (!layer.Activate())
+            {
+                throw new InvalidOperationException("Could not activate layer '" + name + "'.");
+            }
             _currentActiveName = name;
         }
 
@@ -93,8 +96,10 @@ namespace CanvasCovers.Geometry
             if (_originalActive == null) return;
             if (string.Equals(_currentActiveName, _originalActive.Name, StringComparison.OrdinalIgnoreCase)) return;
 
-            _originalActive.Activate();
-            _currentActiveName = _originalActive.Name;
+            if (_originalActive.Activate())
+            {
+                _currentActiveName = _originalActive.Name;
+            }
         }
 
         public void Dispose()

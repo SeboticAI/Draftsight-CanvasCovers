@@ -1,6 +1,7 @@
 using System;
 using CanvasCovers.Models;
 using Microsoft.Win32;
+using System.Windows;
 using DraftSight.Interop.dsAutomation;
 using DsApplication = DraftSight.Interop.dsAutomation.Application;
 
@@ -22,6 +23,11 @@ namespace CanvasCovers.IO
 
         public void Export(ProjectMetadata project)
         {
+            Export(project, null);
+        }
+
+        public void Export(ProjectMetadata project, Window owner)
+        {
             Document document = _application.GetActiveDocument();
             if (document == null)
             {
@@ -39,7 +45,8 @@ namespace CanvasCovers.IO
                 OverwritePrompt = true,
             };
 
-            if (dialog.ShowDialog() != true) return;
+            bool? result = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
+            if (result != true) return;
 
             dsDocumentSaveError_e errors;
             document.SaveAs(

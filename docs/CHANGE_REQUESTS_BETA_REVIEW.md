@@ -16,6 +16,14 @@ batch is **IMPLEMENTED, LIVE-TESTED, and merged** — items 1, 2, 3, 4, 5, 6, 7,
 installer build clean. Plan + per-phase commits in
 `docs/superpowers/plans/2026-06-09-beta-review-changes.md`.
 
+**POST-REVIEW HARDENING (2026-06-10, v1.5.0 customer handoff):** a final
+release-readiness review fixed seven issues before customer delivery: strict
+option validation, layer-activation failure handling, fuller missing-entity
+counting, owner-parented dialogs, installer upgrade failure handling, assembly
+version metadata, and updated operator docs/help PDF. Automated verification
+still passes (42 tests, Release build, installer build). The final live
+DraftSight click-through is the user's handoff test.
+
 Two live-test fix rounds were applied after the first install:
 - **Height seeding** had copied only the first keystroke (seed-when-empty fired
   per character) → now mirrors the full left height via a dirty-flag that stops
@@ -31,9 +39,9 @@ Item 18 = no code change (current width+height dims kept; confirm against the
 template during review). Still deferred: 9 (optional, manual for now), 17 (needs
 explaining), 21 (parked); not-add-in: 22-25; future: 27-28.
 
-**Open for the review/optimisation sessions:** confirm exact blanket-text height
-(25 vs 30mm), total-width field placement, COP-reminder spacing, and the five
-small open questions below.
+**Open for customer feedback:** confirm exact blanket-text height (25 vs 30mm),
+wall suffixes, Quilt Inset, COP-reminder spacing, Date field, and the small
+open questions below.
 
 **Release note:** outlines are now drawn at the entered width (the old +10mm
 boost is gone), so generated outlines are ~10mm narrower than v1.4.5 — Martin

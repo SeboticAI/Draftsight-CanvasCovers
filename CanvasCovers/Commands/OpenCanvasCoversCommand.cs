@@ -49,6 +49,7 @@ namespace CanvasCovers.Commands
             try
             {
                 ProductPickerWindow picker = new ProductPickerWindow();
+                TrySetDraftSightOwner(picker);
                 if (picker.ShowDialog() != true || picker.SelectedProduct == null)
                 {
                     return;
@@ -92,18 +93,24 @@ namespace CanvasCovers.Commands
             window.GenerateRequested += LiftBlanketWindow_GenerateRequested;
             window.Closed += LiftBlanketWindow_Closed;
 
-            // Parent the dialog to DraftSight's main HWND so it stays z-order
-            // associated with the host app (alt-tab cycles them together,
-            // dialog stays above DraftSight when both are foregrounded, etc.).
-            // Process.MainWindowHandle is the DraftSight main window since
-            // this add-in runs in-process.
+            TrySetDraftSightOwner(window);
+
+            window.Show();
+        }
+
+        // Parent dialogs to DraftSight's main HWND so they stay z-order
+        // associated with the host app (alt-tab cycles them together, dialogs
+        // stay above DraftSight when both are foregrounded, etc.).
+        // Process.MainWindowHandle is the DraftSight main window since this
+        // add-in runs in-process.
+        private static void TrySetDraftSightOwner(Window window)
+        {
+            if (window == null) return;
             IntPtr hostHandle = Process.GetCurrentProcess().MainWindowHandle;
             if (hostHandle != IntPtr.Zero)
             {
                 new WindowInteropHelper(window).Owner = hostHandle;
             }
-
-            window.Show();
         }
 
         private void LiftBlanketWindow_GenerateRequested(object sender, GenerateRequestedEventArgs e)
@@ -149,7 +156,7 @@ namespace CanvasCovers.Commands
             {
                 try
                 {
-                    new CanvasCovers.IO.DxfExporter(Application).Export(e.Job.Project);
+                    new CanvasCovers.IO.DxfExporter(Application).Export(e.Job.Project, window);
                 }
                 catch (Exception ex)
                 {

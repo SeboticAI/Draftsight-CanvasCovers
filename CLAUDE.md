@@ -488,6 +488,9 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   `targetLayer.Activate()`, insert the entity (lands on active layer at
   creation time), then restore the original active layer with
   `originalActive.Activate()`. No `EntityHelper` call is ever needed.
+- **Check `Layer.Activate()` return values.** If activation returns false,
+  fail the generation instead of continuing. A visible generate failure is
+  safer than drawing cut geometry onto the previously active cutter layer.
 - **Inno `[Code]` AfterInstall: parameter is unreliable for [Files]
   entries.** Registered the rewrite procedure via `AfterInstall:` on the
   two XML `[Files]` lines and it silently no-op'd — files installed but
@@ -511,6 +514,10 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   is still on disk when the new install starts writing. Inno notices
   and writes the next uninstaller as `unins001.exe`. Registry's
   `UninstallString` points at the new one — no action needed.
+- **Inno `PrepareToInstall` must check both `Exec` and `ResultCode`.**
+  `Exec(...)` returning true only means the previous uninstaller started.
+  If `ResultCode <> 0`, return an error string and stop the new install
+  rather than layering a fresh payload over a failed uninstall.
 - **`SketchManager.InsertLinearDimension` is horizontal-only.** It
   returns a `RotatedDimension` with a default rotation of 0, so the
   measured length is always the *horizontal projection* of the two
@@ -553,7 +560,9 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
   `WindowInteropHelper.Owner = hostHwnd`** so they alt-tab with
   DraftSight and stay above the host when foregrounded. The host
   HWND for an in-process addin is
-  `Process.GetCurrentProcess().MainWindowHandle`. Also: `Window
+  `Process.GetCurrentProcess().MainWindowHandle`. Parent modal picker
+  windows and `SaveFileDialog.ShowDialog(owner)` too; ownerless dialogs
+  can hide behind DraftSight on some setups. Also: `Window
   .DialogResult` throws on a non-modal window, so do **not** set
   `IsCancel="True"` on the Cancel button — WPF's built-in IsCancel
   behaviour tries to assign `DialogResult = false` and faults. Wire
@@ -575,7 +584,8 @@ To bump versions, edit `MyAppVersion` in `CanvasCovers.iss`. Never change
 - **SDK inserts can silently return null** (no exception, no entity). The
   generator counts these (`LiftBlanketGenerator.FailedInsertCount`) and
   warns the operator post-generate, rather than shipping a silently
-  incomplete drawing. Don't assume an insert succeeded.
+  incomplete drawing. Don't assume an insert succeeded; count dimensions
+  and title/project notes as well as polylines and labels.
 - **There is NO dispatcher exception handler in-host.** An unhandled
   exception on the WPF/COM UI thread crashes DraftSight outright. Any code
   that runs on a redraw/event path from operator input (e.g. a live

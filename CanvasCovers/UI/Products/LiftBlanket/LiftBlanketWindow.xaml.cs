@@ -105,7 +105,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             List<string> errors = new List<string>();
 
             ProjectMetadata project = MetadataPanel.Read();
-            LiftBlanketOptions options = ReadOptions();
+            LiftBlanketOptions options = ReadOptions(errors);
 
             WallDimensions left = ReadBlanket(LeftBlanket, "Left wall", options, errors);
             WallDimensions right = ReadBlanket(RightBlanket, "Right wall", options, errors);
@@ -184,18 +184,19 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             }
         }
 
-        private LiftBlanketOptions ReadOptions()
+        private LiftBlanketOptions ReadOptions(List<string> errors)
         {
             FixingType fixing = FixingType.HooksFacingOut;
             ComboBoxItem selected = FixingsInput.SelectedItem as ComboBoxItem;
             string tag = selected?.Tag as string;
             if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed)) fixing = parsed;
 
-            // ParseOr (not raw TryParse) so a non-numeric entry falls back to
-            // 50 — matching the preview + COP validation, which also use
-            // ParseOr(..., 50). Raw TryParse would zero it on bad input and
-            // make the generated job disagree with what the operator saw.
-            double allowance = ParseOr(FixingAllowanceInput.Text, 50);
+            double allowance = ReadNonNegative(
+                FixingAllowanceInput.Text, "Fixing allowance", errors);
+            double quiltInset = ReadNonNegative(
+                QuiltInsetInput.Text, "Quilt inset", errors);
+            double quiltSpacing = ReadPositive(
+                QuiltingSpacingInput.Text, "Quilting spacing", errors);
 
             return new LiftBlanketOptions
             {
@@ -205,12 +206,12 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 GlassBehind = GlassBehindOption.IsChecked == true,
                 Fixings = fixing,
                 FixingAllowanceMm = allowance,
-                // The edge-allowance, quilting-spacing and quilting-on inputs
+                // The quilt-inset, quilting-spacing and quilting-on inputs
                 // drive both the live preview (via SetSharedParams) AND the
                 // generated drawing — read them here so operator changes reach
                 // the generator, not just the preview.
-                QuiltInsetMm = ParseOr(QuiltInsetInput.Text, 5),
-                VerticalQuiltingSpacingMm = ParseOr(QuiltingSpacingInput.Text, 700),
+                QuiltInsetMm = quiltInset,
+                VerticalQuiltingSpacingMm = quiltSpacing,
                 QuiltingEnabled = QuiltingOption.IsChecked == true,
             };
         }

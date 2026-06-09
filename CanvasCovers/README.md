@@ -1,11 +1,11 @@
-# CanvasCovers — the add-in DLL project
+# CanvasCovers - the add-in DLL project
 
-The actual COM-visible DraftSight add-in. Builds to `CanvasCovers.dll`,
-gets RegAsm-registered, loads into DraftSight when ticked in the
-Add-Ins manager.
+The actual COM-visible DraftSight add-in. Builds to `CanvasCovers.dll`, gets
+RegAsm-registered by the installer, and loads into DraftSight when ticked in
+the Add-Ins manager.
 
-For a code tour see [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
-For the current behaviour, see [`../docs/STATUS.md`](../docs/STATUS.md).
+For a code tour see [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md). For
+the current behaviour, see [`../docs/STATUS.md`](../docs/STATUS.md).
 
 ## Build
 
@@ -18,15 +18,19 @@ dotnet build CanvasCovers/CanvasCovers.csproj -c Release
 Produces `bin/Release/net48/CanvasCovers.dll` plus the icons under
 `bin/Release/net48/Resources/`.
 
-## Deploy
+## Package / Deploy
+
+From the repo root with DraftSight closed:
 
 ```powershell
-.\scripts\deploy-canvascovers.ps1
+.\Installer\build.ps1
 ```
 
-(Admin PowerShell required — runs RegAsm and writes to ProgramData.)
+This builds Release and creates
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-<version>.exe`. Run that EXE as
+administrator to install or upgrade; it handles RegAsm and the ProgramData XML.
 
-## What's in here
+## What's In Here
 
 | Folder | Purpose |
 |---|---|
@@ -34,34 +38,32 @@ Produces `bin/Release/net48/CanvasCovers.dll` plus the icons under
 | `CanvasCovers.xml` | DraftSight add-in config; deployed into ProgramData. |
 | `CanvasCovers.csproj` | net48, x64, WPF, references SDK interop DLLs. |
 | `Commands/` | Command classes. `OpenCanvasCoversCommand` is the ribbon entry; `LayerTestCommand` is a diagnostic. |
-| `Geometry/` | `LayerHelper` (shared) and product-specific generators under `Products/`. |
-| `Models/` | POCO models. Shared types at top level, product-specific under `Products/`. |
+| `Geometry/` | `LayerHelper` and product-specific calculators/generators. |
+| `IO/` | DXF filename and export helpers. |
+| `Models/` | Shared and product-specific POCO models. |
 | `Properties/AssemblyInfo.cs` | Version, GUID, company. |
-| `Resources/` | Ribbon icons (placeholder PNGs from SDK sample). |
-| `UI/` | WPF windows and UserControls. `ProductPickerWindow` at top, shared UCs in `Controls/`, product dialogs under `Products/`. |
+| `Resources/` | Ribbon icons. |
+| `UI/` | WPF windows and UserControls. |
 
-## Hard rules
+## Hard Rules
 
-These are in [`../CLAUDE.md`](../CLAUDE.md) §9 in detail — short version:
+These are in [`../CLAUDE.md`](../CLAUDE.md) section 9 in detail:
 
-- **Do not call `EntityHelper.SetLayer` or `GetLayer`** on a
-  freshly-inserted entity. Both crash DraftSight. Use the activate
-  pattern via `LayerHelper` instead.
-- **Do not call `Application.RemoveUserInterface(guid)`** preemptively
-  on first connect. The orphan-tab cleanup in `App.cs` handles
-  recovery without it.
-- **Toolbar items need real icon paths.** Empty paths crash the host
-  when `dsUIState_Document` activates. We use ribbon buttons with
-  text-only style (which tolerates empty icons).
-- **`MessageBox.Show` from inside `Command.ExecuteNotify`** is risky.
-  Use it only in catch blocks; for command-line feedback use
-  `Application.GetCommandMessage().PrintLine(...)`.
+- Do not call `EntityHelper.SetLayer` or `GetLayer` on freshly inserted
+  entities. Both crash DraftSight. Use `LayerHelper`.
+- Do not call `Application.RemoveUserInterface(guid)` preemptively on first
+  connect. `App.cs` does targeted orphan-tab cleanup instead.
+- Toolbar items need real icon paths. The add-in uses the ribbon path.
+- `MessageBox.Show` from `Command.ExecuteNotify` is risky; reserve it for
+  controlled error paths.
+- Parent WPF dialogs to DraftSight's main HWND.
+- Use `InsertAlignedDimension`, not `InsertLinearDimension`.
+- `InsertSimpleNote` angles are radians at the SDK boundary.
 
-## Development safety
+## Development Safety
 
-- `CanvasCovers.xml` ships with `startup="0"`. The add-in must be
-  ticked manually after every DraftSight launch.
-- Build / deploy / DraftSight cycle is locked: must close DraftSight
-  before building (the DLL is locked while the host is alive).
-- Always have `.\scripts\rollback-canvascovers.ps1 -StopDraftSight`
-  ready before any load test.
+- `CanvasCovers.xml` ships with `startup="0"`.
+- DraftSight must be closed before build/package because the DLL is locked
+  while the host is alive.
+- Keep `.\scripts\rollback-canvascovers.ps1 -StopDraftSight` ready before
+  load testing.

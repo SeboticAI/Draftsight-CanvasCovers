@@ -1,171 +1,114 @@
 # Roadmap
 
-Ordered list of what's queued, with rationale. Newly-completed items move
-to [STATUS.md](STATUS.md); newly-identified items go in **Parking lot**
-at the bottom of this file.
+Ordered list of what is queued next. Move completed work into
+[STATUS.md](STATUS.md), and add newly noticed but non-urgent items to the
+parking lot.
 
-This is the file to consult when picking the project back up after a
-break: "what was next?"
+## Up Next
 
----
+### 0. Customer Handoff Test
 
-## Up next (in order)
+**Current build:** v1.5.0,
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`.
 
-### 0. CLIENT BETA FEEDBACK (current driver)
+The lift-blanket add-in is feature-complete for the current customer handoff:
+segment-driven COP, doubled-height math, total-width override, Quilt Inset,
+vertical COP reminders, six-layer cutter panel, DXF export, strict validation,
+and release-readiness hardening.
 
-**v1.4.5 is the build going to Adelaide Annexe for beta testing.** The
-lift-blanket flow is feature-complete: segment-driven COP, doubled-height
-math, built quilting, the fixed sheet schematic with mirrored Left/Right
-walls, the 7-layer panel, DXF export, and a full validation/feedback
-layer. The next move is **the client's feedback on the real DXFs they
-cut.**
+Immediate next action is live install/load/generate/export testing in
+DraftSight, then hand the installer and quick-start PDF to Adelaide Annexes &
+Canvas.
 
-When feedback arrives, the working principle (per the user) is:
-**change only what's needed; don't touch stable old code.** Most-likely
-feedback areas, with where they'd land:
-- **Quilting spacing rule** — still the one unconfirmed geometry rule.
-  Currently an operator-entered target, even-divided. If the client gives
-  the real formula/lookup, it's a small change in
-  `LiftBlanketCalculator.AddQuiltLines` + a test (CLIENT_QUESTIONS §3).
-- **Diagram cosmetics** — the preview is a fixed schematic in
-  `WallBlanket`; tweaks there don't touch the calculation.
-- **Layer / colour fidelity** — the 7-layer panel + defaults in
-  `LayerSettings`; adjust defaults, not the generator.
-- **Text / annotation layout** — `LiftBlanketGenerator`'s
-  `DrawProjectAnnotations` / `DrawTopLegend`.
+When customer feedback arrives, the working principle remains:
+**change only what is needed; do not touch stable old code.**
 
-Also pending: a short **help document** for the operator to send with the
-installer (how the form maps to the sheet, what each field does). Flagged
-for the next session.
+Likely feedback areas and where they land:
 
-### 1. Caravan annexe product flow
+- **Quilting spacing rule**: currently operator-entered target spacing with
+  even division. If Martin provides a real lookup/formula, change
+  `LiftBlanketCalculator.AddQuiltLines` and add tests.
+- **Diagram cosmetics**: fixed schematic only; changes go in
+  `WallBlanket.xaml.cs` and should not touch calculator math.
+- **Layer / colour fidelity**: defaults and role assignment live in
+  `LayerSettings` / `LayersPanel`.
+- **Text / annotation layout**: free-floating notes live in
+  `LiftBlanketGenerator.DrawProjectAnnotations` / `DrawTopLegend`.
+- **Operator wording/help**: update `docs/help/CanvasCovers-Quick-Start.html`
+  and regenerate the PDF.
 
-**Gated on:** measurement sheet / sample DXF from Adelaide Annexe & Canvas.
+### 1. Caravan Annexe Product Flow
 
-Once we have either, the work is roughly:
+**Gated on:** measurement sheet or sample DXF from Adelaide Annexes & Canvas.
 
-- `Models/Products/CaravanAnnexe/CaravanAnnexeJob.cs` — composite model
-  (project + layers + caravan-specific panels + caravan-specific options)
-- `Models/Products/CaravanAnnexe/...` — whatever panel / dimension types
-  the form needs
-- `Geometry/Products/CaravanAnnexe/CaravanAnnexeGenerator.cs` — layered
-  output following the same `LayerHelper` activate pattern lift blanket
-  uses
-- `UI/Products/CaravanAnnexe/CaravanAnnexeWindow.xaml` (+ `.cs`) —
-  reuses `BrandedHeader`, `ProjectMetadataPanel`, `LayersPanel`
-- Enable the Caravan Annexe tile in `ProductPickerWindow.xaml`
-- Wire it up in `OpenCanvasCoversCommand.Execute` switch
+Once specs arrive, add the product in the same shape as Lift Blanket:
 
-Until specs arrive this is "ready to build, not started". Don't invent
-the structure — it'll be wrong.
+- `Models/Products/CaravanAnnexe/CaravanAnnexeJob.cs`
+- supporting caravan-specific model types
+- `Geometry/Products/CaravanAnnexe/CaravanAnnexeGenerator.cs`
+- `UI/Products/CaravanAnnexe/CaravanAnnexeWindow.xaml` and `.cs`
+- enable the Caravan Annexe picker tile
+- dispatch it from `OpenCanvasCoversCommand`
 
-### 2. ~~DXF auto-export~~ — DONE (v1.2.0)
+Do not invent the geometry before receiving the real sheet/DXF.
 
-Native Save-As after Generate, filename = network number (timestamp
-fallback), R2018 ASCII DXF, gated on a dialog checkbox. v1.4.5 added an
-export-specific error path (a save failure no longer reads as a generate
-failure). A *configured output folder* (vs the operator picking each
-time) is still possible if the client wants it — low priority.
+### 2. Project Save / Load
 
-### 3. Project save / load
+Why: the operator can enter many fields, generate, spot one issue, and want to
+tweak without retyping.
 
-**Why now:** the operator might fill 30 fields, generate, find one
-wrong, want to tweak and re-generate. Right now they retype everything.
+Likely shape:
 
-- Newtonsoft.Json or `System.Runtime.Serialization.Json` — the latter
-  is in-box for net48 so likely simpler (no NuGet dependency)
-- Save: dialog gets a "Save Project..." button → `SaveFileDialog` →
-  serialise `LiftBlanketJob` (or `CaravanAnnexeJob`) to `.canvascover-job`
-- Load: dialog gets a "Open Project..." button → `OpenFileDialog` →
-  deserialise → call each UserControl's `Apply(model)` method (already
-  exists for ProjectMetadataPanel and LayersPanel)
-- File extension association: out of scope; operator opens via the
-  dialog button
+- Save/load `LiftBlanketJob` as a `.canvascover-job` JSON file.
+- Prefer in-box `System.Runtime.Serialization.Json` unless a strong reason for
+  Newtonsoft.Json appears.
+- Add Save Project / Open Project buttons to the lift-blanket dialog.
+- Reuse existing `Apply(...)` methods on shared controls and add missing ones
+  on `WallBlanket` / `LiftBlanketWindow`.
 
-### 4. Branded icons
+### 3. Branded Icons
 
-**Why now:** SDK placeholder icons (cogwheels) cheapen the demo. A real
-logo / icon set elevates it.
+Current ribbon icons are SDK placeholders. Replace with real 16x16 and 32x32
+PNGs before a polished commercial release.
 
-- 16×16 and 32×32 PNGs for the ribbon button
-- Possibly bigger versions for the product picker tiles
-- Should match Adelaide Annexes & Canvas brand if going to them, or
-  Sebotic / BesiaCAD brand if we're productising
+### 4. Code Signing
 
-Needs design asset from outside — not a coding task.
+The installer and add-in are still unsigned. Before broader distribution:
 
-### 5. Code signing
+- buy/use a code-signing certificate
+- sign the DLL and installer EXE
+- integrate signing into `Installer\build.ps1`
+- verify DraftSight no longer shows Unknown Publisher
 
-**Why now:** "Unknown Publisher" warning on add-in load looks
-unprofessional and degrades trust in a commercial release.
+## Mid Priority
 
-- Code-signing certificate purchase (annual)
-- `signtool.exe` integration in the installer build script
-- Sign both the DLL and the installer EXE
-- Verify the warning is gone in a fresh install
+- Field-level tooltips in the form.
+- Configured default export folder if the customer asks for it.
+- Multi-job batch generation.
+- Cutting-list / measurement-summary PDF.
+- Licensing infrastructure.
+- Multi-version DraftSight support.
 
----
+## Long Term
 
-## Mid-priority (after the above are done)
+- More canvas products: bag awnings, mesh walls, bed end bag flys, storm
+  flaps, caravan covers, ute canopies.
+- Productisation through SeboticAI/BesiaCAD with generalised branding,
+  licensing, and website distribution.
+- Consider a reusable canvas-product framework only after several products
+  prove enough shared structure.
 
-- **Field tooltips** — for the operator who doesn't already know the
-  measurement form. Hover-help on each input. (A standalone help doc is
-  the near-term substitute — see Up-next §0.)
-- ~~**Visual preview in the dialog**~~ — DONE. The `WallBlanket` fixed
-  schematic shows the layout + dimension lines before Generate.
-- **Multi-job batch** — operator has 5 jobs queued up; generate them
-  one after another into separate drawings or a single drawing.
-- **Cutting-list / measurement summary print** — alongside the DXF,
-  produce a PDF for production paperwork.
-- **Licensing infrastructure (BesiaBIM Ed25519 token integration)** —
-  necessary if going subscription. Already noted in `CLAUDE.md` §13.
-- **Multi-version DraftSight support** — DS 2024 / 2025 / 2026
-  compatibility.
+## Parking Lot
 
-## Long-term / strategic
-
-- **More products** — Bag Awnings, Mesh Walls, Bed End Bag Flys, Storm
-  Flaps, Caravan Covers, Ute Canopies. The architecture absorbs each
-  one in roughly the same shape as caravan annexe.
-- **Productisation through SeboticAI website** — see
-  [BUSINESS_CONTEXT.md](BUSINESS_CONTEXT.md) for the rationale.
-  Requires generalising the branding (currently Adelaide Annexes
-  hardcoded), building a licence-key flow, and a marketing surface.
-- **Generalised "canvas product" framework** — at some point the
-  per-product code paths converge enough that a small DSL or template
-  system might be cheaper than each new file tree. Not worth doing
-  before 3-4 products exist.
-
----
-
-## Parking lot
-
-Things noticed during development that aren't critical but shouldn't be
-lost. Each entry is one line; expand if/when picked up.
-
-- Orphan-tab cleanup only checks the active workspace; if the user
-  switches workspaces between sessions, stale tabs on the other
-  workspace remain. Fix by iterating all workspaces.
-- `LayerHelper` doesn't release COM RCWs explicitly. Fine at our
-  scale; revisit if memory pressure shows in long sessions.
-- AssemblyInfo isn't auto-bumped on build. Manual edits before tagging
-  a release are required.
-- Hardcoded SDK path in `CanvasCovers.csproj` HintPath. Multi-machine
-  dev would need an environment variable or csproj property.
-- Title block layout is row-of-text; not pretty. A grid-cell layout
-  with proper field/value alignment would be more professional but
-  needs more InsertNote calls and field-precise positioning.
-- The layers panel colour dropdown offers only ACI 1-7 (the cutter's
-  palette). The full 8-255 range isn't selectable. Fine in practice.
-- WPF init-order: handlers fire during `InitializeComponent`. Resolved
-  with the order-independent `_initialized` flag (window) and the
-  `_drLeft == null` guard (WallBlanket) — see STATUS gotcha #8.
-- **Deferred review nice-to-haves (low value, not worth touching stable
-  code for):** the Fixings dropdown change triggers a double redraw of
-  all 3 blankets; `LayerSettings.Cop/.Outline/...` accessors re-run a
-  7-item LINQ scan on each access in the generator (resolve once if ever
-  a hot path); `AddDashedV` allocates a `DoubleCollection` per frame.
-  None affect correctness or perceptible performance.
-- Blank network number still produces a timestamp DXF filename with no
-  warning; the wall labels are then unlabelled. Could add a soft confirm
-  at generate time if the client finds it confusing.
+- Orphan-tab cleanup only checks the active workspace; stale tabs can remain in
+  other workspaces.
+- `LayerHelper` does not explicitly release COM RCWs. Fine at current scale.
+- Version bumping is manual across `CanvasCovers.iss` and `AssemblyInfo.cs`.
+- `CanvasCovers.csproj` has hardcoded DraftSight SDK paths.
+- Title/project annotation layout is row-of-text; a grid layout would look more
+  polished.
+- Layer colour dropdown exposes only ACI 1-7.
+- Fixings dropdown can trigger a double redraw of the three blanket controls.
+- `LayerSettings` role accessors do small repeated LINQ scans; not a hot path.
+- Blank blanket text falls back to a timestamp filename and blank wall labels
+  except suffix. Add a soft warning only if the customer finds this confusing.

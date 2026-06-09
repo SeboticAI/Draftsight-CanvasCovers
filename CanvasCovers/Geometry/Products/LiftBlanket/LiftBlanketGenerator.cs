@@ -68,7 +68,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             using (LayerHelper layers = new LayerHelper(document))
             {
-                // Create the cutter's full layer set (all seven) so the DXF
+                // Create the cutter's full layer set (all six) so the DXF
                 // always carries the complete set, even layers with no geometry.
                 if (_layerSettings.Layers != null)
                 {
@@ -219,16 +219,19 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
         // Aligned dim between (x1,y1) and (x2,y2); dim line passes through
         // (lineX, lineY). Aligned (not Linear) works for both axes.
-        private static void InsertDim(SketchManager sketch, double x1, double y1, double x2, double y2, double lineX, double lineY)
+        private void InsertDim(SketchManager sketch, double x1, double y1, double x2, double y2, double lineX, double lineY)
         {
             double dx = x2 - x1;
             double dy = y2 - y1;
             if (Math.Abs(dx) < 0.5 && Math.Abs(dy) < 0.5) return;
-            sketch.InsertAlignedDimension(
+            if (sketch.InsertAlignedDimension(
                 new[] { x1, y1, 0.0 },
                 new[] { x2, y2, 0.0 },
                 new[] { lineX, lineY, 0.0 },
-                string.Empty);
+                string.Empty) == null)
+            {
+                FailedInsertCount++;
+            }
         }
 
         private static string BuildProjectTag(ProjectMetadata project)
@@ -243,8 +246,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         private void DrawTopLegend(SketchManager sketch, LayerHelper layers, double originX, double baselineY)
         {
             layers.Activate(_layerSettings.Titleblock.Name);
-            sketch.InsertSimpleNote(originX, baselineY, 0, TopLegendTextHeight, 0.0,
-                "HEIGHT / WIDTH / RETURNS / V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER");
+            if (sketch.InsertSimpleNote(originX, baselineY, 0, TopLegendTextHeight, 0.0,
+                "HEIGHT / WIDTH / RETURNS / V QUILT / H QUILT / COP / TEXT / INFO / STENCIL / SCALE / OTHER") == null)
+            {
+                FailedInsertCount++;
+            }
         }
 
         private void DrawProjectAnnotations(SketchManager sketch, LayerHelper layers, LiftBlanketJob job, double originX, double topY)
@@ -287,7 +293,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 if (string.IsNullOrEmpty(text)) continue;
                 double rowTopY = topY - i * ProjectRowH;
                 double baseline = rowTopY - ProjectRowH + (ProjectRowH - ProjectTextHeight) / 2.0;
-                sketch.InsertSimpleNote(originX, baseline, 0, ProjectTextHeight, 0.0, text);
+                if (sketch.InsertSimpleNote(originX, baseline, 0, ProjectTextHeight, 0.0, text) == null)
+                {
+                    FailedInsertCount++;
+                }
             }
         }
 

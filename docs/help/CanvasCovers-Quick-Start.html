@@ -48,7 +48,7 @@
 <div class="header">
   <h1>ADELAIDE ANNEXES &amp; CANVAS</h1>
   <div class="sub">Lift Blanket Generator — Quick Start Guide</div>
-  <div class="meta">CanvasCovers add-in for DraftSight · Beta v1.4.5</div>
+  <div class="meta">CanvasCovers add-in for DraftSight · Beta v1.5.0</div>
 </div>
 
 <p>This add-in turns your paper lift-blanket measurement sheet into a
@@ -60,7 +60,7 @@ correct cutter layers.</p>
 <h2>1. Install &amp; turn it on (one-time)</h2>
 <ol>
   <li>Close DraftSight.</li>
-  <li>Run <code>BesiaCAD-CanvasCovers-Setup-1.4.5.exe</code> and approve the
+  <li>Run <code>BesiaCAD-CanvasCovers-Setup-1.5.0.exe</code> and approve the
       Windows admin prompt.</li>
   <li>Open DraftSight, go to <span class="accent">Tools → Add-Ins</span>,
       and tick <span class="accent">CanvasCovers</span>. (Leave "Start Up"
@@ -79,7 +79,7 @@ correct cutter layers.</p>
       <span class="accent">Generate Drawing</span>.</li>
   <li>Type <code>ZE</code> (Zoom Extents) to see the whole drawing.</li>
   <li>If you ticked the export option, a <b>Save-As</b> box appears to save
-      the DXF (it pre-fills the file name with the network number).</li>
+      the DXF (it pre-fills the file name with the blanket text).</li>
 </ol>
 <div class="box note"><b>Undo:</b> one press of <b>Ctrl+Z</b> removes the
 entire generated drawing, so it's safe to generate, look, tweak, and
@@ -88,8 +88,9 @@ re-generate.</div>
 <h2>3. Filling in the form</h2>
 
 <h3>Project information</h3>
-<p>Company, Network Number, Project, etc. The <b>Network Number</b> becomes
-the DXF file name and the label on each wall, so fill it in.</p>
+<p>Company, Company Initials, AAC Order Number, Network Number, Project, and
+Date. The <b>AAC Order Number + Company Initials + Network Number</b> become
+the DXF file name and the printed label on each wall, so fill them in.</p>
 
 <h3>Wall tabs — Left / Right / Rear</h3>
 <p>One tab per wall. Each tab shows a diagram of the blanket with the input
@@ -101,6 +102,7 @@ way the two walls face each other on the sheet.</p>
 <table>
   <tr><th>Field</th><th>What to type</th></tr>
   <tr><td><b>DR-L / DR-R</b></td><td>The door-return tabs at the two outer corners. Put <b>0</b> if not needed.</td></tr>
+  <tr><td><b>Total width</b></td><td>Optional. If filled in, it overrides the five segment boxes for the cut width. The segment boxes can still be used to place the COP.</td></tr>
   <tr><td><b>S1</b></td><td>The gap from the door-return line across to the COP.</td></tr>
   <tr><td><b>COP W (S2)</b></td><td>The width of the COP cut-out (the middle bottom-row box). <b>This is the COP width</b> — you don't type a separate COP width.</td></tr>
   <tr><td><b>S3</b></td><td>The gap from the COP across to the other door-return line.</td></tr>
@@ -125,16 +127,18 @@ on that tab. If you're not doing a wall at all, untick
   <tr><th>Option</th><th>What it does</th></tr>
   <tr><td><b>Through Car</b></td><td>Omits the rear wall (disables the Rear tab).</td></tr>
   <tr><td><b>Plastic Cover on COP</b></td><td>Noted on the drawing's info panel.</td></tr>
+  <tr><td><b>Storage bag required</b></td><td>Adds a vertical BAG reminder inside the COP cutout.</td></tr>
+  <tr><td><b>Glass behind</b></td><td>Adds a vertical GLASS BEHIND reminder inside the COP cutout.</td></tr>
   <tr><td><b>Fixings</b></td><td>Pick the fixing type. This auto-fills the Fixing Allowance below.</td></tr>
   <tr><td><b>Fixing Allowance (mm)</b></td><td>Subtracted from the measured height before doubling. Auto-set by the fixing type; editable if a job differs.</td></tr>
-  <tr><td><b>Edge Allowance (mm)</b></td><td>Added to the cut width (default 10), split evenly on each side. Also sets how far the quilting sits in from the edges.</td></tr>
+  <tr><td><b>Quilt Inset (mm)</b></td><td>How far the quilting sits in from the outline so the pen clears the cut edge. The outline is always the entered size.</td></tr>
   <tr><td><b>Quilting Spacing (mm)</b></td><td>Target gap between quilt lines. The tool evens it out so the lines divide cleanly.</td></tr>
   <tr><td><b>Draw quilting lines</b></td><td>Turn the quilting on or off.</td></tr>
   <tr><td><b>Open DXF export…</b></td><td>Pops the Save-As box after generating.</td></tr>
 </table>
 
 <h3>Layers</h3>
-<p>The seven cutter layers are listed with their colours and which job each
+<p>The six cutter layers are listed with their colours and which job each
 one does (Cut / COP / Annotation / Title). The defaults already match your
 machine — just click <span class="accent">Reset to Defaults</span> if anything
 gets changed by accident:</p>
@@ -144,7 +148,7 @@ gets changed by accident:</p>
   <tr><td>5 Draw and Text</td><td><span class="swatch" style="background:magenta"></span>Magenta</td><td>COP + quilt lines + wall labels (drawn/scored, <b>not cut</b>)</td></tr>
   <tr><td>0</td><td><span class="swatch" style="background:#fff"></span>White</td><td>Dimensions + the project info text</td></tr>
 </table>
-<p>All seven layers (0, the four blade layers, 5 Draw and Text, Defpoints)
+<p>All six layers (0, the four blade layers, and 5 Draw and Text)
 are created in every DXF so the file is always complete.</p>
 
 <h2>4. If the form won't generate</h2>
@@ -174,7 +178,7 @@ details.</div>
 </ul>
 
 <div class="footer">
-  CanvasCovers for DraftSight · Beta v1.4.5 · Built for Adelaide Annexes &amp;
+  CanvasCovers for DraftSight · Beta v1.5.0 · Built for Adelaide Annexes &amp;
   Canvas by SeboticAI. &nbsp; To uninstall: Windows Settings → Apps →
   "BesiaCAD Canvas Covers" → Uninstall.
 </div>

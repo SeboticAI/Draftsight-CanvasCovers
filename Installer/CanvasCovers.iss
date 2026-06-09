@@ -138,8 +138,10 @@ begin
   Cmd := RemoveQuotes(Cmd);
   if not Exec(Cmd, '/VERYSILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE,
               ewWaitUntilTerminated, ResultCode) then
-    Result := 'Failed to uninstall the previous version of {#MyAppName} (exit code '
-              + IntToStr(ResultCode) + '). Uninstall it manually via Settings -> Apps and re-run this installer.';
+    Result := 'Failed to start the previous version uninstaller for {#MyAppName}. Uninstall it manually via Settings -> Apps and re-run this installer.'
+  else if ResultCode <> 0 then
+    Result := 'The previous version uninstaller for {#MyAppName} exited with code '
+              + IntToStr(ResultCode) + '. Uninstall it manually via Settings -> Apps and re-run this installer.';
 end;
 
 // Rewrite both deployed XMLs after install completes. Doing this here rather

@@ -41,7 +41,7 @@ namespace CanvasCovers.Models
             TitleblockLayer = "0";
         }
 
-        // The seven cutter layers with their standard ACI colours.
+        // The six cutter layers with their standard ACI colours.
         public static List<LayerSetting> DefaultLayers()
         {
             return new List<LayerSetting>
