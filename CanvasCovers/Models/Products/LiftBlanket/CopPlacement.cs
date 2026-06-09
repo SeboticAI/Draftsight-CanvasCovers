@@ -2,7 +2,7 @@ namespace CanvasCovers.Models.Products.LiftBlanket
 {
     // Per-wall COP (cut-out panel) VERTICAL inputs. The horizontal geometry
     // is derived from the bottom-row segments (width = Seg2, left edge =
-    // edgeAllowance/2 + DoorReturnLeft + Seg1), so only the vertical numbers
+    // DoorReturnLeft + Seg1), so only the vertical numbers
     // live here. The blanket folds at the midline (measuredHeight −
     // fixingAllowance); the COP sits in the bottom (measured) half. The top
     // gap is computed (foldMidline − GapFromBottom − Height), not stored.

@@ -22,7 +22,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         // False until the constructor finishes. The Options TextBoxes carry
         // TextChanged="SharedParam_Changed", which WPF fires WHILE parsing the
         // XAML (as each Text="..." is applied) — before the later-declared
-        // named elements PushSharedParams reads (EdgeAllowanceInput,
+        // named elements PushSharedParams reads (QuiltInsetInput,
         // QuiltingSpacingInput, QuiltingOption) have been constructed. Guarding
         // on this flag (set last, below) is order-independent: a XAML reorder
         // cannot silently reintroduce the init-time NRE.
@@ -52,12 +52,12 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         private void PushSharedParams()
         {
             double fixing = ParseOr(FixingAllowanceInput.Text, 50);
-            double edge = ParseOr(EdgeAllowanceInput.Text, 10);
+            double inset = ParseOr(QuiltInsetInput.Text, 5);
             double quilt = ParseOr(QuiltingSpacingInput.Text, 700);
             bool quiltOn = QuiltingOption.IsChecked == true;
-            LeftBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
-            RightBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
-            RearBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
+            LeftBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
+            RightBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
+            RearBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
         }
 
         private void SharedParam_Changed(object sender, RoutedEventArgs e)
@@ -191,7 +191,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 // drive both the live preview (via SetSharedParams) AND the
                 // generated drawing — read them here so operator changes reach
                 // the generator, not just the preview.
-                EdgeAllowanceMm = ParseOr(EdgeAllowanceInput.Text, 10),
+                QuiltInsetMm = ParseOr(QuiltInsetInput.Text, 5),
                 VerticalQuiltingSpacingMm = ParseOr(QuiltingSpacingInput.Text, 700),
                 QuiltingEnabled = QuiltingOption.IsChecked == true,
             };
@@ -262,10 +262,9 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 // the right cut edge.
                 if (wall.Segments.Seg2 > 0)
                 {
-                    double half = options.EdgeAllowanceMm / 2.0;
-                    double copRight = half + wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
-                    double cutWidth = wall.Segments.TotalWidth + options.EdgeAllowanceMm;
-                    if (copRight > cutWidth - half + 0.001)
+                    double copRight = wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
+                    double cutWidth = wall.Segments.TotalWidth;
+                    if (copRight > cutWidth + 0.001)
                         errors.Add(wallLabel +
                             " COP extends past the right edge — reduce segment 1 or the COP width (segment 2).");
                 }

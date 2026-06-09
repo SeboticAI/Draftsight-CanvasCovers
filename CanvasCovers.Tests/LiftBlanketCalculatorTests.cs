@@ -31,11 +31,10 @@ namespace CanvasCovers.Tests
         }
 
         [TestMethod]
-        public void CutWidth_Adds_The_Edge_Allowance()
+        public void CutWidth_Is_The_Raw_Segment_Sum()
         {
-            Assert.AreEqual(2250.0, LiftBlanketCalculator.CutWidth(2240, 10));
-            Assert.AreEqual(2240.0, LiftBlanketCalculator.CutWidth(2240, 0));
-            Assert.AreEqual(2252.0, LiftBlanketCalculator.CutWidth(2240, 12));
+            Assert.AreEqual(2240.0, LiftBlanketCalculator.CutWidth(2240));
+            Assert.AreEqual(0.0, LiftBlanketCalculator.CutWidth(0));
         }
 
         [TestMethod]
@@ -60,27 +59,27 @@ namespace CanvasCovers.Tests
         {
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
 
             Assert.IsTrue(layout.CopRect.HasValue);
             RectSpec cop = layout.CopRect.Value;
-            Assert.AreEqual(605.0, cop.X0, 0.001);
-            Assert.AreEqual(845.0, cop.X1, 0.001);
+            Assert.AreEqual(600.0, cop.X0, 0.001);
+            Assert.AreEqual(840.0, cop.X1, 0.001);
             Assert.AreEqual(600.0, cop.Y0, 0.001);
             Assert.AreEqual(1900.0, cop.Y1, 0.001);
             Assert.IsTrue(cop.Y1 <= layout.FoldMidlineY);
         }
 
         [TestMethod]
-        public void CutRect_Grows_By_Edge_Allowance()
+        public void CutRect_Equals_Raw_Width()
         {
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
             Assert.AreEqual(0.0, layout.CutRect.X0, 0.001);
-            Assert.AreEqual(2250.0, layout.CutRect.X1, 0.001);
+            Assert.AreEqual(2240.0, layout.CutRect.X1, 0.001);
             Assert.AreEqual(4300.0, layout.CutRect.Y1, 0.001);
             Assert.AreEqual(2150.0, layout.FoldMidlineY, 0.001);
         }
@@ -91,7 +90,7 @@ namespace CanvasCovers.Tests
             var wall = Job12346LeftWall();
             wall.Cop.Enabled = false;
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
             Assert.IsFalse(layout.CopRect.HasValue);
         }
@@ -101,7 +100,7 @@ namespace CanvasCovers.Tests
         {
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
             Assert.IsTrue(layout.IdentifierLabel.HasValue);
             Assert.AreEqual("12346 TEST 12346 L", layout.IdentifierLabel.Value.Text);
@@ -112,13 +111,13 @@ namespace CanvasCovers.Tests
         {
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 1000, "12346 TEST 12346", "L");
             Assert.AreEqual(1000.0, layout.CutRect.X0, 0.001);
-            Assert.AreEqual(3250.0, layout.CutRect.X1, 0.001);
+            Assert.AreEqual(3240.0, layout.CutRect.X1, 0.001);
             Assert.IsTrue(layout.CopRect.HasValue);
-            Assert.AreEqual(1605.0, layout.CopRect.Value.X0, 0.001);
-            Assert.AreEqual(1845.0, layout.CopRect.Value.X1, 0.001);
+            Assert.AreEqual(1600.0, layout.CopRect.Value.X0, 0.001);
+            Assert.AreEqual(1840.0, layout.CopRect.Value.X1, 0.001);
             Assert.AreEqual(600.0, layout.CopRect.Value.Y0, 0.001);
             Assert.AreEqual(1900.0, layout.CopRect.Value.Y1, 0.001);
         }
@@ -128,7 +127,7 @@ namespace CanvasCovers.Tests
         {
             var wall = Job12346LeftWall();
             var calc = new LiftBlanketCalculator(
-                fixingAllowanceMm: 50, edgeAllowanceMm: 10);
+                fixingAllowanceMm: 50, quiltInsetMm: 5);
             WallLayout layout = calc.LayoutWall(wall, originX: 0, "12346 TEST 12346", "L");
             Assert.AreEqual(1, layout.Dimensions.Count);
             DimSpec d = layout.Dimensions[0];
@@ -136,7 +135,7 @@ namespace CanvasCovers.Tests
             Assert.AreEqual(0.0, d.Ext2Y, 0.001);
             Assert.AreEqual(0.0, d.LineY, 0.001);
             Assert.AreEqual(0.0, d.Ext1X, 0.001);
-            Assert.AreEqual(2250.0, d.Ext2X, 0.001);
+            Assert.AreEqual(2240.0, d.Ext2X, 0.001);
         }
     }
 }

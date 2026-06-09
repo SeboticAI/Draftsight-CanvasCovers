@@ -166,10 +166,10 @@
                                 <ColumnDefinition Width="100" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Edge Allowance (mm)" />
-                            <TextBox Grid.Column="1" Name="EdgeAllowanceInput" Text="10" TextChanged="SharedParam_Changed" />
+                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Quilt Inset (mm)" />
+                            <TextBox Grid.Column="1" Name="QuiltInsetInput" Text="5" TextChanged="SharedParam_Changed" />
                             <TextBlock Grid.Column="2" Style="{StaticResource MutedLabel}"
-                                       Text="Added to cut width and split evenly (half each side + bottom inset for quilting)." />
+                                       Text="Distance the quilting lines are pulled in from the outline so the pen clears the cut edge. The outline is always the entered size." />
                         </Grid>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>

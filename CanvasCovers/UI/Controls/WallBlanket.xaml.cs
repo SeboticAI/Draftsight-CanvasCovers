@@ -101,7 +101,7 @@ namespace CanvasCovers.UI.Controls
         // The window pushes the fixing allowance (used only for the auto
         // top-gap readout). Edge allowance / quilting don't affect this fixed
         // schematic, so they're accepted and ignored here.
-        public void SetSharedParams(double fixingAllowance, double edgeAllowance,
+        public void SetSharedParams(double fixingAllowance, double quiltInset,
             double quiltSpacing, bool quiltEnabled)
         {
             _fixingAllowance = fixingAllowance;

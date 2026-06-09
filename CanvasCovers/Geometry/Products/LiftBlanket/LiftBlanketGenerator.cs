@@ -64,7 +64,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             string projectTag = BuildProjectTag(job.Project);
             var calc = new LiftBlanketCalculator(
-                job.Options.FixingAllowanceMm, job.Options.EdgeAllowanceMm);
+                job.Options.FixingAllowanceMm, job.Options.QuiltInsetMm);
 
             using (LayerHelper layers = new LayerHelper(document))
             {
