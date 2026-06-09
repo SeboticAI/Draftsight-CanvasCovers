@@ -12,9 +12,10 @@ namespace CanvasCovers.IO
     {
         public static string DefaultFileName(ProjectMetadata project)
         {
-            string net = project?.NetworkNumber ?? string.Empty;
-            string cleaned = new string(net.Where(c =>
-                char.IsLetterOrDigit(c) || c == '-' || c == '_').ToArray());
+            string raw = CanvasCovers.Models.Products.LiftBlanket.BlanketText.Build(project);
+            // Keep spaces between sections; strip only filesystem-illegal chars.
+            string cleaned = new string(raw.Where(c =>
+                char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == ' ').ToArray()).Trim();
 
             if (string.IsNullOrEmpty(cleaned))
             {

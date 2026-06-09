@@ -25,5 +25,17 @@ namespace CanvasCovers.Tests
         {
             Assert.AreEqual(0.0, FixingAllowance.DefaultFor(FixingType.Velcro));
         }
+
+        [TestMethod]
+        public void Eyelet_Default_Is_30()
+        {
+            Assert.AreEqual(30.0, FixingAllowance.DefaultFor(FixingType.Eyelet));
+        }
+
+        [TestMethod]
+        public void SelfAdhesiveVelcro_Default_Is_0()
+        {
+            Assert.AreEqual(0.0, FixingAllowance.DefaultFor(FixingType.SelfAdhesiveVelcro));
+        }
     }
 }

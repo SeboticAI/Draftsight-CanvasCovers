@@ -15,8 +15,13 @@ namespace CanvasCovers.Models.Products.LiftBlanket
 
         public CopPlacement Cop { get; set; } = new CopPlacement();
 
-        // Cut width equals the summed segments (no allowance on width here;
-        // the +10mm "WIDTH - ADD 10mm" rule is applied by the calculator).
-        public double Width => Segments.TotalWidth;
+        // Optional manual override of the cut width. When > 0 it replaces the
+        // segment sum (the operator typed a single total instead of breaking it
+        // into segments). The segment boxes stay usable and still drive COP
+        // positioning if present. 0 = no override (use the segment sum).
+        public double TotalWidthOverride { get; set; }
+
+        // Cut width: the override when set, otherwise the summed segments.
+        public double Width => TotalWidthOverride > 0 ? TotalWidthOverride : Segments.TotalWidth;
     }
 }

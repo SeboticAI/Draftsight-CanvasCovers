@@ -17,14 +17,11 @@ namespace CanvasCovers.UI.Controls
             return new ProjectMetadata
             {
                 CompanyName = Trim(CompanyNameInput.Text),
+                CompanyInitials = Trim(CompanyInitialsInput.Text),
                 NetworkNumber = Trim(NetworkNumberInput.Text),
-                ProjectName = Trim(ProjectNameInput.Text),
-                SalesContact = Trim(SalesContactInput.Text),
-                MeasuredBy = Trim(MeasuredByInput.Text),
                 OrderNumber = Trim(OrderNumberInput.Text),
-                Mobile = Trim(MobileInput.Text),
+                ProjectName = Trim(ProjectNameInput.Text),
                 Date = DateInput.SelectedDate,
-                Notes = Trim(NotesInput.Text),
             };
         }
 
@@ -32,14 +29,11 @@ namespace CanvasCovers.UI.Controls
         {
             if (data == null) return;
             CompanyNameInput.Text = data.CompanyName ?? string.Empty;
+            CompanyInitialsInput.Text = data.CompanyInitials ?? string.Empty;
             NetworkNumberInput.Text = data.NetworkNumber ?? string.Empty;
-            ProjectNameInput.Text = data.ProjectName ?? string.Empty;
-            SalesContactInput.Text = data.SalesContact ?? string.Empty;
-            MeasuredByInput.Text = data.MeasuredBy ?? string.Empty;
             OrderNumberInput.Text = data.OrderNumber ?? string.Empty;
-            MobileInput.Text = data.Mobile ?? string.Empty;
+            ProjectNameInput.Text = data.ProjectName ?? string.Empty;
             DateInput.SelectedDate = data.Date;
-            NotesInput.Text = data.Notes ?? string.Empty;
         }
 
         private static string Trim(string text)

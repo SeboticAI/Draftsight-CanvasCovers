@@ -6,26 +6,34 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
     // Pure, SDK-free geometry math for a lift blanket. Encapsulates the
     // rules recovered from the client's reference DXFs:
     //   1. cutHeight = (measuredHeight - fixingAllowance) * 2
-    //   2. cutWidth  = summedSegments + edgeAllowance   ("WIDTH - ADD ...mm")
+    //   2. cutWidth  = summedSegments (the outline is the entered width; the
+    //      operator adds any shrinkage when typing the sizes)
     //   3. COP horizontal geometry is derived from the bottom-row segments:
-    //      width = Seg2, left edge = edgeAllowance/2 + DoorReturnLeft + Seg1.
+    //      width = Seg2, left edge = DoorReturnLeft + Seg1. Quilting (only) is
+    //      pulled in from the outline by QuiltInsetMm.
     //      Vertically the COP sits in the bottom (measured) half from the
     //      operator's gap-from-bottom / height numbers; the top half is a
     //      mirror, so no COP geometry is needed above the fold midline.
     // No DraftSight types here so it can be unit-tested headlessly.
     public class LiftBlanketCalculator
     {
-        // Wall identifier labels ("<net> <name> L/R/B") are text height 20
-        // in the client's reference DXFs — match that.
-        private const double IdentifierTextHeight = 20.0;
+        // Blanket-text height in mm. Martin wants ~25–30mm (20 was hard to
+        // read across drawings). 25 sits in his range; adjust if he wants
+        // larger. Also used for the COP-cutout reminder text.
+        private const double IdentifierTextHeight = 25.0;
+
+        // Blanket text sits this far down from the top edge (which becomes the
+        // bottom when the blanket is folded), fixed so it doesn't move with
+        // width. Inverted (180°). See item 12.
+        private const double IdentifierTopGap = 25.0;
 
         private readonly double _fixingAllowanceMm;
-        private readonly double _edgeAllowanceMm;
+        private readonly double _quiltInsetMm;
 
-        public LiftBlanketCalculator(double fixingAllowanceMm, double edgeAllowanceMm)
+        public LiftBlanketCalculator(double fixingAllowanceMm, double quiltInsetMm)
         {
             _fixingAllowanceMm = fixingAllowanceMm;
-            _edgeAllowanceMm = edgeAllowanceMm;
+            _quiltInsetMm = quiltInsetMm;
         }
 
         public static double HalfHeight(double measuredHeight, double fixingAllowanceMm)
@@ -38,9 +46,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             return HalfHeight(measuredHeight, fixingAllowanceMm) * 2.0;
         }
 
-        public static double CutWidth(double summedSegments, double edgeAllowanceMm)
+        public static double CutWidth(double summedSegments)
         {
-            return summedSegments + edgeAllowanceMm;
+            return summedSegments;
         }
 
         // The auto-derived top gap: from the COP top up to the fold midline.
@@ -89,10 +97,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             string projectTag,
             string suffix,
             bool quiltingEnabled = false,
-            double verticalQuiltingSpacingMm = 0)
+            double verticalQuiltingSpacingMm = 0,
+            System.Collections.Generic.IEnumerable<string> copReminders = null)
         {
-            double halfEdge = _edgeAllowanceMm / 2.0;
-            double cutWidth = CutWidth(wall.Width, _edgeAllowanceMm);
+            double cutWidth = CutWidth(wall.Width);
 
             // Assumes upstream validation guarantees MeasuredHeight > the
             // fixing allowance; otherwise halfHeight goes negative and the cut
@@ -113,7 +121,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 // width is the middle box (Seg2), and its left edge sits
                 // half-allowance + DoorReturnLeft + Seg1 in from the cut edge
                 // (measured from the door-return line, per the sheet).
-                double copX0 = originX + halfEdge
+                double copX0 = originX
                     + wall.Segments.DoorReturnLeft + wall.Segments.Seg1;
                 double copWidth = wall.Segments.Seg2;
                 double copY0 = wall.Cop.GapFromBottom;
@@ -122,6 +130,22 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                     copY0,
                     copX0 + copWidth,
                     copY0 + wall.Cop.Height);
+
+                if (copReminders != null)
+                {
+                    double rx = copX0 + copWidth / 2.0;
+                    double ry = copY0 + wall.Cop.Height / 2.0;
+                    foreach (string text in copReminders)
+                    {
+                        if (string.IsNullOrWhiteSpace(text)) continue;
+                        layout.CopReminders.Add(new LabelSpec
+                        {
+                            X = rx, Y = ry, Height = IdentifierTextHeight,
+                            Angle = 90.0, Text = text,
+                        });
+                        rx += IdentifierTextHeight * 1.4; // stack columns across the cutout
+                    }
+                }
             }
 
             if (!string.IsNullOrEmpty(suffix))
@@ -129,8 +153,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 layout.IdentifierLabel = new LabelSpec
                 {
                     X = originX + cutWidth / 2.0,
-                    Y = cutHeight / 2.0,
+                    Y = cutHeight - IdentifierTopGap,
                     Height = IdentifierTextHeight,
+                    Angle = 180.0,
                     Text = (string.IsNullOrEmpty(projectTag) ? "" : projectTag + " ") + suffix,
                 };
             }
@@ -148,7 +173,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             if (quiltingEnabled)
             {
                 AddQuiltLines(layout, wall, originX, cutWidth, halfHeight,
-                    halfEdge, verticalQuiltingSpacingMm);
+                    _quiltInsetMm, verticalQuiltingSpacingMm);
             }
 
             return layout;
@@ -169,16 +194,16 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         //    lines that even-divide the span between those two boundaries.
         private void AddQuiltLines(
             WallLayout layout, WallDimensions wall, double originX,
-            double cutWidth, double foldMidline, double half,
+            double cutWidth, double foldMidline, double inset,
             double verticalSpacing)
         {
-            double bottom = half;
+            double bottom = inset;
             double top = foldMidline;
             if (top <= bottom) return;
 
-            // Horizontal lines: full width minus the edge clearance.
-            double hLeft = originX + half;
-            double hRight = originX + cutWidth - half;
+            // Horizontal lines: full width minus the inset clearance.
+            double hLeft = originX + inset;
+            double hRight = originX + cutWidth - inset;
             if (hRight > hLeft)
             {
                 foreach (double y in EvenlySpaced(bottom, top, verticalSpacing))
@@ -187,12 +212,15 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 }
             }
 
-            // Vertical lines: DR-L / DR-R boundary lines (skipped when that
-            // door return is zero) + even-fill between them.
+            // Vertical lines: a line on each non-zero door-return boundary
+            // (measured from the true cut edge now there is no padding), plus
+            // even-fill between the bounds. When a door return is zero the
+            // bound sits one inset in from the edge so no line lands on it.
             double drLeft = wall.Segments.DoorReturnLeft;
             double drRight = wall.Segments.DoorReturnRight;
-            double leftBound = originX + half + drLeft;
-            double rightBound = originX + cutWidth - half - drRight;
+            double leftBound = drLeft > 0 ? originX + drLeft : originX + inset;
+            double rightBound = drRight > 0 ? originX + cutWidth - drRight
+                                            : originX + cutWidth - inset;
             if (rightBound <= leftBound) return;
 
             if (drLeft > 0)

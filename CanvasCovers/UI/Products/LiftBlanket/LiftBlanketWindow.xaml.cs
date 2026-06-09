@@ -22,7 +22,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         // False until the constructor finishes. The Options TextBoxes carry
         // TextChanged="SharedParam_Changed", which WPF fires WHILE parsing the
         // XAML (as each Text="..." is applied) — before the later-declared
-        // named elements PushSharedParams reads (EdgeAllowanceInput,
+        // named elements PushSharedParams reads (QuiltInsetInput,
         // QuiltingSpacingInput, QuiltingOption) have been constructed. Guarding
         // on this flag (set last, below) is order-independent: a XAML reorder
         // cannot silently reintroduce the init-time NRE.
@@ -44,7 +44,23 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             LeftBlanket.Configure(isRear: false, mirrored: false);
             RightBlanket.Configure(isRear: false, mirrored: true);
             RearBlanket.Configure(isRear: true, mirrored: false);
+
+            // Seed the right + rear height from the left wall (placeholder only;
+            // a wall stops mirroring once the operator types its own height).
+            // Item 4.
+            LeftBlanket.HeightChanged += (s, ev) =>
+            {
+                RightBlanket.MirrorHeight(LeftBlanket.HeightText);
+                RearBlanket.MirrorHeight(LeftBlanket.HeightText);
+            };
+
+            // Live left/right width-match check (item 16): re-evaluate whenever
+            // either side changes. Non-blocking — just a visible reminder.
+            LeftBlanket.InputChanged += (s, ev) => UpdateWidthWarning();
+            RightBlanket.InputChanged += (s, ev) => UpdateWidthWarning();
+
             PushSharedParams();
+            UpdateWidthWarning();
         }
 
         // Pushes the Options-panel values (allowances, quilting) into every
@@ -52,12 +68,12 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         private void PushSharedParams()
         {
             double fixing = ParseOr(FixingAllowanceInput.Text, 50);
-            double edge = ParseOr(EdgeAllowanceInput.Text, 10);
+            double inset = ParseOr(QuiltInsetInput.Text, 5);
             double quilt = ParseOr(QuiltingSpacingInput.Text, 700);
             bool quiltOn = QuiltingOption.IsChecked == true;
-            LeftBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
-            RightBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
-            RearBlanket.SetSharedParams(fixing, edge, quilt, quiltOn);
+            LeftBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
+            RightBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
+            RearBlanket.SetSharedParams(fixing, inset, quilt, quiltOn);
         }
 
         private void SharedParam_Changed(object sender, RoutedEventArgs e)
@@ -185,13 +201,15 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             {
                 ThroughCar = ThroughCarOption.IsChecked == true,
                 PlasticCoverOnCop = PlasticCoverOption.IsChecked == true,
+                BagRequired = BagRequiredOption.IsChecked == true,
+                GlassBehind = GlassBehindOption.IsChecked == true,
                 Fixings = fixing,
                 FixingAllowanceMm = allowance,
                 // The edge-allowance, quilting-spacing and quilting-on inputs
                 // drive both the live preview (via SetSharedParams) AND the
                 // generated drawing — read them here so operator changes reach
                 // the generator, not just the preview.
-                EdgeAllowanceMm = ParseOr(EdgeAllowanceInput.Text, 10),
+                QuiltInsetMm = ParseOr(QuiltInsetInput.Text, 5),
                 VerticalQuiltingSpacingMm = ParseOr(QuiltingSpacingInput.Text, 700),
                 QuiltingEnabled = QuiltingOption.IsChecked == true,
             };
@@ -227,17 +245,26 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             bool isRear = blanket == RearBlanket;
             string widthLabel = isRear ? wallLabel + " width" : wallLabel + " segment 1";
 
-            wall.Segments.DoorReturnLeft  = ReadNonNegative(blanket.DrLeftText,  wallLabel + " door return (left)",  errors);
-            wall.Segments.Seg1            = ReadNonNegative(blanket.Seg1Text,    widthLabel,                          errors);
-            wall.Segments.Seg2            = ReadNonNegative(blanket.Seg2Text,    wallLabel + " segment 2 (COP width)", errors);
-            wall.Segments.Seg3            = ReadNonNegative(blanket.Seg3Text,    wallLabel + " segment 3",            errors);
-            wall.Segments.DoorReturnRight = ReadNonNegative(blanket.DrRightText, wallLabel + " door return (right)", errors);
+            // Optional total-width override (L/R only). When set, the operator
+            // may leave the segment boxes blank — they're treated as 0 instead
+            // of erroring, so a single total width is enough. Item 5.
+            double overrideWidth = isRear
+                ? 0
+                : ReadOptionalNonNegative(blanket.TotalWidthText, wallLabel + " total width", errors);
+            wall.TotalWidthOverride = overrideWidth;
+            bool blankOk = overrideWidth > 0;
+
+            wall.Segments.DoorReturnLeft  = ReadSegment(blanket.DrLeftText,  wallLabel + " door return (left)",  blankOk, errors);
+            wall.Segments.Seg1            = ReadSegment(blanket.Seg1Text,    widthLabel,                          blankOk, errors);
+            wall.Segments.Seg2            = ReadSegment(blanket.Seg2Text,    wallLabel + " segment 2 (COP width)", blankOk, errors);
+            wall.Segments.Seg3            = ReadSegment(blanket.Seg3Text,    wallLabel + " segment 3",            blankOk, errors);
+            wall.Segments.DoorReturnRight = ReadSegment(blanket.DrRightText, wallLabel + " door return (right)", blankOk, errors);
             wall.MeasuredHeight           = ReadPositive(blanket.MeasuredHeightText, wallLabel + " measured height", errors);
 
-            if (wall.Segments.TotalWidth <= 0)
+            if (wall.Width <= 0)
                 errors.Add(isRear
                     ? wallLabel + " needs a width."
-                    : wallLabel + " needs at least one non-zero segment.");
+                    : wallLabel + " needs a total width or at least one non-zero segment.");
 
             // The measured height must exceed the fixing allowance, else the
             // doubled cut height ((measured − fixing) × 2) goes zero/negative
@@ -262,10 +289,9 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 // the right cut edge.
                 if (wall.Segments.Seg2 > 0)
                 {
-                    double half = options.EdgeAllowanceMm / 2.0;
-                    double copRight = half + wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
-                    double cutWidth = wall.Segments.TotalWidth + options.EdgeAllowanceMm;
-                    if (copRight > cutWidth - half + 0.001)
+                    double copRight = wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
+                    double cutWidth = wall.Width;
+                    if (copRight > cutWidth + 0.001)
                         errors.Add(wallLabel +
                             " COP extends past the right edge — reduce segment 1 or the COP width (segment 2).");
                 }
@@ -296,6 +322,27 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             return value;
         }
 
+        // A segment value. When blankAllowed (the operator gave a total-width
+        // override) an empty box means 0 rather than an error.
+        private static double ReadSegment(string text, string label, bool blankAllowed, List<string> errors)
+        {
+            if (blankAllowed && string.IsNullOrWhiteSpace(text)) return 0;
+            return ReadNonNegative(text, label, errors);
+        }
+
+        // An optional non-negative value: blank means "not set" (0), not an error.
+        private static double ReadOptionalNonNegative(string text, string label, List<string> errors)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+            {
+                errors.Add(label + " must be zero or a positive number.");
+                return 0;
+            }
+            return value;
+        }
+
         private static double ReadNonNegative(string text, string label, List<string> errors)
         {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
@@ -317,6 +364,32 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         {
             ErrorText.Text = string.Empty;
             ErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        // Live, non-blocking reminder when the left and right wall widths differ.
+        // Cars are square, so a mismatch is usually leftover data — but an
+        // angled-COP lift legitimately differs, so it never blocks. Item 16.
+        private void UpdateWidthWarning()
+        {
+            if (WidthWarningText == null || LeftBlanket == null || RightBlanket == null) return;
+
+            bool show = CanvasCovers.Models.Products.LiftBlanket.WallChecks.WidthsMismatch(
+                LeftBlanket.WallEnabled, LeftBlanket.CurrentTotalWidth,
+                RightBlanket.WallEnabled, RightBlanket.CurrentTotalWidth);
+
+            if (show)
+            {
+                WidthWarningText.Text =
+                    "⚠ Left and right wall widths differ ("
+                    + LeftBlanket.CurrentTotalWidth.ToString("0", CultureInfo.InvariantCulture)
+                    + " vs " + RightBlanket.CurrentTotalWidth.ToString("0", CultureInfo.InvariantCulture)
+                    + "). Cars are usually square — check this isn't leftover data (OK if this lift has an angled COP).";
+                WidthWarningText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                WidthWarningText.Visibility = Visibility.Collapsed;
+            }
         }
     }
 }

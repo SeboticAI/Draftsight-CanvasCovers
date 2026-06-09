@@ -32,6 +32,7 @@ namespace CanvasCovers.UI.Controls
     {
         private readonly TextBox _drLeft, _seg1, _seg2, _seg3, _drRight;
         private readonly TextBox _measuredHeight, _copHeight, _copGapBottom;
+        private readonly TextBox _totalWidth;
 
         // External label per field (sits beside/above the box — not inside).
         private readonly Dictionary<TextBox, TextBlock> _labels =
@@ -65,6 +66,7 @@ namespace CanvasCovers.UI.Controls
             _measuredHeight = MakeField("Height");
             _copHeight = MakeField("COP H");
             _copGapBottom = MakeField("From bottom");
+            _totalWidth = MakeField("Total width (overrides segments)");
         }
 
         private TextBox MakeField(string label)
@@ -101,11 +103,34 @@ namespace CanvasCovers.UI.Controls
         // The window pushes the fixing allowance (used only for the auto
         // top-gap readout). Edge allowance / quilting don't affect this fixed
         // schematic, so they're accepted and ignored here.
-        public void SetSharedParams(double fixingAllowance, double edgeAllowance,
+        public void SetSharedParams(double fixingAllowance, double quiltInset,
             double quiltSpacing, bool quiltEnabled)
         {
             _fixingAllowance = fixingAllowance;
             Redraw();
+        }
+
+        // HeightChanged: the left wall seeds the others (item 4).
+        // InputChanged: any input changed — lets the window live-check the
+        // left/right width match (item 16).
+        public event System.EventHandler HeightChanged;
+        public event System.EventHandler InputChanged;
+
+        public string HeightText => _measuredHeight.Text;
+
+        private bool _heightManuallyEdited;
+        private bool _suppressHeightDirty;
+
+        // Copy a height into this wall as a placeholder. Skips the copy once the
+        // operator has typed their own height here, so the two stay independent.
+        // Suppresses the dirty flag so the programmatic set isn't mistaken for a
+        // manual edit (otherwise the first seeded keystroke would lock it).
+        public void MirrorHeight(string value)
+        {
+            if (_heightManuallyEdited) return;
+            _suppressHeightDirty = true;
+            _measuredHeight.Text = value;
+            _suppressHeightDirty = false;
         }
 
         public bool WallEnabled => IncludeWall.IsChecked == true;
@@ -118,11 +143,34 @@ namespace CanvasCovers.UI.Controls
         public string Seg2Text => _isRear ? "0" : _seg2.Text;
         public string Seg3Text => _isRear ? "0" : _seg3.Text;
         public string DrRightText => _isRear ? "0" : _drRight.Text;
+        public string TotalWidthText => _totalWidth.Text;
         public string MeasuredHeightText => _measuredHeight.Text;
         public string CopHeightText => _copHeight.Text;
         public string CopGapBottomText => _copGapBottom.Text;
 
-        private void Input_Changed(object sender, RoutedEventArgs e) => Redraw();
+        // The width this wall would cut to right now: the override if set, else
+        // the sum of the segment fields. Mirrors WallDimensions.Width.
+        public double CurrentTotalWidth
+        {
+            get
+            {
+                double ov = ParseOr(_totalWidth.Text);
+                if (ov > 0) return ov;
+                return ParseOr(DrLeftText) + ParseOr(Seg1Text) + ParseOr(Seg2Text)
+                     + ParseOr(Seg3Text) + ParseOr(DrRightText);
+            }
+        }
+
+        private void Input_Changed(object sender, RoutedEventArgs e)
+        {
+            Redraw();
+            if (sender == _measuredHeight)
+            {
+                if (!_suppressHeightDirty) _heightManuallyEdited = true;
+                HeightChanged?.Invoke(this, System.EventArgs.Empty);
+            }
+            InputChanged?.Invoke(this, System.EventArgs.Empty);
+        }
         private void DrawCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => Redraw();
 
         private void Redraw()
@@ -174,6 +222,11 @@ namespace CanvasCovers.UI.Controls
             double w = right - left, h = bottom - top;
 
             AddRect(left, top, w, h, WallStroke, 2);
+
+            // Optional total-width override, top-left above the wall. When the
+            // operator fills it, it replaces the segment sum for the cut width;
+            // the segment boxes stay usable. Item 5 (separate from the COP).
+            PlaceLabeledField(_totalWidth, left, 18);
 
             // Segment X boundaries: DR-L | S1 | S2(COP) | S3 | DR-R. The base
             // layout puts the COP (S2) LEFT-of-centre (big S1 gap to its right,
@@ -279,7 +332,7 @@ namespace CanvasCovers.UI.Controls
         {
             // Hide the L/R-only fields.
             HideField(_drLeft); HideField(_seg2); HideField(_seg3); HideField(_drRight);
-            HideField(_copHeight); HideField(_copGapBottom);
+            HideField(_copHeight); HideField(_copGapBottom); HideField(_totalWidth);
 
             double left = 90, right = cw - 110;
             double top = 56, bottom = ch - 96;

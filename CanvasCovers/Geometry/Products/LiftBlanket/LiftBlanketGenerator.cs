@@ -64,7 +64,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
             string projectTag = BuildProjectTag(job.Project);
             var calc = new LiftBlanketCalculator(
-                job.Options.FixingAllowanceMm, job.Options.EdgeAllowanceMm);
+                job.Options.FixingAllowanceMm, job.Options.QuiltInsetMm);
 
             using (LayerHelper layers = new LayerHelper(document))
             {
@@ -96,12 +96,18 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                     double maxTop = 0;
                     bool isFirstWall = true;
 
+                    var reminders = new List<string>();
+                    if (job.Options.BagRequired) reminders.Add("BAG");
+                    reminders.Add(FixingLabel(job.Options.Fixings).ToUpperInvariant());
+                    if (job.Options.GlassBehind) reminders.Add("GLASS BEHIND");
+
                     foreach (var pair in EnumerateWalls(job))
                     {
                         WallLayout layout = calc.LayoutWall(
                             pair.Wall, cursorX, projectTag, pair.Suffix,
                             job.Options.QuiltingEnabled,
-                            job.Options.VerticalQuiltingSpacingMm);
+                            job.Options.VerticalQuiltingSpacingMm,
+                            reminders);
                         DrawWall(sketch, layers, layout, isFirstWall);
                         double cutWidth = layout.CutRect.X1 - layout.CutRect.X0;
                         double cutHeight = layout.CutRect.Y1 - layout.CutRect.Y0;
@@ -158,6 +164,18 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                     new[] { c.X0, c.Y0, c.X1, c.Y0, c.X1, c.Y1, c.X0, c.Y1 }, true);
             }
 
+            // Reminder text inside the COP cutout (vertical), on the draw layer.
+            if (layout.CopReminders.Count > 0)
+            {
+                layers.Activate(_layerSettings.Cop.Name);
+                foreach (LabelSpec rem in layout.CopReminders)
+                {
+                    SimpleNote n = sketch.InsertSimpleNote(rem.X, rem.Y, 0, rem.Height, Rad(rem.Angle), rem.Text);
+                    if (n != null) n.Justify = dsTextJustification_e.dsTextJustification_Middle;
+                    else FailedInsertCount++;
+                }
+            }
+
             // Quilt lines on the draw/score layer (same layer as COP), never
             // the cut layer. Each is a 2-point open polyline.
             if (layout.QuiltLines.Count > 0)
@@ -174,7 +192,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             {
                 layers.Activate(_layerSettings.Annotation.Name);
                 LabelSpec lab = layout.IdentifierLabel.Value;
-                SimpleNote note = sketch.InsertSimpleNote(lab.X, lab.Y, 0, lab.Height, 0.0, lab.Text);
+                SimpleNote note = sketch.InsertSimpleNote(lab.X, lab.Y, 0, lab.Height, Rad(lab.Angle), lab.Text);
                 if (note != null) note.Justify = dsTextJustification_e.dsTextJustification_Middle;
                 else FailedInsertCount++;
             }
@@ -215,11 +233,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
 
         private static string BuildProjectTag(ProjectMetadata project)
         {
-            if (project == null) return string.Empty;
-            string net = (project.NetworkNumber ?? "").Trim();
-            string name = (project.ProjectName ?? "").Trim();
-            // Reference DXFs label walls "<net> <name>" e.g. "12346 TEST 12346".
-            return (net + " " + name).Trim();
+            // Per-wall label is the blanket text: "<order> <initials> <network>".
+            return CanvasCovers.Models.Products.LiftBlanket.BlanketText.Build(project);
         }
 
         // ---- Annotation/legend text (free-floating, layer 0), mirroring the
@@ -243,12 +258,10 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             List<string> lines = new List<string>
             {
                 "COMPANY - " + Display(job.Project.CompanyName),
-                "PROJECT NAME - " + Display(job.Project.ProjectName),
+                "COMPANY INITIALS - " + Display(job.Project.CompanyInitials),
+                "AAC ORDER NO - " + Display(job.Project.OrderNumber),
                 "NETWORK NO - " + Display(job.Project.NetworkNumber),
-                "O / NO - " + Display(job.Project.OrderNumber),
-                "SALES CONTACT - " + Display(job.Project.SalesContact),
-                "MOBILE - " + Display(job.Project.Mobile),
-                "MEASURED BY - " + Display(job.Project.MeasuredBy),
+                "PROJECT NAME - " + Display(job.Project.ProjectName),
                 "DATE - " + dateStr,
                 string.Empty,
                 "FIXINGS REQUIRED - " + FixingLabel(job.Options.Fixings).ToUpperInvariant(),
@@ -256,14 +269,6 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 "THROUGH CAR - " + YesNo(job.Options.ThroughCar),
                 "PLASTIC COVER ON COP - " + YesNo(job.Options.PlasticCoverOnCop),
             };
-
-            string notes = (job.Project.Notes ?? string.Empty).Trim();
-            if (notes.Length > 0)
-            {
-                lines.Add(string.Empty);
-                lines.Add("NOTES");
-                lines.Add(notes);
-            }
 
             lines.Add(string.Empty);
             lines.Add("FIXINGS");
@@ -286,6 +291,12 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             }
         }
 
+        // DraftSight's InsertSimpleNote takes its rotation angle in RADIANS.
+        // LabelSpec.Angle is kept in degrees (clean + testable), so convert here
+        // at the SDK boundary. (Passing degrees lands text at a wild tilt:
+        // 180 "degrees" read as radians ≈ 233°.)
+        private static double Rad(double degrees) => degrees * Math.PI / 180.0;
+
         private static string Display(string value) => string.IsNullOrEmpty(value) ? "—" : value;
         private static string YesNo(bool flag) => flag ? "YES" : "NO";
 
@@ -294,9 +305,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             switch (fixing)
             {
                 case FixingType.Velcro: return "Velcro";
+                case FixingType.SelfAdhesiveVelcro: return "Self-adhesive Velcro";
                 case FixingType.HooksFacingIn: return "Hooks Facing In";
                 case FixingType.HooksFacingOut: return "Hooks Facing Out";
                 case FixingType.PressStuds: return "Press Studs";
+                case FixingType.Eyelet: return "Eyelet";
                 default: return fixing.ToString();
             }
         }

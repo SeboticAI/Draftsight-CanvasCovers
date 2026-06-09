@@ -5,9 +5,41 @@ working state changes meaningfully (new feature lands, refactor commits,
 gating issue identified). Skim [ROADMAP.md](ROADMAP.md) for what's queued
 next.
 
-**Current version: v1.4.5** on branch `feat/sheet-mirroring-cop-quilting`.
-Installer: `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.4.5.exe` — this is
-the build going to the client for **beta testing**.
+**Current version: v1.5.0** on `main`. Installer:
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`. This build implements
+the client's **beta-review change list** (see
+[CHANGE_REQUESTS_BETA_REVIEW.md](CHANGE_REQUESTS_BETA_REVIEW.md) for the
+authoritative per-item record). 42 headless tests pass; the add-in + installer
+build clean via `dotnet`. Live-tested in DraftSight through several fix rounds.
+
+### What changed in v1.5.0 (from the beta review)
+
+- **Outline = entered width** (the old +10mm edge boost is gone); a new
+  **Quilt Inset** field (default 5mm) is the only quilt-line clearance. Existing
+  outlines are ~10mm narrower than v1.4.5 — the operator adds shrinkage manually.
+- **Blanket text** = `AAC order + company initials + network` — one string used
+  for the printed label (bottom-centre, **inverted 180°**, ~25mm from the top,
+  25mm high) AND the export filename.
+- **Project fields** trimmed to Company name, Company Initials, Network, AAC
+  Order No, Project name, Date (Sales contact / Measured by / Mobile / Notes
+  removed).
+- **Total-width override** field (optional) lets the operator skip the five
+  segments; COP-off now only hides the COP, it does not reshape the wall.
+- **Fixings:** added Eyelet (−30) and self-adhesive Velcro (0); dropdown shows
+  the allowance; height seeds from the left wall; **live** L/R width-mismatch
+  warning.
+- **COP-cutout reminders** (BAG / fixing / glass-behind) printed **vertical**
+  inside the cutout. **Defpoints layer removed** (now six cutter layers).
+- SDK note: `InsertSimpleNote` rotation is **radians** — see CLAUDE.md §9.
+
+Deferred / not-in-this-build: items 9 (velcro corners, optional), 17 (needs
+clarification), 21 (parked); 22–25 are DraftSight profile/settings, not add-in;
+27–28 are future. Next sessions: thorough review + optimisation.
+
+> Note: the sections below predate v1.5.0 in places (they still describe the
+> edge-allowance and seven-layer behaviour). Treat the v1.5.0 summary above and
+> CHANGE_REQUESTS_BETA_REVIEW.md as current where they differ; these sections
+> will be refreshed during the review pass.
 
 ---
 

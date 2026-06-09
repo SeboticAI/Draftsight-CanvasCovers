@@ -16,15 +16,13 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="110" />
+            <ColumnDefinition Width="120" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="20" />
-            <ColumnDefinition Width="110" />
+            <ColumnDefinition Width="120" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -32,33 +30,17 @@
 
         <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Company Name" />
         <TextBox Grid.Row="0" Grid.Column="1" Name="CompanyNameInput" />
-        <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Network Number" />
-        <TextBox Grid.Row="0" Grid.Column="4" Name="NetworkNumberInput" />
+        <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Company Initials" />
+        <TextBox Grid.Row="0" Grid.Column="4" Name="CompanyInitialsInput" ToolTip="AAC customer+depot code, e.g. Kone Melbourne = KM" />
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Project Name" />
-        <TextBox Grid.Row="1" Grid.Column="1" Name="ProjectNameInput" />
-        <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="O / Number" />
-        <TextBox Grid.Row="1" Grid.Column="4" Name="OrderNumberInput" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="AAC Order Number" />
+        <TextBox Grid.Row="1" Grid.Column="1" Name="OrderNumberInput" />
+        <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Network Number" />
+        <TextBox Grid.Row="1" Grid.Column="4" Name="NetworkNumberInput" />
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Sales Contact" />
-        <TextBox Grid.Row="2" Grid.Column="1" Name="SalesContactInput" />
-        <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Mobile" />
-        <TextBox Grid.Row="2" Grid.Column="4" Name="MobileInput" />
-
-        <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Measured By" />
-        <TextBox Grid.Row="3" Grid.Column="1" Name="MeasuredByInput" />
-        <TextBlock Grid.Row="3" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Date" />
-        <DatePicker Grid.Row="3" Grid.Column="4" Name="DateInput" Height="26" Margin="0,2,0,2" />
-
-        <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Notes" VerticalAlignment="Top" Margin="0,6,8,0" />
-        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4"
-                 Name="NotesInput"
-                 Height="56"
-                 Margin="0,6,0,2"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 VerticalContentAlignment="Top"
-                 VerticalScrollBarVisibility="Auto"
-                 ToolTip="Delivery instructions, special requests, anything the production floor needs to know." />
+        <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Project Name" />
+        <TextBox Grid.Row="2" Grid.Column="1" Name="ProjectNameInput" />
+        <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Date" />
+        <DatePicker Grid.Row="2" Grid.Column="4" Name="DateInput" Height="26" Margin="0,2,0,2" />
     </Grid>
 </UserControl>

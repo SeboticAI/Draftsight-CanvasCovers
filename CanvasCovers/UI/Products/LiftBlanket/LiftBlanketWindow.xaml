@@ -111,6 +111,12 @@
                         <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
                         <TextBlock Style="{StaticResource MutedLabel}"
                                    Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
+                        <TextBlock x:Name="WidthWarningText"
+                                   Foreground="{StaticResource BrandAccent}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"
+                                   Visibility="Collapsed" />
                         <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
                             <TabItem Header="Left Wall">
                                 <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
@@ -134,6 +140,8 @@
                                       Checked="ThroughCarOption_Changed"
                                       Unchecked="ThroughCarOption_Changed" />
                             <CheckBox Name="PlasticCoverOption" Content="Plastic Cover on COP" />
+                            <CheckBox Name="BagRequiredOption" Content="Storage bag required (BAG)" />
+                            <CheckBox Name="GlassBehindOption" Content="Glass behind" />
                         </WrapPanel>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
@@ -142,11 +150,13 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixings Required" />
-                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="2" SelectionChanged="FixingsInput_SelectionChanged">
-                                <ComboBoxItem Content="Velcro" Tag="Velcro" />
-                                <ComboBoxItem Content="Hooks Facing In" Tag="HooksFacingIn" />
-                                <ComboBoxItem Content="Hooks Facing Out" Tag="HooksFacingOut" />
-                                <ComboBoxItem Content="Press Studs" Tag="PressStuds" />
+                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="3" SelectionChanged="FixingsInput_SelectionChanged">
+                                <ComboBoxItem Content="Velcro (0)" Tag="Velcro" />
+                                <ComboBoxItem Content="Self-adhesive Velcro (0)" Tag="SelfAdhesiveVelcro" />
+                                <ComboBoxItem Content="Hooks Facing In (-50)" Tag="HooksFacingIn" />
+                                <ComboBoxItem Content="Hooks Facing Out (-50)" Tag="HooksFacingOut" />
+                                <ComboBoxItem Content="Press Studs (-40)" Tag="PressStuds" />
+                                <ComboBoxItem Content="Eyelet (-30)" Tag="Eyelet" />
                             </ComboBox>
                         </Grid>
                         <Grid Margin="0,8,0,0">
@@ -166,10 +176,10 @@
                                 <ColumnDefinition Width="100" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Edge Allowance (mm)" />
-                            <TextBox Grid.Column="1" Name="EdgeAllowanceInput" Text="10" TextChanged="SharedParam_Changed" />
+                            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Quilt Inset (mm)" />
+                            <TextBox Grid.Column="1" Name="QuiltInsetInput" Text="5" TextChanged="SharedParam_Changed" />
                             <TextBlock Grid.Column="2" Style="{StaticResource MutedLabel}"
-                                       Text="Added to cut width and split evenly (half each side + bottom inset for quilting)." />
+                                       Text="Distance the quilting lines are pulled in from the outline so the pen clears the cut edge. The outline is always the entered size." />
                         </Grid>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
