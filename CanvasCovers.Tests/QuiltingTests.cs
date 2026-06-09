@@ -153,5 +153,40 @@ namespace CanvasCovers.Tests
                 quiltingEnabled: false, verticalQuiltingSpacingMm: 700);
             Assert.AreEqual(0, layout.QuiltLines.Count);
         }
+
+        [TestMethod]
+        public void No_Quilt_Line_Sits_On_An_Outline_Edge()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, quiltInsetMm: 5);
+            WallLayout layout = calc.LayoutWall(
+                wall, originX: 0, "12346 TEST 12346", "L",
+                quiltingEnabled: true, verticalQuiltingSpacingMm: 700);
+
+            double cutWidth = 2240;
+            foreach (LineSpec l in layout.QuiltLines)
+            {
+                // No vertical on the left/right outline; no horizontal on the bottom.
+                Assert.IsFalse(System.Math.Abs(l.X0 - 0) < 0.001 && System.Math.Abs(l.X1 - 0) < 0.001);
+                Assert.IsFalse(System.Math.Abs(l.X0 - cutWidth) < 0.001 && System.Math.Abs(l.X1 - cutWidth) < 0.001);
+                Assert.IsFalse(System.Math.Abs(l.Y0 - 0) < 0.001 && System.Math.Abs(l.Y1 - 0) < 0.001);
+            }
+        }
+
+        [TestMethod]
+        public void Interior_Horizontal_Gaps_Are_Even()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, quiltInsetMm: 5);
+            WallLayout layout = calc.LayoutWall(
+                wall, originX: 0, "12346 TEST 12346", "L",
+                quiltingEnabled: true, verticalQuiltingSpacingMm: 700);
+
+            var ys = layout.QuiltLines
+                .Where(l => System.Math.Abs(l.Y0 - l.Y1) < 0.001)
+                .Select(l => l.Y0).OrderBy(y => y).ToList();
+            for (int i = 2; i < ys.Count; i++)
+                Assert.AreEqual(ys[1] - ys[0], ys[i] - ys[i - 1], 0.01, "even vertical gaps");
+        }
     }
 }
