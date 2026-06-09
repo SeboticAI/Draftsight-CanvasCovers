@@ -44,6 +44,15 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             LeftBlanket.Configure(isRear: false, mirrored: false);
             RightBlanket.Configure(isRear: false, mirrored: true);
             RearBlanket.Configure(isRear: true, mirrored: false);
+
+            // Seed the right + rear height from the left wall (placeholder only;
+            // each stays independent once it has a value). Item 4.
+            LeftBlanket.HeightChanged += (s, ev) =>
+            {
+                RightBlanket.SeedHeightIfEmpty(LeftBlanket.HeightText);
+                RearBlanket.SeedHeightIfEmpty(LeftBlanket.HeightText);
+            };
+
             PushSharedParams();
         }
 
@@ -113,6 +122,21 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             {
                 ShowError(string.Join(Environment.NewLine, errors));
                 return;
+            }
+
+            // Non-blocking sanity check: cars are square, so a left/right width
+            // mismatch is usually leftover data — but an angled-COP lift can
+            // legitimately differ, so warn and let the operator proceed. (item 16)
+            if (CanvasCovers.Models.Products.LiftBlanket.WallChecks.WidthsMismatch(
+                    left.Enabled, left.Segments.TotalWidth, right.Enabled, right.Segments.TotalWidth))
+            {
+                System.Windows.MessageBox.Show(
+                    "Left and right wall widths differ. Cars are usually square, so check this "
+                        + "isn't leftover data from a previous order — but proceed if this lift "
+                        + "has an angled COP.",
+                    "CanvasCovers — width check",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
             }
 
             Job = new LiftBlanketJob

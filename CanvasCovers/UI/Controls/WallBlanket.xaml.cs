@@ -108,6 +108,20 @@ namespace CanvasCovers.UI.Controls
             Redraw();
         }
 
+        // Raised when the measured-height field changes (used to seed the other
+        // walls from the left wall — item 4).
+        public event System.EventHandler HeightChanged;
+
+        public string HeightText => _measuredHeight.Text;
+
+        // Seed this wall's height ONLY if its field is currently empty, so a
+        // value the operator already typed is never overwritten.
+        public void SeedHeightIfEmpty(string value)
+        {
+            if (string.IsNullOrWhiteSpace(_measuredHeight.Text))
+                _measuredHeight.Text = value;
+        }
+
         public bool WallEnabled => IncludeWall.IsChecked == true;
         public bool CopEnabled => !_isRear && IncludeCop.IsChecked == true;
         public void SetWallEnabled(bool v) => IncludeWall.IsChecked = v;
@@ -122,7 +136,11 @@ namespace CanvasCovers.UI.Controls
         public string CopHeightText => _copHeight.Text;
         public string CopGapBottomText => _copGapBottom.Text;
 
-        private void Input_Changed(object sender, RoutedEventArgs e) => Redraw();
+        private void Input_Changed(object sender, RoutedEventArgs e)
+        {
+            Redraw();
+            if (sender == _measuredHeight) HeightChanged?.Invoke(this, System.EventArgs.Empty);
+        }
         private void DrawCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => Redraw();
 
         private void Redraw()
