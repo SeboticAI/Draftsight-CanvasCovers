@@ -134,6 +134,8 @@
                                       Checked="ThroughCarOption_Changed"
                                       Unchecked="ThroughCarOption_Changed" />
                             <CheckBox Name="PlasticCoverOption" Content="Plastic Cover on COP" />
+                            <CheckBox Name="BagRequiredOption" Content="Storage bag required (BAG)" />
+                            <CheckBox Name="GlassBehindOption" Content="Glass behind" />
                         </WrapPanel>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>

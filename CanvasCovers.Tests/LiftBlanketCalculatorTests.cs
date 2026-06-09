@@ -96,6 +96,36 @@ namespace CanvasCovers.Tests
         }
 
         [TestMethod]
+        public void Cop_Reminders_Are_Vertical_Inside_The_Cop()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, quiltInsetMm: 5);
+            WallLayout layout = calc.LayoutWall(
+                wall, originX: 0, "AAC1 KM 45678", "L",
+                copReminders: new[] { "BAG", "EYELET" });
+            Assert.AreEqual(2, layout.CopReminders.Count);
+            foreach (LabelSpec r in layout.CopReminders)
+            {
+                Assert.AreEqual(90.0, r.Angle, 0.001);
+                Assert.IsTrue(r.X >= 600 && r.X <= 840, "reminder X inside COP");
+                Assert.IsTrue(r.Y >= 600 && r.Y <= 1900, "reminder Y inside COP");
+            }
+        }
+
+        [TestMethod]
+        public void Identifier_Is_Bottom_Centre_Inverted()
+        {
+            var wall = Job12346LeftWall();
+            var calc = new LiftBlanketCalculator(fixingAllowanceMm: 50, quiltInsetMm: 5);
+            WallLayout layout = calc.LayoutWall(wall, originX: 0, "AAC1 KM 45678", "L");
+            Assert.IsTrue(layout.IdentifierLabel.HasValue);
+            LabelSpec lab = layout.IdentifierLabel.Value;
+            Assert.AreEqual(1120.0, lab.X, 0.001);     // cutWidth/2 = 2240/2
+            Assert.AreEqual(4275.0, lab.Y, 0.001);     // cutHeight - 25
+            Assert.AreEqual(180.0, lab.Angle, 0.001);
+        }
+
+        [TestMethod]
         public void IdentifierLabel_Concatenates_Project_And_Suffix()
         {
             var wall = Job12346LeftWall();

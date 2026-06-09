@@ -185,6 +185,8 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             {
                 ThroughCar = ThroughCarOption.IsChecked == true,
                 PlasticCoverOnCop = PlasticCoverOption.IsChecked == true,
+                BagRequired = BagRequiredOption.IsChecked == true,
+                GlassBehind = GlassBehindOption.IsChecked == true,
                 Fixings = fixing,
                 FixingAllowanceMm = allowance,
                 // The edge-allowance, quilting-spacing and quilting-on inputs

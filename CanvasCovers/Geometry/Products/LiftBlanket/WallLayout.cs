@@ -23,10 +23,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         public double Ext1X, Ext1Y, Ext2X, Ext2Y, LineX, LineY;
     }
 
-    // A single-line text label to emit at a baseline point.
+    // A single-line text label to emit at a baseline point. Angle is the
+    // text rotation in degrees (0 = horizontal, 180 = inverted, 90 = vertical).
     public struct LabelSpec
     {
-        public double X, Y, Height;
+        public double X, Y, Height, Angle;
         public string Text;
     }
 
@@ -63,5 +64,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         // Vertical + horizontal quilt lines (draw/score layer), bottom half
         // only. Empty when quilting is disabled.
         public List<LineSpec> QuiltLines = new List<LineSpec>();
+
+        // Reminder labels drawn inside the COP cutout (vertical), e.g. "BAG"
+        // and the fixing type. Empty when no COP or none requested.
+        public List<LabelSpec> CopReminders = new List<LabelSpec>();
     }
 }

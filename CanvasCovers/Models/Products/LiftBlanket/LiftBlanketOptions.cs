@@ -40,5 +40,12 @@ namespace CanvasCovers.Models.Products.LiftBlanket
 
         // Quilting is now built. On by default; the operator can disable it.
         public bool QuiltingEnabled { get; set; } = true;
+
+        // Stamp a "BAG" reminder inside the COP cutout when a storage bag is
+        // required (item 14). Drawn vertical to fit the cutout.
+        public bool BagRequired { get; set; }
+
+        // Stamp a glass-behind label (item 15).
+        public bool GlassBehind { get; set; }
     }
 }

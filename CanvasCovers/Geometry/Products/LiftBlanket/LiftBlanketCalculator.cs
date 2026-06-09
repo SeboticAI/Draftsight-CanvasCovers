@@ -21,6 +21,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
         // in the client's reference DXFs — match that.
         private const double IdentifierTextHeight = 20.0;
 
+        // Blanket text sits this far down from the top edge (which becomes the
+        // bottom when the blanket is folded), fixed so it doesn't move with
+        // width. Inverted (180°). See item 12.
+        private const double IdentifierTopGap = 25.0;
+
         private readonly double _fixingAllowanceMm;
         private readonly double _quiltInsetMm;
 
@@ -91,7 +96,8 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             string projectTag,
             string suffix,
             bool quiltingEnabled = false,
-            double verticalQuiltingSpacingMm = 0)
+            double verticalQuiltingSpacingMm = 0,
+            System.Collections.Generic.IEnumerable<string> copReminders = null)
         {
             double cutWidth = CutWidth(wall.Width);
 
@@ -123,6 +129,22 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                     copY0,
                     copX0 + copWidth,
                     copY0 + wall.Cop.Height);
+
+                if (copReminders != null)
+                {
+                    double rx = copX0 + copWidth / 2.0;
+                    double ry = copY0 + wall.Cop.Height / 2.0;
+                    foreach (string text in copReminders)
+                    {
+                        if (string.IsNullOrWhiteSpace(text)) continue;
+                        layout.CopReminders.Add(new LabelSpec
+                        {
+                            X = rx, Y = ry, Height = IdentifierTextHeight,
+                            Angle = 90.0, Text = text,
+                        });
+                        rx += IdentifierTextHeight * 1.4; // stack columns across the cutout
+                    }
+                }
             }
 
             if (!string.IsNullOrEmpty(suffix))
@@ -130,8 +152,9 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 layout.IdentifierLabel = new LabelSpec
                 {
                     X = originX + cutWidth / 2.0,
-                    Y = cutHeight / 2.0,
+                    Y = cutHeight - IdentifierTopGap,
                     Height = IdentifierTextHeight,
+                    Angle = 180.0,
                     Text = (string.IsNullOrEmpty(projectTag) ? "" : projectTag + " ") + suffix,
                 };
             }
