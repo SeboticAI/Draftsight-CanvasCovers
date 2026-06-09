@@ -46,14 +46,21 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             RearBlanket.Configure(isRear: true, mirrored: false);
 
             // Seed the right + rear height from the left wall (placeholder only;
-            // each stays independent once it has a value). Item 4.
+            // a wall stops mirroring once the operator types its own height).
+            // Item 4.
             LeftBlanket.HeightChanged += (s, ev) =>
             {
-                RightBlanket.SeedHeightIfEmpty(LeftBlanket.HeightText);
-                RearBlanket.SeedHeightIfEmpty(LeftBlanket.HeightText);
+                RightBlanket.MirrorHeight(LeftBlanket.HeightText);
+                RearBlanket.MirrorHeight(LeftBlanket.HeightText);
             };
 
+            // Live left/right width-match check (item 16): re-evaluate whenever
+            // either side changes. Non-blocking — just a visible reminder.
+            LeftBlanket.InputChanged += (s, ev) => UpdateWidthWarning();
+            RightBlanket.InputChanged += (s, ev) => UpdateWidthWarning();
+
             PushSharedParams();
+            UpdateWidthWarning();
         }
 
         // Pushes the Options-panel values (allowances, quilting) into every
@@ -122,21 +129,6 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             {
                 ShowError(string.Join(Environment.NewLine, errors));
                 return;
-            }
-
-            // Non-blocking sanity check: cars are square, so a left/right width
-            // mismatch is usually leftover data — but an angled-COP lift can
-            // legitimately differ, so warn and let the operator proceed. (item 16)
-            if (CanvasCovers.Models.Products.LiftBlanket.WallChecks.WidthsMismatch(
-                    left.Enabled, left.Segments.TotalWidth, right.Enabled, right.Segments.TotalWidth))
-            {
-                System.Windows.MessageBox.Show(
-                    "Left and right wall widths differ. Cars are usually square, so check this "
-                        + "isn't leftover data from a previous order — but proceed if this lift "
-                        + "has an angled COP.",
-                    "CanvasCovers — width check",
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
             }
 
             Job = new LiftBlanketJob
@@ -253,17 +245,26 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             bool isRear = blanket == RearBlanket;
             string widthLabel = isRear ? wallLabel + " width" : wallLabel + " segment 1";
 
-            wall.Segments.DoorReturnLeft  = ReadNonNegative(blanket.DrLeftText,  wallLabel + " door return (left)",  errors);
-            wall.Segments.Seg1            = ReadNonNegative(blanket.Seg1Text,    widthLabel,                          errors);
-            wall.Segments.Seg2            = ReadNonNegative(blanket.Seg2Text,    wallLabel + " segment 2 (COP width)", errors);
-            wall.Segments.Seg3            = ReadNonNegative(blanket.Seg3Text,    wallLabel + " segment 3",            errors);
-            wall.Segments.DoorReturnRight = ReadNonNegative(blanket.DrRightText, wallLabel + " door return (right)", errors);
+            // Optional total-width override (L/R only). When set, the operator
+            // may leave the segment boxes blank — they're treated as 0 instead
+            // of erroring, so a single total width is enough. Item 5.
+            double overrideWidth = isRear
+                ? 0
+                : ReadOptionalNonNegative(blanket.TotalWidthText, wallLabel + " total width", errors);
+            wall.TotalWidthOverride = overrideWidth;
+            bool blankOk = overrideWidth > 0;
+
+            wall.Segments.DoorReturnLeft  = ReadSegment(blanket.DrLeftText,  wallLabel + " door return (left)",  blankOk, errors);
+            wall.Segments.Seg1            = ReadSegment(blanket.Seg1Text,    widthLabel,                          blankOk, errors);
+            wall.Segments.Seg2            = ReadSegment(blanket.Seg2Text,    wallLabel + " segment 2 (COP width)", blankOk, errors);
+            wall.Segments.Seg3            = ReadSegment(blanket.Seg3Text,    wallLabel + " segment 3",            blankOk, errors);
+            wall.Segments.DoorReturnRight = ReadSegment(blanket.DrRightText, wallLabel + " door return (right)", blankOk, errors);
             wall.MeasuredHeight           = ReadPositive(blanket.MeasuredHeightText, wallLabel + " measured height", errors);
 
-            if (wall.Segments.TotalWidth <= 0)
+            if (wall.Width <= 0)
                 errors.Add(isRear
                     ? wallLabel + " needs a width."
-                    : wallLabel + " needs at least one non-zero segment.");
+                    : wallLabel + " needs a total width or at least one non-zero segment.");
 
             // The measured height must exceed the fixing allowance, else the
             // doubled cut height ((measured − fixing) × 2) goes zero/negative
@@ -289,7 +290,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 if (wall.Segments.Seg2 > 0)
                 {
                     double copRight = wall.Segments.DoorReturnLeft + wall.Segments.Seg1 + wall.Segments.Seg2;
-                    double cutWidth = wall.Segments.TotalWidth;
+                    double cutWidth = wall.Width;
                     if (copRight > cutWidth + 0.001)
                         errors.Add(wallLabel +
                             " COP extends past the right edge — reduce segment 1 or the COP width (segment 2).");
@@ -321,6 +322,27 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             return value;
         }
 
+        // A segment value. When blankAllowed (the operator gave a total-width
+        // override) an empty box means 0 rather than an error.
+        private static double ReadSegment(string text, string label, bool blankAllowed, List<string> errors)
+        {
+            if (blankAllowed && string.IsNullOrWhiteSpace(text)) return 0;
+            return ReadNonNegative(text, label, errors);
+        }
+
+        // An optional non-negative value: blank means "not set" (0), not an error.
+        private static double ReadOptionalNonNegative(string text, string label, List<string> errors)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+            {
+                errors.Add(label + " must be zero or a positive number.");
+                return 0;
+            }
+            return value;
+        }
+
         private static double ReadNonNegative(string text, string label, List<string> errors)
         {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
@@ -342,6 +364,32 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         {
             ErrorText.Text = string.Empty;
             ErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        // Live, non-blocking reminder when the left and right wall widths differ.
+        // Cars are square, so a mismatch is usually leftover data — but an
+        // angled-COP lift legitimately differs, so it never blocks. Item 16.
+        private void UpdateWidthWarning()
+        {
+            if (WidthWarningText == null || LeftBlanket == null || RightBlanket == null) return;
+
+            bool show = CanvasCovers.Models.Products.LiftBlanket.WallChecks.WidthsMismatch(
+                LeftBlanket.WallEnabled, LeftBlanket.CurrentTotalWidth,
+                RightBlanket.WallEnabled, RightBlanket.CurrentTotalWidth);
+
+            if (show)
+            {
+                WidthWarningText.Text =
+                    "⚠ Left and right wall widths differ ("
+                    + LeftBlanket.CurrentTotalWidth.ToString("0", CultureInfo.InvariantCulture)
+                    + " vs " + RightBlanket.CurrentTotalWidth.ToString("0", CultureInfo.InvariantCulture)
+                    + "). Cars are usually square — check this isn't leftover data (OK if this lift has an angled COP).";
+                WidthWarningText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                WidthWarningText.Visibility = Visibility.Collapsed;
+            }
         }
     }
 }

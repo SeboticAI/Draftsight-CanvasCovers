@@ -42,5 +42,17 @@ namespace CanvasCovers.Tests
             Assert.IsTrue(wall.Enabled);
             Assert.IsFalse(wall.Cop.Enabled);
         }
+
+        [TestMethod]
+        public void WallDimensions_Width_Uses_Override_When_Set()
+        {
+            var wall = new WallDimensions();
+            wall.Segments.Seg1 = 1450;          // segments present
+            wall.TotalWidthOverride = 1990;     // but an override is given
+            Assert.AreEqual(1990.0, wall.Width);
+
+            wall.TotalWidthOverride = 0;        // 0 = no override → back to segments
+            Assert.AreEqual(1450.0, wall.Width);
+        }
     }
 }

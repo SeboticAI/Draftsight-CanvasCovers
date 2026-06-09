@@ -111,6 +111,12 @@
                         <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
                         <TextBlock Style="{StaticResource MutedLabel}"
                                    Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
+                        <TextBlock x:Name="WidthWarningText"
+                                   Foreground="{StaticResource BrandAccent}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"
+                                   Visibility="Collapsed" />
                         <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
                             <TabItem Header="Left Wall">
                                 <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
