@@ -6,15 +6,15 @@ namespace CanvasCovers.Models
     // The cutter's full layer set plus the role->layer assignment that tells
     // the generator which layer each kind of entity is drawn on.
     //
-    // The seven layers mirror Adelaide Annexes & Canvas's cutter setup
-    // (0, the four tool-blade layers, "5 Draw and Text", and Defpoints). All
-    // seven are created in the generated DXF every time so the cutter file
-    // always carries the complete layer set, even when some layers hold no
-    // geometry.
+    // The six layers mirror Adelaide Annexes & Canvas's cutter setup
+    // (0, the four tool-blade layers, and "5 Draw and Text"). All are created
+    // in the generated DXF every time so the cutter file always carries the
+    // complete layer set, even when some layers hold no geometry. (Defpoints
+    // was removed per the beta review — item 19.)
     //
     // The generator draws four ROLES — the cut outline, the COP (draw/score),
     // wall labels (annotation) and the project/dimension text (title block).
-    // Each role points at one of the seven layers by name. Defaults: the cut
+    // Each role points at one of the layers by name. Defaults: the cut
     // outline on "1 Rotary Blade", COP + annotation on "5 Draw and Text",
     // title block on "0" — matching the reference DXFs.
     //
@@ -52,7 +52,6 @@ namespace CanvasCovers.Models
                 new LayerSetting("3 Crease Tool", 3),
                 new LayerSetting("4 Drill Tool", 1),
                 new LayerSetting("5 Draw and Text", 6),
-                new LayerSetting("Defpoints", 7),
             };
         }
 
