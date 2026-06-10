@@ -137,6 +137,14 @@ namespace CanvasCovers.Commands
                 return;
             }
 
+            // Fit the new drawing in the view (round 2, item 5). Runs BEFORE
+            // the DXF save below so the saved state already includes the
+            // zoom — otherwise the operator zooms out manually after saving
+            // and gets nagged to save again on close. Signature verified
+            // against APISDK samples (3D\SliceEntities): Zoom(Fit, null, null).
+            try { Application.Zoom(dsZoomRange_e.dsZoomRange_Fit, null, null); }
+            catch { /* cosmetic — never fail a successful generate over zoom */ }
+
             // The drawing generated; warn if any entities silently failed to
             // draw (an SDK insert returned null) so the operator can check.
             if (generator.FailedInsertCount > 0)

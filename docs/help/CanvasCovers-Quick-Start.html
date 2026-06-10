@@ -60,7 +60,7 @@ correct cutter layers.</p>
 <h2>1. Install &amp; turn it on (one-time)</h2>
 <ol>
   <li>Close DraftSight.</li>
-  <li>Run <code>BesiaCAD-CanvasCovers-Setup-1.5.0.exe</code> and approve the
+  <li>Run <code>BesiaCAD-CanvasCovers-Setup-1.6.0.exe</code> and approve the
       Windows admin prompt.</li>
   <li>Open DraftSight, go to <span class="accent">Tools → Add-Ins</span>,
       and tick <span class="accent">CanvasCovers</span>. (Leave "Start Up"
@@ -77,7 +77,8 @@ correct cutter layers.</p>
       then pick the <span class="accent">Lift Blanket</span> tile.</li>
   <li>Fill in the form (next section), then click
       <span class="accent">Generate Drawing</span>.</li>
-  <li>Type <code>ZE</code> (Zoom Extents) to see the whole drawing.</li>
+  <li>The view zooms out automatically so the whole drawing (notes included)
+      is visible &mdash; no manual zooming needed.</li>
   <li>If you ticked the export option, a <b>Save-As</b> box appears to save
       the DXF (it pre-fills the file name with the blanket text).</li>
 </ol>
@@ -87,10 +88,42 @@ re-generate.</div>
 
 <h2>3. Filling in the form</h2>
 
+<h3>Repeating a job</h3>
+<p>After every drawing you generate, CanvasCovers remembers what you typed.
+For a batch of identical blankets, click <span class="accent">Load Previous
+Job's Measurements</span> (top of the form) to bring back all the walls and
+options. Only the order number, network number and project details stay
+blank &mdash; type those fresh, then click Generate.</p>
+
 <h3>Project information</h3>
 <p>Company, Company Initials, AAC Order Number, Network Number, Project, and
 Date. The <b>AAC Order Number + Company Initials + Network Number</b> become
 the DXF file name and the printed label on each wall, so fill them in.</p>
+<p><b>Company Name is a drop-down</b> of your regular customers; picking one
+fills in the initials automatically. You can still type any new name by hand.
+To add or change customers, edit this file in Notepad:</p>
+<p><code>%AppData%\BesiaCAD\CanvasCovers\customers.csv</code></p>
+<p>(Paste that into the File Explorer address bar.) One customer per line, as
+<code>Company Name,INITIALS</code>. Save the file, then close and reopen the
+CanvasCovers form &mdash; no DraftSight restart needed.</p>
+<div class="box note">Your customer list and the previous-job memory live in
+that <code>%AppData%</code> folder, so they <b>survive updates and
+uninstalls</b> of CanvasCovers.</div>
+
+<h3>Options</h3>
+<table>
+  <tr><th>Option</th><th>What it does</th></tr>
+  <tr><td><b>Through Car</b></td><td>Omits the rear wall (disables the Rear tab).</td></tr>
+  <tr><td><b>Plastic Cover on COP</b></td><td>Noted on the drawing's info panel.</td></tr>
+  <tr><td><b>Storage bag required</b></td><td>Adds a vertical BAG reminder inside the COP cutout.</td></tr>
+  <tr><td><b>Glass behind</b></td><td>Adds a vertical GLASS BEHIND reminder inside the COP cutout.</td></tr>
+  <tr><td><b>Fixings</b></td><td><b>Starts empty on purpose</b> &mdash; the form won't generate until you choose, so a forgotten fixing can't slip onto a drawing. The two eyelet sizes (TG7 and TG9) are listed separately because the chosen size prints on the COP. Picking a fixing auto-fills the Fixing Allowance below.</td></tr>
+  <tr><td><b>Fixing Allowance (mm)</b></td><td>Subtracted from the measured height before doubling. Auto-set by the fixing type; editable if a job differs.</td></tr>
+  <tr><td><b>Quilt Inset (mm)</b></td><td>How far the quilting sits in from the outline so the pen clears the cut edge. The outline is always the entered size.</td></tr>
+  <tr><td><b>Quilting Spacing (mm)</b></td><td>Target gap between quilt lines. The tool evens it out so the lines divide cleanly.</td></tr>
+  <tr><td><b>Draw quilting lines</b></td><td>Turn the quilting on or off.</td></tr>
+  <tr><td><b>Open DXF export…</b></td><td>Pops the Save-As box after generating.</td></tr>
+</table>
 
 <h3>Wall tabs — Left / Right / Rear</h3>
 <p>One tab per wall. Each tab shows a diagram of the blanket with the input
@@ -122,21 +155,6 @@ on that tab. If you're not doing a wall at all, untick
 
 <div class="pagebreak"></div>
 
-<h3>Options</h3>
-<table>
-  <tr><th>Option</th><th>What it does</th></tr>
-  <tr><td><b>Through Car</b></td><td>Omits the rear wall (disables the Rear tab).</td></tr>
-  <tr><td><b>Plastic Cover on COP</b></td><td>Noted on the drawing's info panel.</td></tr>
-  <tr><td><b>Storage bag required</b></td><td>Adds a vertical BAG reminder inside the COP cutout.</td></tr>
-  <tr><td><b>Glass behind</b></td><td>Adds a vertical GLASS BEHIND reminder inside the COP cutout.</td></tr>
-  <tr><td><b>Fixings</b></td><td>Pick the fixing type. This auto-fills the Fixing Allowance below.</td></tr>
-  <tr><td><b>Fixing Allowance (mm)</b></td><td>Subtracted from the measured height before doubling. Auto-set by the fixing type; editable if a job differs.</td></tr>
-  <tr><td><b>Quilt Inset (mm)</b></td><td>How far the quilting sits in from the outline so the pen clears the cut edge. The outline is always the entered size.</td></tr>
-  <tr><td><b>Quilting Spacing (mm)</b></td><td>Target gap between quilt lines. The tool evens it out so the lines divide cleanly.</td></tr>
-  <tr><td><b>Draw quilting lines</b></td><td>Turn the quilting on or off.</td></tr>
-  <tr><td><b>Open DXF export…</b></td><td>Pops the Save-As box after generating.</td></tr>
-</table>
-
 <h3>Layers</h3>
 <p>The six cutter layers are listed with their colours and which job each
 one does (Cut / COP / Annotation / Title). The defaults already match your
@@ -167,18 +185,20 @@ you "some entities could not be drawn." If that happens, Undo (Ctrl+Z) and
 generate again. If it keeps happening on the same job, send us the job
 details.</div>
 
-<h2>5. What we'd love feedback on (beta)</h2>
+<h2>5. What we'd love feedback on</h2>
 <ul>
   <li>Do the <b>cut pieces and COP cut-outs</b> come out the right size and
       in the right place vs. your usual DXFs?</li>
   <li>Is the <b>quilting</b> right — line spacing, how far in from the edges,
-      where the vertical lines sit? (This is the part we're least sure of.)</li>
-  <li>Are the <b>layers and colours</b> exactly what your machine expects?</li>
+      where the vertical lines sit?</li>
+  <li>Does <b>Load Previous Job's Measurements</b> cover your
+      repeat-blanket batches the way you wanted?</li>
+  <li>Is the <b>customer drop-down</b> complete, and are the initials right?</li>
   <li>Anything on the form that's confusing or in the wrong spot?</li>
 </ul>
 
 <div class="footer">
-  CanvasCovers for DraftSight · Beta v1.5.0 · Built for Adelaide Annexes &amp;
+  CanvasCovers for DraftSight · v1.6.0 · Built for Adelaide Annexes &amp;
   Canvas by SeboticAI. &nbsp; To uninstall: Windows Settings → Apps →
   "BesiaCAD Canvas Covers" → Uninstall.
 </div>

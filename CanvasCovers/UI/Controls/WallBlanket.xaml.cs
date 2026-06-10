@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using CanvasCovers.Geometry.Products.LiftBlanket;
+using CanvasCovers.Models.Products.LiftBlanket;
 
 namespace CanvasCovers.UI.Controls
 {
@@ -147,6 +148,46 @@ namespace CanvasCovers.UI.Controls
         public string MeasuredHeightText => _measuredHeight.Text;
         public string CopHeightText => _copHeight.Text;
         public string CopGapBottomText => _copGapBottom.Text;
+
+        // ---- job cache (round 2, item 1) ----
+
+        public CachedWallInputs ReadCacheInputs()
+        {
+            return new CachedWallInputs
+            {
+                IncludeWall = IncludeWall.IsChecked == true,
+                IncludeCop = IncludeCop.IsChecked == true,
+                DoorReturnLeft = _drLeft.Text,
+                Seg1 = _seg1.Text,
+                Seg2 = _seg2.Text,
+                Seg3 = _seg3.Text,
+                DoorReturnRight = _drRight.Text,
+                TotalWidth = _totalWidth.Text,
+                MeasuredHeight = _measuredHeight.Text,
+                CopHeight = _copHeight.Text,
+                CopGapBottom = _copGapBottom.Text,
+            };
+        }
+
+        // Restores cached raw text. Setting _measuredHeight.Text fires
+        // Input_Changed un-suppressed, so the wall counts as manually
+        // edited afterwards — correct: a restored height must not be
+        // overwritten by left-wall mirroring.
+        public void ApplyCacheInputs(CachedWallInputs c)
+        {
+            if (c == null) return;
+            IncludeWall.IsChecked = c.IncludeWall;
+            IncludeCop.IsChecked = c.IncludeCop;
+            _drLeft.Text = c.DoorReturnLeft ?? string.Empty;
+            _seg1.Text = c.Seg1 ?? string.Empty;
+            _seg2.Text = c.Seg2 ?? string.Empty;
+            _seg3.Text = c.Seg3 ?? string.Empty;
+            _drRight.Text = c.DoorReturnRight ?? string.Empty;
+            _totalWidth.Text = c.TotalWidth ?? string.Empty;
+            _measuredHeight.Text = c.MeasuredHeight ?? string.Empty;
+            _copHeight.Text = c.CopHeight ?? string.Empty;
+            _copGapBottom.Text = c.CopGapBottom ?? string.Empty;
+        }
 
         // The width this wall would cut to right now: the override if set, else
         // the sum of the segment fields. Mirrors WallDimensions.Width.

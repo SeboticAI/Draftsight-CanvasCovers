@@ -29,7 +29,13 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Company Name" />
-        <TextBox Grid.Row="0" Grid.Column="1" Name="CompanyNameInput" />
+        <!-- Editable: the listed customers fill the dropdown (and auto-fill
+             the initials), but a brand-new customer can still be typed
+             free-hand (round 2, item 6). -->
+        <ComboBox Grid.Row="0" Grid.Column="1" Name="CompanyNameInput"
+                  IsEditable="True" Height="24" Margin="0,2,0,2"
+                  VerticalContentAlignment="Center"
+                  SelectionChanged="CompanyNameInput_SelectionChanged" />
         <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Company Initials" />
         <TextBox Grid.Row="0" Grid.Column="4" Name="CompanyInitialsInput" ToolTip="AAC customer+depot code, e.g. Kone Melbourne = KM" />
 

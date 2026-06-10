@@ -318,7 +318,11 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
                 case FixingType.HooksFacingIn: return "Hooks Facing In";
                 case FixingType.HooksFacingOut: return "Hooks Facing Out";
                 case FixingType.PressStuds: return "Press Studs";
-                case FixingType.Eyelet: return "Eyelet";
+                case FixingType.Eyelet7: return "Eyelet TG7";
+                case FixingType.Eyelet9: return "Eyelet TG9";
+                // Unreachable in practice — the dialog blocks Generate while
+                // no fixing is selected — but keep the label printable.
+                case FixingType.None: return "None";
                 default: return fixing.ToString();
             }
         }

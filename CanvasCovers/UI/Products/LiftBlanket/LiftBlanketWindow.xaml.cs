@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using CanvasCovers.IO;
 using CanvasCovers.Models;
 using CanvasCovers.Models.Products.LiftBlanket;
 using CanvasCovers.UI.Controls;
@@ -61,7 +64,43 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
             PushSharedParams();
             UpdateWidthWarning();
+
+            // Customer drop-down (round 2, item 6). Best-effort: any IO
+            // problem just leaves the combo empty-but-typable.
+            try
+            {
+                string assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string seedPath = string.IsNullOrEmpty(assemblyDir)
+                    ? null
+                    : Path.Combine(assemblyDir, "Resources", "customers.csv");
+                MetadataPanel.SetCustomers(
+                    CustomerDirectory.LoadOrSeed(CustomerDirectory.DefaultUserPath, seedPath));
+            }
+            catch { /* drop-down is optional — never block the dialog */ }
+
+            // Previous-job button state (round 2, item 1). Loaded once here
+            // and kept for the button click — no point re-reading the file.
+            try
+            {
+                _cachedPreviousJob = JobCache.TryLoad(JobCache.DefaultPath);
+                if (_cachedPreviousJob == null)
+                {
+                    LoadPreviousButton.IsEnabled = false;
+                    LoadPreviousButton.ToolTip =
+                        "Becomes available after the first drawing is generated on this machine.";
+                }
+                else if (!string.IsNullOrEmpty(_cachedPreviousJob.SavedAt))
+                {
+                    LoadPreviousNote.Text =
+                        "Brings back the walls and options last generated (" + _cachedPreviousJob.SavedAt
+                        + "). Order number, network number and project details stay blank.";
+                }
+            }
+            catch { LoadPreviousButton.IsEnabled = false; }
         }
+
+        // The previous job read at dialog open; null when none exists.
+        private CachedJobInputs _cachedPreviousJob;
 
         // Pushes the Options-panel values (allowances, quilting) into every
         // blanket so each live preview computes the same fold + COP geometry.
@@ -150,8 +189,92 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             GenerateRequested?.Invoke(this, args);
             if (!args.Cancel)
             {
+                SaveJobCache();
                 Close();
             }
+        }
+
+        // Captures the raw dialog state after a successful Generate so the
+        // next job can start from it (round 2, item 1). Best-effort: a cache
+        // write failure must never block a generate that already succeeded.
+        private void SaveJobCache()
+        {
+            try
+            {
+                var data = new CachedJobInputs
+                {
+                    SavedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                    Left = LeftBlanket.ReadCacheInputs(),
+                    Right = RightBlanket.ReadCacheInputs(),
+                    Rear = RearBlanket.ReadCacheInputs(),
+                    ThroughCar = ThroughCarOption.IsChecked == true,
+                    PlasticCover = PlasticCoverOption.IsChecked == true,
+                    BagRequired = BagRequiredOption.IsChecked == true,
+                    GlassBehind = GlassBehindOption.IsChecked == true,
+                    FixingsTag = (FixingsInput.SelectedItem as ComboBoxItem)?.Tag as string,
+                    FixingAllowanceText = FixingAllowanceInput.Text,
+                    QuiltInsetText = QuiltInsetInput.Text,
+                    QuiltingSpacingText = QuiltingSpacingInput.Text,
+                    QuiltingEnabled = QuiltingOption.IsChecked == true,
+                    ExportDxf = ExportDxfOption.IsChecked == true,
+                };
+                JobCache.Save(data, JobCache.DefaultPath);
+            }
+            catch { /* never block a successful generate over the cache */ }
+        }
+
+        private void LoadPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            CachedJobInputs data = _cachedPreviousJob;
+            if (data == null)
+            {
+                ShowError("No previous job was found to load.");
+                return;
+            }
+            ClearError();
+
+            // Options BEFORE walls: Through Car drives the rear tab's enabled
+            // state, which must be settled before the rear wall's cached
+            // include/values land.
+            ThroughCarOption.IsChecked = data.ThroughCar;
+            PlasticCoverOption.IsChecked = data.PlasticCover;
+            BagRequiredOption.IsChecked = data.BagRequired;
+            GlassBehindOption.IsChecked = data.GlassBehind;
+            SelectFixingsByTag(data.FixingsTag);
+            // Allowance AFTER fixings: selecting a fixing re-seeds the
+            // allowance box with that fixing's default, and the cached
+            // (possibly overridden) value must win.
+            FixingAllowanceInput.Text = data.FixingAllowanceText ?? string.Empty;
+            QuiltInsetInput.Text = data.QuiltInsetText ?? string.Empty;
+            QuiltingSpacingInput.Text = data.QuiltingSpacingText ?? string.Empty;
+            QuiltingOption.IsChecked = data.QuiltingEnabled;
+            ExportDxfOption.IsChecked = data.ExportDxf;
+
+            LeftBlanket.ApplyCacheInputs(data.Left);
+            RightBlanket.ApplyCacheInputs(data.Right);
+            RearBlanket.ApplyCacheInputs(data.Rear);
+
+            PushSharedParams();
+            UpdateWidthWarning();
+        }
+
+        // Selects the fixings entry whose Tag matches, or clears the
+        // selection when the tag is empty/unknown (e.g. cache written by a
+        // version with different fixing names).
+        private void SelectFixingsByTag(string tag)
+        {
+            if (!string.IsNullOrEmpty(tag))
+            {
+                foreach (object item in FixingsInput.Items)
+                {
+                    if (item is ComboBoxItem ci && (ci.Tag as string) == tag)
+                    {
+                        FixingsInput.SelectedItem = ci;
+                        return;
+                    }
+                }
+            }
+            FixingsInput.SelectedIndex = -1;
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -186,10 +309,14 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private LiftBlanketOptions ReadOptions(List<string> errors)
         {
-            FixingType fixing = FixingType.HooksFacingOut;
+            // No default fixing (round 2, item 3): the operator must choose,
+            // because TG7 vs TG9 prints on the COP and a silently-defaulted
+            // value already cost two hand-edited drawings.
+            FixingType fixing = FixingType.None;
             ComboBoxItem selected = FixingsInput.SelectedItem as ComboBoxItem;
             string tag = selected?.Tag as string;
-            if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed)) fixing = parsed;
+            if (string.IsNullOrEmpty(tag) || !Enum.TryParse(tag, out fixing) || fixing == FixingType.None)
+                errors.Add("Select the fixings required (there is no default).");
 
             double allowance = ReadNonNegative(
                 FixingAllowanceInput.Text, "Fixing allowance", errors);

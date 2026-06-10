@@ -101,33 +101,26 @@
 
                 <Border Style="{StaticResource SectionPanel}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="PROJECT INFORMATION" />
-                        <controls:ProjectMetadataPanel x:Name="MetadataPanel" />
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="PREVIOUS JOB" />
+                        <DockPanel>
+                            <Button Name="LoadPreviousButton" DockPanel.Dock="Left"
+                                    Width="230" Height="26"
+                                    VerticalAlignment="Top"
+                                    Content="Load Previous Job's Measurements"
+                                    ToolTipService.ShowOnDisabled="True"
+                                    Click="LoadPreviousButton_Click" />
+                            <TextBlock Name="LoadPreviousNote"
+                                       Style="{StaticResource MutedLabel}"
+                                       Margin="12,4,0,0"
+                                       Text="Brings back the walls and options from the last generated drawing. Order number, network number and project details stay blank." />
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource SectionPanel}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
-                        <TextBlock Style="{StaticResource MutedLabel}"
-                                   Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
-                        <TextBlock x:Name="WidthWarningText"
-                                   Foreground="{StaticResource BrandAccent}"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,6"
-                                   Visibility="Collapsed" />
-                        <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
-                            <TabItem Header="Left Wall">
-                                <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
-                            </TabItem>
-                            <TabItem Header="Right Wall">
-                                <controls:WallBlanket x:Name="RightBlanket" Margin="8" />
-                            </TabItem>
-                            <TabItem x:Name="RearTab" Header="Rear Wall">
-                                <controls:WallBlanket x:Name="RearBlanket" Margin="8" />
-                            </TabItem>
-                        </TabControl>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="PROJECT INFORMATION" />
+                        <controls:ProjectMetadataPanel x:Name="MetadataPanel" />
                     </StackPanel>
                 </Border>
 
@@ -150,13 +143,17 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fixings Required" />
-                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectedIndex="3" SelectionChanged="FixingsInput_SelectionChanged">
+                            <!-- No SelectedIndex: deliberately starts unselected
+                                 (round 2, item 3). ReadOptions blocks Generate
+                                 until the operator chooses. -->
+                            <ComboBox Grid.Column="1" Name="FixingsInput" SelectionChanged="FixingsInput_SelectionChanged">
                                 <ComboBoxItem Content="Velcro (0)" Tag="Velcro" />
                                 <ComboBoxItem Content="Self-adhesive Velcro (0)" Tag="SelfAdhesiveVelcro" />
                                 <ComboBoxItem Content="Hooks Facing In (-50)" Tag="HooksFacingIn" />
                                 <ComboBoxItem Content="Hooks Facing Out (-50)" Tag="HooksFacingOut" />
                                 <ComboBoxItem Content="Press Studs (-40)" Tag="PressStuds" />
-                                <ComboBoxItem Content="Eyelet (-30)" Tag="Eyelet" />
+                                <ComboBoxItem Content="Eyelet TG7 (-30)" Tag="Eyelet7" />
+                                <ComboBoxItem Content="Eyelet TG9 (-30)" Tag="Eyelet9" />
                             </ComboBox>
                         </Grid>
                         <Grid Margin="0,8,0,0">
@@ -197,6 +194,31 @@
                                   Content="Draw quilting lines" />
                         <CheckBox Name="ExportDxfOption" Margin="0,8,0,0" IsChecked="True"
                                   Content="Open DXF export dialog after generating" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
+                        <TextBlock Style="{StaticResource MutedLabel}"
+                                   Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
+                        <TextBlock x:Name="WidthWarningText"
+                                   Foreground="{StaticResource BrandAccent}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"
+                                   Visibility="Collapsed" />
+                        <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
+                            <TabItem Header="Left Wall">
+                                <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
+                            </TabItem>
+                            <TabItem Header="Right Wall">
+                                <controls:WallBlanket x:Name="RightBlanket" Margin="8" />
+                            </TabItem>
+                            <TabItem x:Name="RearTab" Header="Rear Wall">
+                                <controls:WallBlanket x:Name="RearBlanket" Margin="8" />
+                            </TabItem>
+                        </TabControl>
                     </StackPanel>
                 </Border>
 

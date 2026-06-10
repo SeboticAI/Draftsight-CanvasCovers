@@ -6,8 +6,38 @@ queued next.
 
 ## Current Release State
 
-**Current version: v1.5.0** on `main`. Customer installer:
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`.
+**Current version: v1.6.0** on `main`. Customer installer:
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.6.0.exe`. Contains Martin's
+round-2 change list (see [CHANGE_REQUESTS_ROUND2.md](CHANGE_REQUESTS_ROUND2.md)),
+implemented + unit-tested + simplify-pass reviewed; the in-DraftSight
+live-test checklist (plan task 9, step 3) is still to be run by the operator:
+
+- **Previous-job memory**: every successful Generate caches the raw form
+  state to `%AppData%\BesiaCAD\CanvasCovers\last-job.json`; a "Load Previous
+  Job's Measurements" button (top of the form) restores walls + options.
+  Order number, network number, company, project name and date are never
+  cached — they start blank per job by design.
+- **Fixings**: Eyelet split into TG7/TG9 (same -30 allowance, different COP
+  label); the combo starts unselected and Generate blocks until a fixing is
+  chosen (`FixingType.None` added).
+- **Form order**: Previous Job → Project Info → Options → Walls → Layers.
+- **Auto zoom-to-fit** after generate, before the DXF Save-As, via
+  `Application.Zoom(dsZoomRange_Fit, null, null)` (SDK-sample-verified), so
+  closing the drawing no longer nags about unsaved zoom changes.
+- **Customer drop-down**: Company Name is an editable ComboBox seeded from
+  `Resources\customers.csv` (29 entries from Martin), copied on first use to
+  `%AppData%\BesiaCAD\CanvasCovers\customers.csv` for Notepad editing;
+  selecting a customer auto-fills the initials.
+- Tests: 51 passing (`dotnet test`), Release build clean. New gotcha: a WPF
+  (`UseWPF`) net48 project referencing `System.Web.Extensions` must also
+  reference `System.Web` explicitly or the markup compiler fails with MC1000.
+- Post-implementation simplify pass: `UserDataPaths` is the single source for
+  the `%AppData%\BesiaCAD\CanvasCovers` folder (JobCache + CustomerDirectory
+  both build from it); the previous-job cache is read once per dialog open;
+  installer uses `lzma2/max` and documents that per-user AppData data
+  deliberately survives uninstall.
+
+**Previous shipped version: v1.5.0.**
 
 This build contains the client's beta-review change list plus a final
 release-readiness hardening pass before handoff:

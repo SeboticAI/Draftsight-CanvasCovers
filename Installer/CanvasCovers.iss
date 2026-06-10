@@ -10,7 +10,7 @@
 ; ---------------------------------------------------------------------------
 
 #define MyAppName          "BesiaCAD Canvas Covers"
-#define MyAppVersion       "1.5.0"
+#define MyAppVersion       "1.6.0"
 #define MyAppPublisher     "BesiaCAD"
 #define MyAppURL           "https://seboticai.com"
 #define MyAddinName        "CanvasCovers"
@@ -45,7 +45,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ArchitecturesAllowed=x64compatible
 OutputDir=Output
 OutputBaseFilename=BesiaCAD-{#MyAddinName}-Setup-{#MyAppVersion}
-Compression=lzma2
+Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName={#MyAppName}
@@ -82,6 +82,10 @@ Filename: "{#MyRegAsm}"; \
   Flags: runhidden waituntilterminated
 
 [UninstallDelete]
+; Deliberately NOT deleted: the per-user data under
+; %AppData%\BesiaCAD\CanvasCovers (customers.csv, last-job.json). The
+; operator's edited customer list and previous-job memory survive
+; uninstall/upgrade; only the program payload and machine config go.
 Type: files;          Name: "{#MyAddinConfigsDir}\{#MyAddinXml}"
 Type: filesandordirs; Name: "{app}\Resources"
 Type: dirifempty;     Name: "{app}"
