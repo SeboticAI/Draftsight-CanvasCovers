@@ -1,0 +1,32 @@
+# CanvasCovers customer list - one "Company Name,Initials" per line.
+# Edit the copy at %AppData%\BesiaCAD\CanvasCovers\customers.csv
+# (this installed copy is only the first-run seed).
+Custom Elevators,CE
+Elevator Direction,ED
+Infinity Lifts,ILS
+Kleeman Adelaide,KLA
+Kleeman Melbourne,KLM
+Kleeman Sydney,KLS
+Kone Adelaide,KA
+Kone Brisbane,KB
+Kone Canberra,KCAN
+Kone Darwin,KD
+Kone Gold Coast,KGC
+Kone Hobart,KH
+Kone Melbourne,KM
+Kone New Zealand,KNZ
+Kone Newcastle,KN
+Kone Perth,KP
+Kone Sunshine Coast,KSC
+Kone Sydney,KS
+Kone Townsville,KT
+LiftCorp,L
+Octagon Lifts,OCT
+Otis Perth,OP
+Schindler Brisbane,SB
+Schindler Perth,SP
+Schindler Queensland,SQ
+Schindler Sydney,SS
+TK Elevators,TKE
+Wild Industries,WI
+Miscellaneous,MISC

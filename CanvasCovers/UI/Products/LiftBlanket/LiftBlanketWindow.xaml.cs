@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using CanvasCovers.Models;
@@ -61,6 +63,19 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
             PushSharedParams();
             UpdateWidthWarning();
+
+            // Customer drop-down (round 2, item 6). Best-effort: any IO
+            // problem just leaves the combo empty-but-typable.
+            try
+            {
+                string assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string seedPath = string.IsNullOrEmpty(assemblyDir)
+                    ? null
+                    : Path.Combine(assemblyDir, "Resources", "customers.csv");
+                MetadataPanel.SetCustomers(
+                    CustomerDirectory.LoadOrSeed(CustomerDirectory.DefaultUserPath, seedPath));
+            }
+            catch { /* drop-down is optional — never block the dialog */ }
         }
 
         // Pushes the Options-panel values (allowances, quilting) into every
