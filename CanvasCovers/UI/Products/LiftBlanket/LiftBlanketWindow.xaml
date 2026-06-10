@@ -108,31 +108,6 @@
 
                 <Border Style="{StaticResource SectionPanel}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
-                        <TextBlock Style="{StaticResource MutedLabel}"
-                                   Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
-                        <TextBlock x:Name="WidthWarningText"
-                                   Foreground="{StaticResource BrandAccent}"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,6"
-                                   Visibility="Collapsed" />
-                        <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
-                            <TabItem Header="Left Wall">
-                                <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
-                            </TabItem>
-                            <TabItem Header="Right Wall">
-                                <controls:WallBlanket x:Name="RightBlanket" Margin="8" />
-                            </TabItem>
-                            <TabItem x:Name="RearTab" Header="Rear Wall">
-                                <controls:WallBlanket x:Name="RearBlanket" Margin="8" />
-                            </TabItem>
-                        </TabControl>
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SectionPanel}">
-                    <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitle}" Text="OPTIONS" />
                         <WrapPanel>
                             <CheckBox Name="ThroughCarOption"
@@ -201,6 +176,31 @@
                                   Content="Draw quilting lines" />
                         <CheckBox Name="ExportDxfOption" Margin="0,8,0,0" IsChecked="True"
                                   Content="Open DXF export dialog after generating" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="WALLS" />
+                        <TextBlock Style="{StaticResource MutedLabel}"
+                                   Text="One tab per wall. Type the measurements where they sit on the sheet; the blanket redraws live. Rear tab is disabled when Through Car is ticked." />
+                        <TextBlock x:Name="WidthWarningText"
+                                   Foreground="{StaticResource BrandAccent}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"
+                                   Visibility="Collapsed" />
+                        <TabControl x:Name="WallTabs" MinHeight="460" BorderThickness="1">
+                            <TabItem Header="Left Wall">
+                                <controls:WallBlanket x:Name="LeftBlanket" Margin="8" />
+                            </TabItem>
+                            <TabItem Header="Right Wall">
+                                <controls:WallBlanket x:Name="RightBlanket" Margin="8" />
+                            </TabItem>
+                            <TabItem x:Name="RearTab" Header="Rear Wall">
+                                <controls:WallBlanket x:Name="RearBlanket" Margin="8" />
+                            </TabItem>
+                        </TabControl>
                     </StackPanel>
                 </Border>
 
