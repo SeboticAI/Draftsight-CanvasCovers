@@ -186,10 +186,14 @@ namespace CanvasCovers.UI.Products.LiftBlanket
 
         private LiftBlanketOptions ReadOptions(List<string> errors)
         {
-            FixingType fixing = FixingType.HooksFacingOut;
+            // No default fixing (round 2, item 3): the operator must choose,
+            // because TG7 vs TG9 prints on the COP and a silently-defaulted
+            // value already cost two hand-edited drawings.
+            FixingType fixing = FixingType.None;
             ComboBoxItem selected = FixingsInput.SelectedItem as ComboBoxItem;
             string tag = selected?.Tag as string;
-            if (!string.IsNullOrEmpty(tag) && Enum.TryParse(tag, out FixingType parsed)) fixing = parsed;
+            if (string.IsNullOrEmpty(tag) || !Enum.TryParse(tag, out fixing) || fixing == FixingType.None)
+                errors.Add("Select the fixings required (there is no default).");
 
             double allowance = ReadNonNegative(
                 FixingAllowanceInput.Text, "Fixing allowance", errors);
