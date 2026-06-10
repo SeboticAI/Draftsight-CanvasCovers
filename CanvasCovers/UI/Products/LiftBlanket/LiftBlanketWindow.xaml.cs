@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using CanvasCovers.IO;
 using CanvasCovers.Models;
 using CanvasCovers.Models.Products.LiftBlanket;
 using CanvasCovers.UI.Controls;
@@ -77,25 +78,29 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             }
             catch { /* drop-down is optional — never block the dialog */ }
 
-            // Previous-job button state (round 2, item 1).
+            // Previous-job button state (round 2, item 1). Loaded once here
+            // and kept for the button click — no point re-reading the file.
             try
             {
-                CachedJobInputs cached = CanvasCovers.IO.JobCache.TryLoad(CanvasCovers.IO.JobCache.DefaultPath);
-                if (cached == null)
+                _cachedPreviousJob = JobCache.TryLoad(JobCache.DefaultPath);
+                if (_cachedPreviousJob == null)
                 {
                     LoadPreviousButton.IsEnabled = false;
                     LoadPreviousButton.ToolTip =
                         "Becomes available after the first drawing is generated on this machine.";
                 }
-                else if (!string.IsNullOrEmpty(cached.SavedAt))
+                else if (!string.IsNullOrEmpty(_cachedPreviousJob.SavedAt))
                 {
                     LoadPreviousNote.Text =
-                        "Brings back the walls and options last generated (" + cached.SavedAt
+                        "Brings back the walls and options last generated (" + _cachedPreviousJob.SavedAt
                         + "). Order number, network number and project details stay blank.";
                 }
             }
             catch { LoadPreviousButton.IsEnabled = false; }
         }
+
+        // The previous job read at dialog open; null when none exists.
+        private CachedJobInputs _cachedPreviousJob;
 
         // Pushes the Options-panel values (allowances, quilting) into every
         // blanket so each live preview computes the same fold + COP geometry.
@@ -213,14 +218,14 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                     QuiltingEnabled = QuiltingOption.IsChecked == true,
                     ExportDxf = ExportDxfOption.IsChecked == true,
                 };
-                CanvasCovers.IO.JobCache.Save(data, CanvasCovers.IO.JobCache.DefaultPath);
+                JobCache.Save(data, JobCache.DefaultPath);
             }
             catch { /* never block a successful generate over the cache */ }
         }
 
         private void LoadPreviousButton_Click(object sender, RoutedEventArgs e)
         {
-            CachedJobInputs data = CanvasCovers.IO.JobCache.TryLoad(CanvasCovers.IO.JobCache.DefaultPath);
+            CachedJobInputs data = _cachedPreviousJob;
             if (data == null)
             {
                 ShowError("No previous job was found to load.");

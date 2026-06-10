@@ -1,6 +1,6 @@
-using System;
 using System.IO;
 using System.Web.Script.Serialization;
+using CanvasCovers.Models;
 using CanvasCovers.Models.Products.LiftBlanket;
 
 namespace CanvasCovers.IO
@@ -12,17 +12,14 @@ namespace CanvasCovers.IO
     // its limitations don't bite.
     public static class JobCache
     {
-        public static string DefaultPath => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "BesiaCAD", "CanvasCovers", "last-job.json");
+        public static string DefaultPath => UserDataPaths.LastJobJson;
 
         // Throws on IO problems — callers on the UI thread must wrap this
         // (no dispatcher exception handler in-host, CLAUDE.md §9).
         public static void Save(CachedJobInputs data, string path)
         {
             if (data == null || string.IsNullOrEmpty(path)) return;
-            string dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            UserDataPaths.EnsureParentDir(path);
             File.WriteAllText(path, new JavaScriptSerializer().Serialize(data));
         }
 

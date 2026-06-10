@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -24,9 +23,7 @@ namespace CanvasCovers.Models
     // into the headless test project.
     public static class CustomerDirectory
     {
-        public static string DefaultUserPath => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "BesiaCAD", "CanvasCovers", "customers.csv");
+        public static string DefaultUserPath => UserDataPaths.CustomersCsv;
 
         public static List<CustomerEntry> Parse(IEnumerable<string> lines)
         {
@@ -58,8 +55,7 @@ namespace CanvasCovers.Models
                 if (!string.IsNullOrEmpty(userPath) && !File.Exists(userPath)
                     && !string.IsNullOrEmpty(seedPath) && File.Exists(seedPath))
                 {
-                    string dir = Path.GetDirectoryName(userPath);
-                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                    UserDataPaths.EnsureParentDir(userPath);
                     File.Copy(seedPath, userPath);
                 }
                 if (!string.IsNullOrEmpty(userPath) && File.Exists(userPath))
