@@ -6,9 +6,11 @@ queued next.
 
 ## Current Release State
 
-**In progress: v1.6.0** on branch `round2-followups` — Martin's round-2
-change list (see [CHANGE_REQUESTS_ROUND2.md](CHANGE_REQUESTS_ROUND2.md)),
-implemented and unit-tested, **awaiting live testing in DraftSight**:
+**Current version: v1.6.0** on `main`. Customer installer:
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.6.0.exe`. Contains Martin's
+round-2 change list (see [CHANGE_REQUESTS_ROUND2.md](CHANGE_REQUESTS_ROUND2.md)),
+implemented + unit-tested + simplify-pass reviewed; the in-DraftSight
+live-test checklist (plan task 9, step 3) is still to be run by the operator:
 
 - **Previous-job memory**: every successful Generate caches the raw form
   state to `%AppData%\BesiaCAD\CanvasCovers\last-job.json`; a "Load Previous
@@ -29,9 +31,13 @@ implemented and unit-tested, **awaiting live testing in DraftSight**:
 - Tests: 51 passing (`dotnet test`), Release build clean. New gotcha: a WPF
   (`UseWPF`) net48 project referencing `System.Web.Extensions` must also
   reference `System.Web` explicitly or the markup compiler fails with MC1000.
+- Post-implementation simplify pass: `UserDataPaths` is the single source for
+  the `%AppData%\BesiaCAD\CanvasCovers` folder (JobCache + CustomerDirectory
+  both build from it); the previous-job cache is read once per dialog open;
+  installer uses `lzma2/max` and documents that per-user AppData data
+  deliberately survives uninstall.
 
-**Last shipped version: v1.5.0** on `main`. Customer installer:
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`.
+**Previous shipped version: v1.5.0.**
 
 This build contains the client's beta-review change list plus a final
 release-readiness hardening pass before handoff:
