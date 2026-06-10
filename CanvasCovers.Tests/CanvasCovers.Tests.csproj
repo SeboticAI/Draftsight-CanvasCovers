@@ -29,5 +29,12 @@
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\BlanketText.cs" Link="Linked\BlanketText.cs" />
     <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\WallChecks.cs" Link="Linked\WallChecks.cs" />
     <Compile Include="..\CanvasCovers\IO\DxfExporter.Filename.cs" Link="Linked\DxfExporter.Filename.cs" />
+    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\CachedWallInputs.cs" Link="Linked\CachedWallInputs.cs" />
+    <Compile Include="..\CanvasCovers\Models\Products\LiftBlanket\CachedJobInputs.cs" Link="Linked\CachedJobInputs.cs" />
+    <Compile Include="..\CanvasCovers\IO\JobCache.cs" Link="Linked\JobCache.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Framework assembly (no NuGet) for JavaScriptSerializer in JobCache. -->
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 </Project>

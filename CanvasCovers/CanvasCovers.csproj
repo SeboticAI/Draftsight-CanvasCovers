@@ -25,6 +25,11 @@
       <Private>True</Private>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
+    <!-- Framework assemblies (no NuGet) for JavaScriptSerializer in JobCache.
+         System.Web must be explicit too: the WPF markup compiler walks the
+         reference closure and System.Web.Extensions depends on it. -->
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
   <ItemGroup>

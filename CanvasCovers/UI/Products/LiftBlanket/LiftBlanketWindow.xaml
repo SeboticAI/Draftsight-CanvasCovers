@@ -101,6 +101,24 @@
 
                 <Border Style="{StaticResource SectionPanel}">
                     <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="PREVIOUS JOB" />
+                        <DockPanel>
+                            <Button Name="LoadPreviousButton" DockPanel.Dock="Left"
+                                    Width="230" Height="26"
+                                    VerticalAlignment="Top"
+                                    Content="Load Previous Job's Measurements"
+                                    ToolTipService.ShowOnDisabled="True"
+                                    Click="LoadPreviousButton_Click" />
+                            <TextBlock Name="LoadPreviousNote"
+                                       Style="{StaticResource MutedLabel}"
+                                       Margin="12,4,0,0"
+                                       Text="Brings back the walls and options from the last generated drawing. Order number, network number and project details stay blank." />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanel}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitle}" Text="PROJECT INFORMATION" />
                         <controls:ProjectMetadataPanel x:Name="MetadataPanel" />
                     </StackPanel>
