@@ -27,9 +27,16 @@ namespace CanvasCovers.Tests
         }
 
         [TestMethod]
-        public void Eyelet_Default_Is_30()
+        public void Eyelet_TG7_And_TG9_Default_Is_30()
         {
-            Assert.AreEqual(30.0, FixingAllowance.DefaultFor(FixingType.Eyelet));
+            Assert.AreEqual(30.0, FixingAllowance.DefaultFor(FixingType.Eyelet7));
+            Assert.AreEqual(30.0, FixingAllowance.DefaultFor(FixingType.Eyelet9));
+        }
+
+        [TestMethod]
+        public void None_Default_Is_0()
+        {
+            Assert.AreEqual(0.0, FixingAllowance.DefaultFor(FixingType.None));
         }
 
         [TestMethod]

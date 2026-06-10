@@ -2,11 +2,19 @@ namespace CanvasCovers.Models.Products.LiftBlanket
 {
     public enum FixingType
     {
+        // "Not chosen yet". There is deliberately NO default fixing (round 2,
+        // item 3) — Martin forgot to set it twice and had to edit drawings by
+        // hand. The UI blocks Generate until a real fixing is selected, so
+        // the generator never sees None.
+        None,
         Velcro,
         HooksFacingIn,
         HooksFacingOut,
         PressStuds,
-        Eyelet,
+        // TG7 vs TG9 eyelets calculate identically (-30) but the label prints
+        // on the COP, so the ordered size must be distinguishable (item 3).
+        Eyelet7,
+        Eyelet9,
         SelfAdhesiveVelcro,
     }
 
@@ -16,7 +24,7 @@ namespace CanvasCovers.Models.Products.LiftBlanket
 
         public bool PlasticCoverOnCop { get; set; }
 
-        public FixingType Fixings { get; set; } = FixingType.HooksFacingOut;
+        public FixingType Fixings { get; set; } = FixingType.None;
 
         // The mm subtracted from each wall's measured height before the
         // ×2 doubling. Defaults to the fixing type's standard allowance
