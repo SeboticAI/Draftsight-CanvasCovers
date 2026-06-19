@@ -17,9 +17,12 @@ vertical COP reminders, six-layer cutter panel, DXF export, strict validation,
 previous-job memory (walls + options + project notes), and release-readiness
 hardening.
 
-Immediate next action is live install/load/generate/export testing in
-DraftSight (including the round-3 notes carry-over), then hand the installer and
-quick-start PDF to Adelaide Annexes & Canvas.
+**Handoff status (2026-06-20):** v1.7.0 was built (Release DLL clean, 56/56
+unit tests pass) and is being sent to Martin **as-is**. It has **not** been
+live-clicked in DraftSight by us — the dev DraftSight trial expired — so
+Martin's first run is the effective live test. The round-3 carry-over check
+(generate → reopen → Load Previous → confirm notes + date return) still needs
+confirming; treat it as unverified until Martin reports back.
 
 When customer feedback arrives, the working principle remains:
 **change only what is needed; do not touch stable old code.**
