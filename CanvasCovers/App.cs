@@ -15,7 +15,9 @@ namespace CanvasCovers
         private DsApplication _application;
         private readonly string _addinGuid;
         private OpenCanvasCoversCommand _openCommand;
+#if DEBUG
         private LayerTestCommand _layerTestCommand;
+#endif
         private bool _uiRegistered;
 
         public App()
@@ -40,8 +42,13 @@ namespace CanvasCovers
                 _openCommand.RegisterCommand();
                 _openCommand.CreateUserCommand();
 
+#if DEBUG
+                // Developer-only layer diagnostic (CANVASCOVERSLAYERTEST). Never
+                // registered in Release/customer builds — it draws a probe entity
+                // into the active drawing and is purely for SDK debugging (§9).
                 _layerTestCommand = new LayerTestCommand(_application, _addinGuid);
                 _layerTestCommand.RegisterCommand();
+#endif
 
                 RegisterRibbon();
                 return true;
@@ -59,6 +66,11 @@ namespace CanvasCovers
         {
             try
             {
+                // Close any non-modal dialog still open so it can't outlive the
+                // add-in and call into a released Application RCW on a later
+                // Generate click. Best-effort — runs before the host tears down.
+                OpenCanvasCoversCommand.CloseOpenDialog();
+
                 if (_uiRegistered && _application != null)
                 {
                     _application.RemoveUserInterface(_addinGuid);
@@ -67,7 +79,9 @@ namespace CanvasCovers
 
                 _application = null;
                 _openCommand = null;
+#if DEBUG
                 _layerTestCommand = null;
+#endif
                 return true;
             }
             catch (Exception ex)

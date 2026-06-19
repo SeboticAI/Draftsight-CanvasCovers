@@ -19,5 +19,14 @@ namespace CanvasCovers.Tests
             Assert.AreEqual("AAC123 45678", BlanketText.Build("AAC123", "", "45678"));
             Assert.AreEqual("KM", BlanketText.Build(null, " KM ", null));
         }
+
+        [TestMethod]
+        public void All_Blank_Sections_Yield_Empty_String()
+        {
+            // The empty result is the contract DxfExporter.DefaultFileName
+            // branches on (string.IsNullOrEmpty) to fall back to a timestamp
+            // filename, so it must stay pinned.
+            Assert.AreEqual("", BlanketText.Build(" ", "", null));
+        }
     }
 }

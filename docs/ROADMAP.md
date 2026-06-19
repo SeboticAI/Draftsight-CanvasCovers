@@ -8,17 +8,18 @@ parking lot.
 
 ### 0. Customer Handoff Test
 
-**Current build:** v1.5.0,
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`.
+**Current build:** v1.7.0,
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.7.0.exe`.
 
-The lift-blanket add-in is feature-complete for the current customer handoff:
+The lift-blanket add-in is feature-complete for the production customer handoff:
 segment-driven COP, doubled-height math, total-width override, Quilt Inset,
 vertical COP reminders, six-layer cutter panel, DXF export, strict validation,
-and release-readiness hardening.
+previous-job memory (walls + options + project notes), and release-readiness
+hardening.
 
 Immediate next action is live install/load/generate/export testing in
-DraftSight, then hand the installer and quick-start PDF to Adelaide Annexes &
-Canvas.
+DraftSight (including the round-3 notes carry-over), then hand the installer and
+quick-start PDF to Adelaide Annexes & Canvas.
 
 When customer feedback arrives, the working principle remains:
 **change only what is needed; do not touch stable old code.**

@@ -8,15 +8,15 @@ add-in draws the parts on layered, colour-coded, machine-ready output.
 feature-complete and matches the client's real measurement sheet:
 segment-driven COP, doubled-height math, built quilting, the fixed
 sheet-style preview (mirrored Left/Right walls), the 6-layer cutter
-panel, DXF export, and full input validation. **v1.5.0 includes the
-client beta-review change list and is the current customer build.**
+panel, DXF export, and full input validation. **v1.7.0 is the current
+production build** (beta-review + round-2 + round-3 change lists).
 
 **Target host:** DraftSight 2026 Professional or higher (SDK access
 required).
 **Stack:** C# / .NET Framework 4.8, WPF, DraftSight COM interop.
 
-**Current version:** v1.5.0 — installer EXE in
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe`.
+**Current version:** v1.7.0 — installer EXE in
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.7.0.exe`.
 
 ---
 
@@ -26,9 +26,9 @@ Read in this order:
 
 1. **[docs/STATUS.md](docs/STATUS.md)** — what works right now, the
    calculation model, and the known gotchas. Read this first; it's the
-   canonical current-state doc (kept current to v1.5.0).
+   canonical current-state doc (kept current to v1.7.0).
 2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — what's queued next. The §0
-   item is now **client beta feedback** (v1.5.0 is the beta-review build); the
+   item is the **customer handoff** (v1.7.0 is the production build); the
    working principle is "change only what's needed, don't touch stable
    old code."
 3. **[docs/CLIENT_QUESTIONS.md](docs/CLIENT_QUESTIONS.md)** — remaining

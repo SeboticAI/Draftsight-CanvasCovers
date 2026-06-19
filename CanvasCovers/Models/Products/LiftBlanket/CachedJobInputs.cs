@@ -1,10 +1,14 @@
 namespace CanvasCovers.Models.Products.LiftBlanket
 {
     // The dialog state captured after each successful Generate (round 2,
-    // item 1): walls + options ONLY. Project information (order number,
-    // network number, company, project name, date) is deliberately NOT
-    // cached — repeat jobs reuse measurements, never job identity, so those
-    // fields must start blank and be typed fresh per job.
+    // item 1; extended round 3): walls + options + project information.
+    // Project info (company, initials, network number, order number, project
+    // name, date) is cached as of round 3 so a repeat job carries its notes
+    // over too — Martin's follow-up to item 1. The operator edits the per-job
+    // fields (order/network number) after loading. All fields are flat
+    // strings/bools; the date is pre-formatted ("yyyy-MM-dd") to keep
+    // JavaScriptSerializer's timezone-hostile DateTime handling out of the
+    // cache, same reasoning as SavedAt.
     public class CachedJobInputs
     {
         // Display-only "when was this saved" stamp, local time. Kept as a
@@ -31,5 +35,15 @@ namespace CanvasCovers.Models.Products.LiftBlanket
         public string QuiltingSpacingText { get; set; }
         public bool QuiltingEnabled { get; set; } = true;
         public bool ExportDxf { get; set; } = true;
+
+        // Project information (round 3). Restored into the form by Load
+        // Previous; the operator overwrites the per-job fields (order number,
+        // network number) afterwards. DateText is "yyyy-MM-dd" or null.
+        public string CompanyName { get; set; }
+        public string CompanyInitials { get; set; }
+        public string NetworkNumber { get; set; }
+        public string OrderNumber { get; set; }
+        public string ProjectName { get; set; }
+        public string DateText { get; set; }
     }
 }

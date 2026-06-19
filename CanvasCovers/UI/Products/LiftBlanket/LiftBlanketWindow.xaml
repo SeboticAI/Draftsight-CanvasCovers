@@ -112,7 +112,7 @@
                             <TextBlock Name="LoadPreviousNote"
                                        Style="{StaticResource MutedLabel}"
                                        Margin="12,4,0,0"
-                                       Text="Brings back the walls and options from the last generated drawing. Order number, network number and project details stay blank." />
+                                       Text="Brings back the walls, options and project notes from the last generated drawing. Check the order and network numbers before generating." />
                         </DockPanel>
                     </StackPanel>
                 </Border>

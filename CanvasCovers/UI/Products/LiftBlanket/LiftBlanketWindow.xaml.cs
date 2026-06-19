@@ -92,8 +92,8 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                 else if (!string.IsNullOrEmpty(_cachedPreviousJob.SavedAt))
                 {
                     LoadPreviousNote.Text =
-                        "Brings back the walls and options last generated (" + _cachedPreviousJob.SavedAt
-                        + "). Order number, network number and project details stay blank.";
+                        "Brings back the walls, options and project notes last generated (" + _cachedPreviousJob.SavedAt
+                        + "). Check the order and network numbers before generating.";
                 }
             }
             catch { LoadPreviousButton.IsEnabled = false; }
@@ -201,6 +201,9 @@ namespace CanvasCovers.UI.Products.LiftBlanket
         {
             try
             {
+                // Round 3: cache the project notes too so a repeat job carries
+                // them over. Read() trims to the same values Generate uses.
+                ProjectMetadata project = MetadataPanel.Read();
                 var data = new CachedJobInputs
                 {
                     SavedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
@@ -217,6 +220,12 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                     QuiltingSpacingText = QuiltingSpacingInput.Text,
                     QuiltingEnabled = QuiltingOption.IsChecked == true,
                     ExportDxf = ExportDxfOption.IsChecked == true,
+                    CompanyName = project.CompanyName,
+                    CompanyInitials = project.CompanyInitials,
+                    NetworkNumber = project.NetworkNumber,
+                    OrderNumber = project.OrderNumber,
+                    ProjectName = project.ProjectName,
+                    DateText = project.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 };
                 JobCache.Save(data, JobCache.DefaultPath);
             }
@@ -233,6 +242,22 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             }
             ClearError();
 
+            // Restore runs on the host UI thread with no dispatcher net
+            // (CLAUDE.md §9), and the cache is a best-effort, possibly
+            // hand-edited file — surface a malformed restore as an in-dialog
+            // error instead of crashing DraftSight.
+            try
+            {
+                RestorePreviousJob(data);
+            }
+            catch
+            {
+                ShowError("Could not load the previous job's measurements.");
+            }
+        }
+
+        private void RestorePreviousJob(CachedJobInputs data)
+        {
             // Options BEFORE walls: Through Car drives the rear tab's enabled
             // state, which must be settled before the rear wall's cached
             // include/values land.
@@ -249,6 +274,24 @@ namespace CanvasCovers.UI.Products.LiftBlanket
             QuiltingSpacingInput.Text = data.QuiltingSpacingText ?? string.Empty;
             QuiltingOption.IsChecked = data.QuiltingEnabled;
             ExportDxfOption.IsChecked = data.ExportDxf;
+
+            // Project notes (round 3): carry them over too; the operator edits
+            // the per-job fields (order/network number) afterwards. DateText is
+            // the pre-formatted cache string — parse it back, leaving the date
+            // unset if it is missing/unparseable (e.g. a pre-round-3 cache).
+            DateTime? date = null;
+            if (DateTime.TryParseExact(data.DateText, "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+                date = parsedDate;
+            MetadataPanel.Apply(new ProjectMetadata
+            {
+                CompanyName = data.CompanyName,
+                CompanyInitials = data.CompanyInitials,
+                NetworkNumber = data.NetworkNumber,
+                OrderNumber = data.OrderNumber,
+                ProjectName = data.ProjectName,
+                Date = date,
+            });
 
             LeftBlanket.ApplyCacheInputs(data.Left);
             RightBlanket.ApplyCacheInputs(data.Right);
@@ -413,7 +456,7 @@ namespace CanvasCovers.UI.Products.LiftBlanket
                     errors.Add(wallLabel + " COP width (segment 2) must be greater than zero when COP is enabled.");
 
                 // COP must fit horizontally within the cut piece: its left edge
-                // (half-allowance + DR-L + S1) plus its width (S2) must not pass
+                // (DR-L + S1) plus its width (S2) must not pass
                 // the right cut edge.
                 if (wall.Segments.Seg2 > 0)
                 {

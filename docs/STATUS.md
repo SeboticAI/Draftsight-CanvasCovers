@@ -6,17 +6,21 @@ queued next.
 
 ## Current Release State
 
-**Current version: v1.6.0** on `main`. Customer installer:
-`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.6.0.exe`. Contains Martin's
-round-2 change list (see [CHANGE_REQUESTS_ROUND2.md](CHANGE_REQUESTS_ROUND2.md)),
-implemented + unit-tested + simplify-pass reviewed; the in-DraftSight
+**Current version: v1.7.0** on `main`. Customer installer:
+`Installer\Output\BesiaCAD-CanvasCovers-Setup-1.7.0.exe`. Contains Martin's
+round-2 change list (see [CHANGE_REQUESTS_ROUND2.md](CHANGE_REQUESTS_ROUND2.md))
+plus the round-3 notes carry-over (see
+[CHANGE_REQUESTS_ROUND3.md](CHANGE_REQUESTS_ROUND3.md)) and a production-readiness
+review pass, implemented + unit-tested + simplify-pass reviewed; the in-DraftSight
 live-test checklist (plan task 9, step 3) is still to be run by the operator:
 
 - **Previous-job memory**: every successful Generate caches the raw form
   state to `%AppData%\BesiaCAD\CanvasCovers\last-job.json`; a "Load Previous
-  Job's Measurements" button (top of the form) restores walls + options.
-  Order number, network number, company, project name and date are never
-  cached — they start blank per job by design.
+  Job's Measurements" button (top of the form) restores walls, options and
+  the project notes (company, initials, network number, order number, project
+  name, date). The operator edits the per-job fields (order/network number)
+  after loading. (Round-3 change: Martin asked for the notes to carry over
+  too, reversing the original v1.6.0 "project fields stay blank" decision.)
 - **Fixings**: Eyelet split into TG7/TG9 (same -30 allowance, different COP
   label); the combo starts unselected and Generate blocks until a fixing is
   chosen (`FixingType.None` added).
@@ -28,7 +32,7 @@ live-test checklist (plan task 9, step 3) is still to be run by the operator:
   `Resources\customers.csv` (29 entries from Martin), copied on first use to
   `%AppData%\BesiaCAD\CanvasCovers\customers.csv` for Notepad editing;
   selecting a customer auto-fills the initials.
-- Tests: 51 passing (`dotnet test`), Release build clean. New gotcha: a WPF
+- Tests: 56 passing (`dotnet test`; re-confirm on the Windows build), Release build clean. New gotcha: a WPF
   (`UseWPF`) net48 project referencing `System.Web.Extensions` must also
   reference `System.Web` explicitly or the markup compiler fails with MC1000.
 - Post-implementation simplify pass: `UserDataPaths` is the single source for
@@ -176,7 +180,8 @@ Non-blocking warnings and safety:
 - Installer: Inno Setup, per-machine, admin, RegAsm `/codebase`, XML deployed
   to ProgramData, upgrades auto-uninstall the previous version first.
 - Rollback: `scripts\rollback-canvascovers.ps1 -StopDraftSight`
-- Diagnostic command: `CANVASCOVERSLAYERTEST`
+- Diagnostic command: `CANVASCOVERSLAYERTEST` — DEBUG builds only (registration
+  is `#if DEBUG`-gated in `App.cs`, so it never ships in a Release/customer build).
 
 ## Not Built Yet
 
@@ -211,7 +216,7 @@ Keep using the patterns in [CLAUDE.md](../CLAUDE.md), especially section 9:
 .\Installer\build.ps1
 ```
 
-Run `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.5.0.exe` as admin, open
+Run `Installer\Output\BesiaCAD-CanvasCovers-Setup-1.7.0.exe` as admin, open
 DraftSight, tick CanvasCovers in Add-Ins, open a new drawing, run the Lift
 Blanket flow, Generate, export, reopen the DXF, and Ctrl+Z the generated
 entities.

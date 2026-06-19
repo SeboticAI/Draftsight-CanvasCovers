@@ -48,6 +48,15 @@ namespace CanvasCovers.Commands
         {
             try
             {
+                // If the Lift Blanket dialog is already open, just focus it —
+                // don't pop a redundant modal picker that would freeze the
+                // open dialog behind it until dismissed.
+                if (_openLiftBlanketWindow != null)
+                {
+                    _openLiftBlanketWindow.Activate();
+                    return;
+                }
+
                 ProductPickerWindow picker = new ProductPickerWindow();
                 TrySetDraftSightOwner(picker);
                 if (picker.ShowDialog() != true || picker.SelectedProduct == null)
@@ -191,6 +200,15 @@ namespace CanvasCovers.Commands
             {
                 _openLiftBlanketWindow = null;
             }
+        }
+
+        // Closes any open Lift Blanket dialog. Called from
+        // App.DisconnectFromDraftSight so a non-modal dialog can't outlive the
+        // add-in. Close() fires LiftBlanketWindow_Closed (above) on the same STA
+        // thread, which unsubscribes the handlers and clears the static field.
+        public static void CloseOpenDialog()
+        {
+            _openLiftBlanketWindow?.Close();
         }
 
         private static string ResolveIconPath(string fileName)

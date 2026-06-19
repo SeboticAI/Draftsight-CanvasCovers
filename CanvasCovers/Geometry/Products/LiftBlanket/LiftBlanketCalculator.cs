@@ -119,7 +119,7 @@ namespace CanvasCovers.Geometry.Products.LiftBlanket
             {
                 // Horizontal geometry is derived from the segments: the COP
                 // width is the middle box (Seg2), and its left edge sits
-                // half-allowance + DoorReturnLeft + Seg1 in from the cut edge
+                // DoorReturnLeft + Seg1 in from the cut edge
                 // (measured from the door-return line, per the sheet).
                 double copX0 = originX
                     + wall.Segments.DoorReturnLeft + wall.Segments.Seg1;
